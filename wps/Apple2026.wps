@@ -61,6 +61,9 @@
 %xl(K,wpsArtCorners110.bmp,0,0)
 # Wheel-mode row: 5 icons x (inactive a-e / active f-j)
 %xl(W,wps_modes.bmp,0,0,10)
+# Rating stars: a=empty b=filled (muted) / c=empty d=filled (pink,
+# shown while the rating mode is active)
+%xl(S,wps_stars.bmp,0,0,4)
 
 
 
@@ -95,6 +98,7 @@
 %Vd(repeat_label_state)
 %Vd(player_status_lane)
 %Vd(mode_vol)%Vd(mode_scrub)%Vd(mode_pl)%Vd(mode_lyr)%Vd(mode_rate)
+%Vd(star1)%Vd(star2)%Vd(star3)%Vd(star4)%Vd(star5)
 
 # Sleep timer
 %?bs<%Vd(sleeptimer)>
@@ -260,3 +264,24 @@
 %Vl(mode_rate,284,150,14,14,-)
 %Vb(FFFFFF)
 %?if(%Wm, =, 4)<%xd(Wj)|%xd(We)>
+
+# Rating row (under the artist line, iPod-style)
+%Vl(star1,136,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 2)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 2)<%xd(Sb)|%xd(Sa)>>
+
+%Vl(star2,151,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 4)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 4)<%xd(Sb)|%xd(Sa)>>
+
+%Vl(star3,166,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 6)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 6)<%xd(Sb)|%xd(Sa)>>
+
+%Vl(star4,181,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 8)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 8)<%xd(Sb)|%xd(Sa)>>
+
+%Vl(star5,196,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 10)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 10)<%xd(Sb)|%xd(Sa)>>

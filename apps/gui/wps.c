@@ -735,79 +735,26 @@ static void a26_wps_scrub(struct mp3entry *id3, int dir)
 }
 
 #ifdef HAVE_TAGCACHE
-/* Five-star rating picker (iPod style): wheel sets stars, SELECT saves,
- * MENU cancels.  Rockbox stores 0..10, so one star == two points. */
-#define A26_STAR_PX 26
-static void a26_wps_rating_screen(struct mp3entry *id3)
+/* Rating is edited in place with the wheel while the rating mode is
+ * active; the star row lives in the skin (%rr + %Wm), so no overlay
+ * screen is drawn over the player. */
+static void a26_wps_rate(struct mp3entry *id3, int dir)
 {
-    struct screen *display = &screens[SCREEN_MAIN];
-    static fb_data star_px[A26_STAR_PX * A26_STAR_PX * 2];
-    struct bitmap bm;
-    int stars = (id3->rating + 1) / 2;
-    int old_rating = id3->rating;
-    bool have_art;
-    int i, action;
+    int rating;
 
-    memset(&bm, 0, sizeof(bm));
-    bm.data = (unsigned char *)star_px;
-    have_art = read_bmp_file(WPS_DIR "/Apple2026/wps_stars.bmp", &bm,
-                             sizeof(star_px), FORMAT_NATIVE | FORMAT_DITHER,
-                             NULL) > 0 && bm.width == A26_STAR_PX;
-
-    while (1)
-    {
-        int y = LCD_HEIGHT / 2 - A26_STAR_PX / 2;
-        int x0 = (LCD_WIDTH - (5 * A26_STAR_PX + 4 * 8)) / 2;
-
-        display->set_viewport(NULL);
-        display->clear_display();
-        display->setfont(FONT_UI);
-        display->set_foreground(LCD_BLACK);
-        {
-            const char *t = str(LANG_MENU_SET_RATING);
-            int tw, th;
-            display->getstringsize(t, &tw, &th);
-            display->putsxy((LCD_WIDTH - tw) / 2, y - 40, t);
-        }
-        for (i = 0; i < 5; i++)
-        {
-            int x = x0 + i * (A26_STAR_PX + 8);
-            if (have_art)
-                display->bitmap_part(star_px, 0,
-                                     (i < stars) ? A26_STAR_PX : 0,
-                                     STRIDE(SCREEN_MAIN, A26_STAR_PX,
-                                            A26_STAR_PX * 2),
-                                     x, y, A26_STAR_PX, A26_STAR_PX);
-            else
-            {
-                display->set_foreground(i < stars ? LCD_RGBPACK(0xFF, 0x2E, 0x56)
-                                                  : LCD_RGBPACK(0x8E, 0x8E, 0x93));
-                display->fillrect(x, y, A26_STAR_PX - 6, A26_STAR_PX - 6);
-            }
-        }
-        display->update();
-
-        action = get_action(CONTEXT_STD, HZ * 30);
-        if (action == ACTION_STD_NEXT && stars < 5)
-            stars++;
-        else if (action == ACTION_STD_PREV && stars > 0)
-            stars--;
-        else if (action == ACTION_STD_OK)
-        {
-            id3->rating = stars * 2;
-            tagcache_update_numeric(id3->tagcache_idx - 1, tag_rating,
-                                    id3->rating);
-            break;
-        }
-        else if (action == ACTION_STD_CANCEL || action == ACTION_NONE ||
-                 action == ACTION_STD_MENU)
-        {
-            id3->rating = old_rating;
-            break;
-        }
-    }
+    if (!id3 || !id3->tagcache_idx)
+        return;
+    rating = id3->rating + dir * 2;
+    if (rating < 0)
+        rating = 0;
+    if (rating > 10)
+        rating = 10;
+    if (rating == id3->rating)
+        return;
+    id3->rating = rating;
+    tagcache_update_numeric(id3->tagcache_idx - 1, tag_rating, rating);
 }
-#endif /* HAVE_TAGCACHE */
+#endif
 
 static void a26_wps_run_mode(struct mp3entry *id3)
 {
@@ -846,13 +793,8 @@ static void a26_wps_run_mode(struct mp3entry *id3)
 
 #ifdef HAVE_TAGCACHE
         case A26_WPS_RATING:
-            if (id3 && id3->tagcache_idx)
-            {
-                gwps_leave_wps(false);
-                a26_wps_rating_screen(id3);
-                gwps_enter_wps(false);
-            }
-            else
+            /* nothing to open: the wheel edits the stars in place */
+            if (!id3 || !id3->tagcache_idx)
                 splash(HZ, ID2P(LANG_ID3_NO_INFO));
             break;
 #endif
@@ -1194,6 +1136,15 @@ long gui_wps_show(void)
                     update = false;
                     break;
                 }
+#ifdef HAVE_TAGCACHE
+                if (a26_wps_mode == A26_WPS_RATING)
+                {
+                    a26_wps_rate(state->id3,
+                                 button == ACTION_WPS_VOLUP ? 1 : -1);
+                    restore = true;
+                    break;
+                }
+#endif
 #endif
                 if (button == ACTION_WPS_VOLUP)
                     adjust_volume(1);
