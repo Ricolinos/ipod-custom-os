@@ -44,8 +44,8 @@
 %xl(N,playerStatusLarge.bmp,0,0,4)
 %xl(A,holdSlider.bmp,0,0,2)
 %xl(B,batteryStatus.bmp,0,4,10)
-%xl(O,repeatLarge.bmp,0,0)
-%xl(Q,shuffleLarge.bmp,0,0)
+%xl(O,repeatLarge.bmp,0,0,4)
+%xl(Q,shuffleLarge.bmp,0,0,2)
 %xl(L,losslessIndicator.bmp,0,0)
 %xl(C,speaker_loud.bmp,266,1)
 
@@ -95,7 +95,6 @@
 # Active-only playback-state/status lane on the right
 %Vd(shuffle_state)
 %Vd(repeat_icon_state)
-%Vd(repeat_label_state)
 %Vd(player_status_lane)
 %Vd(mode_vol)%Vd(mode_scrub)%Vd(mode_pl)%Vd(mode_lyr)%Vd(mode_rate)
 %Vd(star1)%Vd(star2)%Vd(star3)%Vd(star4)%Vd(star5)
@@ -154,26 +153,17 @@
 %Vb(FFFFFF)
 %bs
 
-# Repeat mode â€” icon + text label for readability
-%Vl(shuffle_state,281,103,20,15,-)
+# Repeat / shuffle state (bottom row, flanking the transport).
+# Always drawn: pink when active, muted gray when off.  Repeat-one
+# swaps the glyph (SF: repeat / repeat.1 / shuffle).
+# %mm: 0=off 1=all 2=one 3=shuffle 4=A-B
+%Vl(repeat_icon_state,20,212,15,15,-)
 %Vb(FFFFFF)
-%?or(%if(%ps, =, s),%if(%mm, =, 3))<%xd(Q)>
+%?mm<%xd(Oa)|%xd(Ob)|%xd(Od)|%xd(Ob)|%xd(Ob)>
 
-# Shuffle indicator â€” shown when enabled
-%Vl(repeat_icon_state,281,124,20,15,-)
+%Vl(shuffle_state,285,212,15,15,-)
 %Vb(FFFFFF)
-%?mm<|%xd(O)|%xd(O)|%xd(O)|%xd(O)>
-
-%Vl(repeat_label_state,264,140,54,15,6)
-%Vf(8E8E93)
-%Vb(FFFFFF)
-%ac%?mm<||All|One|All|A-B>
-
-# Playlist position  -  centered in time row (font slot 3, RB12 h=18; VP h=18)
-%Vl(pl_counter,107,192,106,18,3)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%ac%pp %Sx(of) %pe
+%?or(%if(%ps, =, s),%if(%mm, =, 3))<%xd(Qb)|%xd(Qa)>
 
 # Song title  -  16pt Medium (slot 9, RB12 h=20); width locked to the
 # metadata safe area so long titles never enter the bottom-right status lane.
