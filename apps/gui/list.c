@@ -724,6 +724,13 @@ static void _lists_uiviewport_update_callback(unsigned short id,
 #if ROCKPOD_APPLE2026_IPOD
 void apple2026_list_settle(struct gui_synclist *lists)
 {
+    /* Purge every scrolling line first: scrollers registered against a
+     * previous menu's stack-allocated viewports must never survive a
+     * transition (the scroll thread would later write through the dead
+     * frame — wild stores into thread-stack guard pages, the signature
+     * of the intermittent boot crash). */
+    FOR_NB_SCREENS(i)
+        screens[i].scroll_stop();
     sb_skin_update(SCREEN_MAIN, true);
     gui_synclist_refresh_layout(lists);
 }
