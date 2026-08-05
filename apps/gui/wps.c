@@ -763,10 +763,10 @@ static void a26_wps_run_mode(struct mp3entry *id3)
         case A26_WPS_PLAYLIST:
             if (id3 && id3->path[0])
             {
-                gwps_leave_wps(false);
+                gwps_leave_wps(true);
                 catalog_add_to_a_playlist(id3->path, FILE_ATTR_AUDIO,
                                           false, NULL, NULL);
-                gwps_enter_wps(false);
+                /* the wps loop re-enters through `restore` */
             }
             break;
 
@@ -781,10 +781,9 @@ static void a26_wps_run_mode(struct mp3entry *id3)
             {
                 if (file_exists(lrc[i]))
                 {
-                    gwps_leave_wps(false);
+                    gwps_leave_wps(true);
                     plugin_load(lrc[i], NULL);
-                    gwps_enter_wps(false);
-                    return;
+                    return;   /* the wps loop re-enters through `restore` */
                 }
             }
             splash(HZ, ID2P(LANG_ID3_NO_INFO));
