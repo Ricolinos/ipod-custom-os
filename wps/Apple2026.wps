@@ -59,6 +59,8 @@
 %xl(J,vb_backdrop.bmp,0,0)
 # Preload album art framing assets (Apple Music-style rounded corners + soft shadow)
 %xl(K,wpsArtCorners.bmp,0,0)
+# Wheel-mode row: 5 icons x (inactive a-e / active f-j)
+%xl(W,wps_modes.bmp,0,0,10)
 
 
 
@@ -92,6 +94,7 @@
 %Vd(repeat_icon_state)
 %Vd(repeat_label_state)
 %Vd(player_status_lane)
+%Vd(mode_vol)%Vd(mode_scrub)%Vd(mode_pl)%Vd(mode_lyr)%Vd(mode_rate)
 
 # Sleep timer
 %?bs<%Vd(sleeptimer)>
@@ -233,3 +236,27 @@
 %x(M,speaker_mute.bmp,35,1)
 %pv(58,8,204,4,image,I,backdrop,J)
 %xd(C)
+
+# -------------------------------------------------------
+# Wheel-mode row (Apple2026): SELECT cycles Volume / Scrub / Playlist /
+# Lyrics / Rating.  %Wm is the active mode; active icon is Apple pink,
+# the others are the muted secondary gray.
+%Vl(mode_vol,109,-16,14,14,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 0)<%xd(Wf)|%xd(Wa)>
+
+%Vl(mode_scrub,131,-16,14,14,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 1)<%xd(Wg)|%xd(Wb)>
+
+%Vl(mode_pl,153,-16,14,14,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 2)<%xd(Wh)|%xd(Wc)>
+
+%Vl(mode_lyr,175,-16,14,14,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 3)<%xd(Wi)|%xd(Wd)>
+
+%Vl(mode_rate,197,-16,14,14,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%xd(Wj)|%xd(We)>

@@ -53,6 +53,10 @@ struct wps_state *get_wps_state(void);
 struct mp3entry *wps_get_current_id3(void);
 struct mp3entry *wps_get_next_id3(void);
 
+/* Apple2026: active Now Playing wheel mode (0=volume 1=scrub 2=playlist
+ * 3=lyrics 4=rating) — read by the %Wm skin tag. */
+int a26_wps_get_mode(void);
+
 /* in milliseconds */
 #define DEFAULT_SKIP_THRESH          3000l
 

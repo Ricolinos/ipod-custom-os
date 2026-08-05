@@ -66,6 +66,7 @@
 #include "fixedpoint.h"
 #endif
 #include "list.h"
+#include "wps.h"
 #include "option_select.h"
 #include "quickscreen.h"
 #include "wps.h"
@@ -1127,6 +1128,12 @@ const char *get_token_value(struct gui_wps *gwps,
                 return NULL;
             return !strcmp(t, root) ? "s" : NULL;
         }
+        case SKIN_TOKEN_A26_WPS_MODE:
+            /* Apple2026: Now Playing wheel mode (0..4) */
+            numeric_ret = a26_wps_get_mode();
+            itoa_buf(buf, buf_size, numeric_ret);
+            numeric_buf = buf;
+            goto gtv_ret_numeric_tag_info;
         case SKIN_TOKEN_LIST_TITLE_IS_MUSIC:
         {
             /* Apple2026: true inside the Music submenu (split pane there

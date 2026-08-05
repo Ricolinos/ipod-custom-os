@@ -734,6 +734,81 @@ static void a26_wps_scrub(struct mp3entry *id3, int dir)
     audio_ff_rewind(pos);
 }
 
+#ifdef HAVE_TAGCACHE
+/* Five-star rating picker (iPod style): wheel sets stars, SELECT saves,
+ * MENU cancels.  Rockbox stores 0..10, so one star == two points. */
+#define A26_STAR_PX 26
+static void a26_wps_rating_screen(struct mp3entry *id3)
+{
+    struct screen *display = &screens[SCREEN_MAIN];
+    static fb_data star_px[A26_STAR_PX * A26_STAR_PX * 2];
+    struct bitmap bm;
+    int stars = (id3->rating + 1) / 2;
+    int old_rating = id3->rating;
+    bool have_art;
+    int i, action;
+
+    memset(&bm, 0, sizeof(bm));
+    bm.data = (unsigned char *)star_px;
+    have_art = read_bmp_file(WPS_DIR "/Apple2026/wps_stars.bmp", &bm,
+                             sizeof(star_px), FORMAT_NATIVE | FORMAT_DITHER,
+                             NULL) > 0 && bm.width == A26_STAR_PX;
+
+    while (1)
+    {
+        int y = LCD_HEIGHT / 2 - A26_STAR_PX / 2;
+        int x0 = (LCD_WIDTH - (5 * A26_STAR_PX + 4 * 8)) / 2;
+
+        display->set_viewport(NULL);
+        display->clear_display();
+        display->setfont(FONT_UI);
+        display->set_foreground(LCD_BLACK);
+        {
+            const char *t = str(LANG_MENU_SET_RATING);
+            int tw, th;
+            display->getstringsize(t, &tw, &th);
+            display->putsxy((LCD_WIDTH - tw) / 2, y - 40, t);
+        }
+        for (i = 0; i < 5; i++)
+        {
+            int x = x0 + i * (A26_STAR_PX + 8);
+            if (have_art)
+                display->bitmap_part(star_px, 0,
+                                     (i < stars) ? A26_STAR_PX : 0,
+                                     STRIDE(SCREEN_MAIN, A26_STAR_PX,
+                                            A26_STAR_PX * 2),
+                                     x, y, A26_STAR_PX, A26_STAR_PX);
+            else
+            {
+                display->set_foreground(i < stars ? LCD_RGBPACK(0xFF, 0x2E, 0x56)
+                                                  : LCD_RGBPACK(0x8E, 0x8E, 0x93));
+                display->fillrect(x, y, A26_STAR_PX - 6, A26_STAR_PX - 6);
+            }
+        }
+        display->update();
+
+        action = get_action(CONTEXT_STD, HZ * 30);
+        if (action == ACTION_STD_NEXT && stars < 5)
+            stars++;
+        else if (action == ACTION_STD_PREV && stars > 0)
+            stars--;
+        else if (action == ACTION_STD_OK)
+        {
+            id3->rating = stars * 2;
+            tagcache_update_numeric(id3->tagcache_idx - 1, tag_rating,
+                                    id3->rating);
+            break;
+        }
+        else if (action == ACTION_STD_CANCEL || action == ACTION_NONE ||
+                 action == ACTION_STD_MENU)
+        {
+            id3->rating = old_rating;
+            break;
+        }
+    }
+}
+#endif /* HAVE_TAGCACHE */
+
 static void a26_wps_run_mode(struct mp3entry *id3)
 {
     switch (a26_wps_mode)
@@ -774,11 +849,7 @@ static void a26_wps_run_mode(struct mp3entry *id3)
             if (id3 && id3->tagcache_idx && global_settings.runtimedb)
             {
                 gwps_leave_wps(false);
-                set_int_ex(str(LANG_MENU_SET_RATING), "", UNIT_INT,
-                           (void *)&id3->rating, NULL, 1, 0, 10,
-                           NULL, NULL);
-                tagcache_update_numeric(id3->tagcache_idx - 1, tag_rating,
-                                        id3->rating);
+                a26_wps_rating_screen(id3);
                 gwps_enter_wps(false);
             }
             else
@@ -792,23 +863,18 @@ static void a26_wps_run_mode(struct mp3entry *id3)
 
 static void a26_wps_cycle_mode(struct mp3entry *id3)
 {
-    static const int mode_lang[A26_WPS_MODE_COUNT] = {
-        LANG_VOLUME, LANG_A26_WPS_SCRUB, LANG_CATALOG_ADD_TO_NEW,
-        LANG_A26_WPS_LYRICS,
-#ifdef HAVE_TAGCACHE
-        LANG_MENU_SET_RATING,
-#else
-        LANG_VOLUME,
-#endif
-    };
-
+    /* No splash: the mode row in the skin (%Wm) shows the active mode. */
     a26_wps_mode = (a26_wps_mode + 1) % A26_WPS_MODE_COUNT;
 #ifndef HAVE_TAGCACHE
     if (a26_wps_mode == A26_WPS_RATING)
         a26_wps_mode = A26_WPS_VOLUME;
 #endif
-    splash(HZ / 2, str(mode_lang[a26_wps_mode]));
     a26_wps_run_mode(id3);
+}
+
+int a26_wps_get_mode(void)
+{
+    return a26_wps_mode;
 }
 #endif /* ROCKPOD_APPLE2026_IPOD */
 

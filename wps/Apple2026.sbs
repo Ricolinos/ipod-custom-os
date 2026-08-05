@@ -147,7 +147,7 @@
 # remove them:
 # (pane_music.bmp) (pane_videos.bmp) (pane_photos.bmp) (pane_podcasts.bmp)
 # (pane_extras.bmp) (pane_settings.bmp) (pane_shuffle.bmp) (pane_nowplaying.bmp)
-# (pane_bg.bmp)
+# (pane_bg.bmp) (wps_stars.bmp)
 # mainlarge: used when playing/paused (content area above 50px mini-player)
 %Vi(-,0,20,-,-50,5)
 %Vf(000000)
