@@ -693,9 +693,18 @@ static int item_callback(int action,
 MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
                         NULL, Icon_Bookmark);
 
-/* Apple2026: /Music folder view inside the Music submenu ("Carpetas"). */
-MENUITEM_RETURNVALUE(music_library, ID2P(LANG_ROOT_FOLDERS), GO_TO_MUSICLIB,
-                        NULL, Icon_Folder);
+/* Apple2026: /Music folder view inside the Music submenu ("Carpetas"),
+ * run inline so backing out stays in the Music submenu. */
+static int music_folders_fn(void)
+{
+    int ret = browser((void *)GO_TO_MUSICLIB);
+    if (ret == GO_TO_ROOT || ret == GO_TO_PREVIOUS)
+        return 0;
+    return ret;
+}
+MENUITEM_FUNCTION(music_library, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_ROOT_FOLDERS), music_folders_fn, NULL,
+                  Icon_Folder);
 /* Apple2026 split root menu: curated media libraries */
 MENUITEM_RETURNVALUE(video_library, ID2P(LANG_ROOT_VIDEOS), GO_TO_VIDEOLIB,
                         NULL, Icon_Display_menu);
@@ -792,10 +801,17 @@ MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
  * 4=Search — must match the "main" menu order in apps/tagnavi.config),
  * plus Cover Flow, Playlists and the /Music folder view. */
 #ifdef HAVE_TAGCACHE
+/* Run the database view inline (extras_files_fn pattern): normal exits
+ * stay inside the Music submenu — backing out of Songs/Artists/... lands
+ * back on the Music menu like the original iPod, split pane intact. */
 static int db_view_fn(void *param)
 {
+    int ret;
     tagtree_request_initial_entry((intptr_t)param);
-    return GO_TO_DBBROWSER;
+    ret = browser((void *)GO_TO_DBBROWSER);
+    if (ret == GO_TO_ROOT || ret == GO_TO_PREVIOUS)
+        return 0;
+    return ret;
 }
 MENUITEM_FUNCTION_W_PARAM(db_songs_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_SONGS), db_view_fn, (void *)0,

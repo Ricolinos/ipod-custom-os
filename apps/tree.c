@@ -616,16 +616,27 @@ static int update_dir(void)
      * keep normal 18pt.  For the database browser, key off the actual tagtree
      * row type so album/category lists stay normal while track lists go dense. */
     rockpod_list_font_tier_t tier = ROCKPOD_LIST_FONT_NORMAL;
+    bool a26_rail = false;
     if (!id3db && tc.browse && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB)) {
-        if (tc.dirlevel >= 2)
+        if (tc.dirlevel >= 2) {
             tier = ROCKPOD_LIST_FONT_DENSE;
+            a26_rail = true;
+        }
     }
 #ifdef HAVE_TAGCACHE
     else if (id3db) {
         if (tagtree_get_attr(&tc) == FILE_ATTR_AUDIO)
             tier = ROCKPOD_LIST_FONT_DENSE;
+        /* Songs/Artists/Albums/Genres content lists: iPod-style A-Z rail,
+         * no per-row icons */
+        if (tc.dirlevel >= 1)
+            a26_rail = true;
     }
 #endif
+    list->a26_index_rail = a26_rail;
+    gui_synclist_set_icon_callback(list,
+        (a26_rail || !global_settings.show_icons) ? NULL
+                                                  : &tree_get_fileicon);
     gui_synclist_set_font_tier(list, tier);
     gui_synclist_refresh_layout(list);
 #endif

@@ -341,7 +341,13 @@ unsigned int create_thread(void (*function)(void),
     }
 
 #if SDL_MAJOR_VERSION > 1
-    SDL_Thread *t = SDL_CreateThread(runthread, NULL, thread);
+    /* Apple2026: the default SDL thread stack (512KB pthread default on
+     * macOS) is too small for the UI thread's worst case — image decode
+     * (JPEG + scaler) nested inside a draw during boot — which showed up
+     * as intermittent guard-page SIGBUS with an unwindable stack.  Give
+     * simulated Rockbox threads a roomy 4MB like real desktop threads. */
+    SDL_Thread *t = SDL_CreateThreadWithStackSize(runthread, NULL,
+                                                  4 * 1024 * 1024, thread);
 #else
     SDL_Thread *t = SDL_CreateThread(runthread, thread);
 #endif

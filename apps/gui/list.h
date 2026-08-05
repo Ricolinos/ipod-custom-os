@@ -152,6 +152,9 @@ struct gui_synclist
     int scrollbar;
     int cursor_style;
     bool show_icons;
+    /* Apple2026: right-edge A-Z index rail + fast-wheel letter jumps
+     * (database views and music tracklists) */
+    bool a26_index_rail;
     bool keyclick;
     bool talk_menu;
     bool wraparound;

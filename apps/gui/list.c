@@ -228,6 +228,7 @@ void gui_synclist_init(struct gui_synclist * gui_list,
     gui_list->callback_get_item_name = callback_get_item_name;
     gui_list->callback_speak_item = NULL;
     gui_list->callback_draw_item = NULL;
+    gui_list->a26_index_rail = false;
     gui_list->nb_items = 0;
     gui_list->selected_item = 0;
     gui_list->font_tier = ROCKPOD_LIST_FONT_NORMAL;
@@ -694,6 +695,33 @@ static void _lists_uiviewport_update_callback(unsigned short id,
         gui_synclist_draw(current_lists);
 }
 
+#if ROCKPOD_APPLE2026_IPOD
+void apple2026_list_settle(struct gui_synclist *lists)
+{
+    sb_skin_update(SCREEN_MAIN, true);
+    gui_synclist_refresh_layout(lists);
+}
+
+/* First-letter bucket of an item: 'A'..'Z' or '#'. */
+static char a26_item_letter(struct gui_synclist *lists, int item)
+{
+    char buf[64];
+    const char *name = lists->callback_get_item_name(item, lists->data,
+                                                     buf, sizeof(buf));
+    unsigned char c = name ? (unsigned char)name[0] : 0;
+    if (c >= 'a' && c <= 'z')
+        c -= 'a' - 'A';
+    return (c >= 'A' && c <= 'Z') ? (char)c : '#';
+}
+
+char apple2026_list_current_letter(struct gui_synclist *lists)
+{
+    if (lists->nb_items <= 0)
+        return '#';
+    return a26_item_letter(lists, lists->selected_item);
+}
+#endif
+
 bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
 {
     int action = *actionptr;
@@ -707,6 +735,35 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
         *actionptr = ACTION_NONE;
         return false;
     }
+
+#if ROCKPOD_APPLE2026_IPOD
+    /* Fast wheel on an indexed list jumps by first letter (iPod-style). */
+    if (lists->a26_index_rail && lists->nb_items > 1 &&
+        (action == ACTION_STD_PREVREPEAT || action == ACTION_STD_NEXTREPEAT))
+    {
+        int i = lists->selected_item;
+        char cur = a26_item_letter(lists, i);
+        if (action == ACTION_STD_NEXTREPEAT)
+        {
+            while (i < lists->nb_items - 1 && a26_item_letter(lists, i) == cur)
+                i++;
+        }
+        else
+        {
+            while (i > 0 && a26_item_letter(lists, i) == cur)
+                i--;
+            /* land on the first entry of the previous letter group */
+            cur = a26_item_letter(lists, i);
+            while (i > 0 && a26_item_letter(lists, i - 1) == cur)
+                i--;
+        }
+        gui_synclist_select_item(lists, i);
+        gui_synclist_draw(lists);
+        gui_synclist_speak_item(lists);
+        *actionptr = action;
+        return true;
+    }
+#endif
 
 #ifdef HAVE_WHEEL_ACCELERATION
     int next_item_modifier = button_apply_acceleration(get_action_data());

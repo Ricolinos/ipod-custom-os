@@ -310,6 +310,44 @@ void list_draw(struct screen *display, struct gui_synclist *list)
     depth--;
 }
 
+#if ROCKPOD_APPLE2026_IPOD
+#define A26_INDEX_RAIL_W 14
+/* iPod-style A-Z index rail on the right edge: '#' + 26 letters in the
+ * tiny system font, current letter in the accent red. */
+static void a26_draw_index_rail(struct screen *display,
+                                struct viewport *parent,
+                                struct gui_synclist *list)
+{
+    struct viewport vp = *parent;
+    char cur = apple2026_list_current_letter(list);
+    int cell, y0, i;
+    char s[2] = "#";
+
+    vp.x = parent->x + parent->width - A26_INDEX_RAIL_W;
+    vp.width = A26_INDEX_RAIL_W;
+    vp.font = FONT_SYSFIXED;
+    vp.fg_pattern = SCREEN_COLOR_TO_NATIVE(display,
+                                           LCD_RGBPACK(0x8E, 0x8E, 0x93));
+    vp.bg_pattern = parent->bg_pattern;
+    display->set_viewport(&vp);
+    display->clear_viewport();
+
+    cell = vp.height / 27;
+    y0 = (vp.height - cell * 27) / 2;
+    for (i = 0; i < 27; i++)
+    {
+        s[0] = (i == 0) ? '#' : (char)('A' + i - 1);
+        if (s[0] == cur)
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                        LCD_RGBPACK(0xFF, 0x2E, 0x56)));
+        display->putsxy(3, y0 + i * cell + (cell - 8) / 2, s);
+        if (s[0] == cur)
+            display->set_foreground(vp.fg_pattern);
+    }
+    display->set_viewport(parent);
+}
+#endif
+
 static void list_draw_impl(struct screen *display, struct gui_synclist *list)
 {
     int start, end, item_offset, i;
@@ -334,6 +372,12 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
         callback_draw_item = _default_listdraw_fn;
 
     struct viewport * last_vp = display->set_viewport(parent);
+#if ROCKPOD_APPLE2026_IPOD
+    /* Index rail: temporarily narrow the text viewport; restored at the
+     * end of the draw (list_text is a persistent static). */
+    int a26_rail_w = list->a26_index_rail ? A26_INDEX_RAIL_W : 0;
+    list_text_vp->width -= a26_rail_w;
+#endif
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
     /* Apple2026: switch to dense 16pt font for track/song lists.
      * We set the viewport font to the dense font slot so all text in this
@@ -622,6 +666,11 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
 #if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
     parent->fg_pattern = dc_saved_list_fg;
     parent->bg_pattern = dc_saved_list_bg;
+#endif
+#if ROCKPOD_APPLE2026_IPOD
+    if (a26_rail_w)
+        a26_draw_index_rail(display, parent, list);
+    list_text_vp->width += a26_rail_w;
 #endif
     /* Apple2026 split root menu: paint the right-half preview pane in the
      * same frame as the list, so full clears never leave it blank. */

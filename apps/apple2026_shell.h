@@ -40,6 +40,17 @@ bool apple2026_theme_selected(void);
 bool apple2026_quicksettings_enabled(void);
 void apple2026_playpause(void);
 
+struct gui_synclist;
+/* Re-render the SBS with the current list title so title-dependent %VI
+ * routing (%Lo/%LM split viewports) settles deterministically, then
+ * re-derive the list viewport.  Removes the race that left split screens
+ * stuck full-width on device after backing out of a browser. */
+void apple2026_list_settle(struct gui_synclist *lists);
+
+/* First-letter bucket ('A'..'Z' or '#') of the selected item — used to
+ * highlight the A-Z index rail. */
+char apple2026_list_current_letter(struct gui_synclist *lists);
+
 #else
 
 #define ROCKPOD_APPLE2026_IPOD 0
@@ -56,6 +67,18 @@ static inline bool apple2026_quicksettings_enabled(void)
 
 static inline void apple2026_playpause(void)
 {
+}
+
+struct gui_synclist;
+static inline void apple2026_list_settle(struct gui_synclist *lists)
+{
+    (void)lists;
+}
+
+static inline char apple2026_list_current_letter(struct gui_synclist *lists)
+{
+    (void)lists;
+    return '#';
 }
 
 #endif

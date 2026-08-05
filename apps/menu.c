@@ -312,6 +312,9 @@ static int init_menu_lists(const struct menu_item_ex *menu,
         gui_synclist_set_voice_callback(lists, talk_menu_item);
     gui_synclist_set_nb_items(lists,current_subitems_count);
     gui_synclist_select_item(lists, find_menu_selection(selected));
+    /* Apple2026: settle the title-dependent split viewport routing before
+     * the first draw of this menu (no-op on other targets). */
+    apple2026_list_settle(lists);
 
     get_menu_callback(menu,&menu_callback);
     if (callback)
@@ -867,6 +870,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
 
             gui_synclist_set_title(&lists, lists.title, lists.title_icon);
+            apple2026_list_settle(&lists);
             gui_synclist_draw(&lists);
             gui_synclist_speak_item(&lists);
         }
