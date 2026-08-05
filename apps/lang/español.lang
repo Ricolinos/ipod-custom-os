@@ -6438,10 +6438,10 @@
     *: "Gather Runtime Data"
   </source>
   <dest>
-    *: "Recoger datos de ejecución"
+    *: "Recopilar datos de uso"
   </dest>
   <voice>
-    *: "Recoger datos de ejecución"
+    *: "Recopilar datos de uso"
   </voice>
 </phrase>
 <phrase>
@@ -7195,10 +7195,10 @@
     *: "Now Playing"
   </source>
   <dest>
-    *: "Ahora suena"
+    *: "Reproduciendo"
   </dest>
   <voice>
-    *: "Ahora suena"
+    *: "Reproduciendo"
   </voice>
 </phrase>
 <phrase>
@@ -16951,5 +16951,228 @@
   </dest>
   <voice>
     *: "Ajustes rápidos"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_MUSIC_LIBRARY
+  desc: Apple2026 root menu music library item
+  user: core
+  <source>
+    *: "Music"
+  </source>
+  <dest>
+    *: "Canciones"
+  </dest>
+  <voice>
+    *: "Canciones"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_DB_BROWSER
+  desc: Apple2026 root menu database browser item
+  user: core
+  <source>
+    *: "Database"
+  </source>
+  <dest>
+    *: "Carpetas"
+  </dest>
+  <voice>
+    *: "Carpetas"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_DAC
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    usbdac: "USB-DAC"
+  </source>
+  <dest>
+    *: none
+    usbdac: "USB-DAC"
+  </dest>
+  <voice>
+    *: none
+    usbdac: "USB-DAC"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_WHILE_USB_CHARGE_ONLY
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    usbdac: "While In USB Charge-Only Mode"
+  </source>
+  <dest>
+    *: none
+    usbdac: "En modo USB de solo carga"
+  </dest>
+  <voice>
+    *: none
+    usbdac: "En modo USB de solo carga"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_WHILE_MASS_STORAGE_USB_ONLY
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    usbdac: "While In USB Mass-Storage Mode"
+  </source>
+  <dest>
+    *: none
+    usbdac: "En modo USB de almacenamiento"
+  </dest>
+  <voice>
+    *: none
+    usbdac: "En modo USB de almacenamiento"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_DAC_ACTIVE
+  desc: for splash
+  user: core
+  <source>
+    *: none
+    usbdac: "USB-DAC Active"
+  </source>
+  <dest>
+    *: none
+    usbdac: "USB-DAC activo"
+  </dest>
+  <voice>
+    *: none
+    usbdac: "USB-DAC activo"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ANNOUNCE_STATUS
+  desc: announnnce_status plugin
+  user: core
+  <source>
+    *: "Announce Status"
+  </source>
+  <dest>
+    *: "Anunciar estado"
+  </dest>
+  <voice>
+    *: "Anunciar estado"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USE_LED_INDICATORS
+  desc: LED indicators setting
+  user: core
+  <source>
+    *: none
+    general_purpose_led: "Use LED indicators"
+  </source>
+  <dest>
+    *: none
+    general_purpose_led: "Usar indicadores LED"
+  </dest>
+  <voice>
+    *: none
+    general_purpose_led: "Usar indicadores LED"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STORAGE_MODE
+  desc: in settings_menu, storage mode setting
+  user: core
+  <source>
+    *: none
+    disk_storage: "Storage Mode"
+  </source>
+  <dest>
+    *: none
+    disk_storage: "Modo de almacenamiento"
+  </dest>
+  <voice>
+    *: none
+    disk_storage: "Modo de almacenamiento"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STORAGE_HDD
+  desc: in settings_menu, storage mode option
+  user: core
+  <source>
+    *: none
+    disk_storage: "HDD (Spinning Disk)"
+  </source>
+  <dest>
+    *: none
+    disk_storage: "HDD (disco mecánico)"
+  </dest>
+  <voice>
+    *: none
+    disk_storage: "HDD"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STORAGE_SSD
+  desc: in settings_menu, storage mode option
+  user: core
+  <source>
+    *: none
+    disk_storage: "SSD (Solid State)"
+  </source>
+  <dest>
+    *: none
+    disk_storage: "SSD (estado sólido)"
+  </dest>
+  <voice>
+    *: none
+    disk_storage: "SSD"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_WPS_SELECT_ACTION
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "WPS Select Action"
+  </source>
+  <dest>
+    *: "Acción del botón central"
+  </dest>
+  <voice>
+    *: "Acción del botón central"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_COVERFLOW
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Coverflow"
+  </source>
+  <dest>
+    *: "Cover Flow"
+  </dest>
+  <voice>
+    *: "Cover Flow"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_DYNAMIC_COLORS
+  desc: in display settings
+  user: core
+  <source>
+    *: none
+    lcd_color: "Dynamic Colors"
+  </source>
+  <dest>
+    *: none
+    lcd_color: "Colores dinámicos"
+  </dest>
+  <voice>
+    *: none
+    lcd_color: "Colores dinámicos"
   </voice>
 </phrase>

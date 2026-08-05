@@ -17167,3 +17167,31 @@
     *: "Quick Settings"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_MUSIC_LIBRARY
+  desc: Apple2026 root menu music library item
+  user: core
+  <source>
+    *: "Music"
+  </source>
+  <dest>
+    *: "Music"
+  </dest>
+  <voice>
+    *: "Music"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_DB_BROWSER
+  desc: Apple2026 root menu database browser item
+  user: core
+  <source>
+    *: "Database"
+  </source>
+  <dest>
+    *: "Database"
+  </dest>
+  <voice>
+    *: "Database"
+  </voice>
+</phrase>

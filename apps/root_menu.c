@@ -655,10 +655,10 @@ MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
                         NULL, Icon_Bookmark);
 
 /* Apple2026: primary library at /Music (full-disk browse not exposed at root). */
-MENUITEM_RETURNVALUE(music_library, "Music", GO_TO_MUSICLIB,
+MENUITEM_RETURNVALUE(music_library, ID2P(LANG_MUSIC_LIBRARY), GO_TO_MUSICLIB,
                         NULL, Icon_Audio);
 #ifdef HAVE_TAGCACHE
-MENUITEM_RETURNVALUE(db_browser, ID2P(LANG_TAGCACHE), GO_TO_DBBROWSER,
+MENUITEM_RETURNVALUE(db_browser, ID2P(LANG_DB_BROWSER), GO_TO_DBBROWSER,
                         NULL, Icon_Config);
 MENUITEM_RETURNVALUE(pictureflow_item, "Cover Flow", GO_TO_PICTUREFLOW,
                         NULL, Icon_Display_menu);
