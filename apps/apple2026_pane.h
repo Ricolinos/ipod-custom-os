@@ -56,8 +56,18 @@ enum a26_pane_id root_menu_pane_id_for_item(const struct menu_item_ex *item);
  * Called from the end of list_draw(); does its own update_viewport(). */
 void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
                          struct gui_synclist *list);
+
+/* True while the music pane cover fade is running: the list loop clamps
+ * its timeout to ~HZ/20 so fade frames are smooth. */
+bool apple2026_pane_animating(void);
+
+/* Advance the slideshow (scan slice, prefetch, 10s rotation).  Called on
+ * the menu idle tick; returns true when a redraw is wanted now. */
+bool apple2026_pane_tick(void);
 #else
 #define apple2026_pane_draw(display, list_vp, list) do { } while (0)
+#define apple2026_pane_animating() false
+#define apple2026_pane_tick() false
 #endif
 
 #endif /* APPLE2026_PANE_H */

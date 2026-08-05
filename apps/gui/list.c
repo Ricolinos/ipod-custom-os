@@ -42,6 +42,7 @@
 #include "statusbar-skinned.h"
 #include "skin_engine/skin_albumart_color.h"
 #include "apple2026_shell.h"
+#include "apple2026_pane.h"
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 /* Dense list font (16pt Regular) — loaded once on first use.
  * Matches Cover Flow tracklist and album-level file browser density. */
@@ -892,6 +893,13 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
         }
     }
 #endif
+    /* Apple2026 split root menu: advance the preview-pane slideshow on the
+     * idle tick and repaint when it produced a new frame. */
+    if (action == ACTION_NONE && apple2026_pane_tick())
+    {
+        gui_synclist_draw(lists);
+        return true;
+    }
     return false;
 }
 
@@ -907,6 +915,13 @@ int list_do_action_timeout(struct gui_synclist *lists, int timeout)
             timeout = fade_timeout;
     }
 #endif
+    /* Apple2026: smooth preview-pane cover fade */
+    if (apple2026_pane_animating())
+    {
+        int fade_timeout = HZ / 20;
+        if (timeout > fade_timeout)
+            timeout = fade_timeout;
+    }
     add_event_ex(GUI_EVENT_NEED_UI_UPDATE, true, _lists_uiviewport_update_callback, NULL);
     current_lists = lists;
     if(lists->scheduled_talk_tick)

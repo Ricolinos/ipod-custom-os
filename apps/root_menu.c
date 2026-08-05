@@ -679,6 +679,9 @@ static const struct root_items items[] = {
 #endif
     [GO_TO_MUSICLIB] =   { browser, (void*)GO_TO_MUSICLIB, &file_menu },
     [GO_TO_EQUALIZER] =  { miscscrn, &equalizer_menu, NULL },
+    [GO_TO_VIDEOLIB] =   { browser, (void*)GO_TO_VIDEOLIB, &file_menu },
+    [GO_TO_PHOTOLIB] =   { browser, (void*)GO_TO_PHOTOLIB, &file_menu },
+    [GO_TO_PODCASTLIB] = { browser, (void*)GO_TO_PODCASTLIB, &file_menu },
 
 };
 //static const int nb_items = sizeof(items)/sizeof(*items);
