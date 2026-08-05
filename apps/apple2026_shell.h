@@ -14,7 +14,7 @@
 
 #define ROCKPOD_APPLE2026_IPOD 1
 /* Full-bleed list chrome: viewport is LCD width; apply this indent to row content. */
-#define A26_LIST_CONTENT_INSET 16
+#define A26_LIST_CONTENT_INSET 10
 /* Shell background (FFFFFF) */
 #define A26_SHELL_BG LCD_RGBPACK(255, 255, 255)
 /* Primary body/header text (000000) */

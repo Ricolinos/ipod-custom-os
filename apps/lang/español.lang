@@ -17246,3 +17246,73 @@
     *: "Canciones"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_ROOT_ARTISTS
+  desc: Apple2026 music submenu artists view
+  user: core
+  <source>
+    *: "Artists"
+  </source>
+  <dest>
+    *: "Artistas"
+  </dest>
+  <voice>
+    *: "Artistas"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_ALBUMS
+  desc: Apple2026 music submenu albums view
+  user: core
+  <source>
+    *: "Albums"
+  </source>
+  <dest>
+    *: "Álbumes"
+  </dest>
+  <voice>
+    *: "Álbumes"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_GENRES
+  desc: Apple2026 music submenu genres view
+  user: core
+  <source>
+    *: "Genres"
+  </source>
+  <dest>
+    *: "Géneros"
+  </dest>
+  <voice>
+    *: "Géneros"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_SEARCH
+  desc: Apple2026 music submenu search view
+  user: core
+  <source>
+    *: "Search"
+  </source>
+  <dest>
+    *: "Buscar"
+  </dest>
+  <voice>
+    *: "Buscar"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_FOLDERS
+  desc: Apple2026 music submenu folder view of /Music
+  user: core
+  <source>
+    *: "Folders"
+  </source>
+  <dest>
+    *: "Carpetas"
+  </dest>
+  <voice>
+    *: "Carpetas"
+  </voice>
+</phrase>

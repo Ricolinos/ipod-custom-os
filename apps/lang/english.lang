@@ -17265,3 +17265,73 @@
     *: "Songs"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_ROOT_ARTISTS
+  desc: Apple2026 music submenu artists view
+  user: core
+  <source>
+    *: "Artists"
+  </source>
+  <dest>
+    *: "Artists"
+  </dest>
+  <voice>
+    *: "Artists"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_ALBUMS
+  desc: Apple2026 music submenu albums view
+  user: core
+  <source>
+    *: "Albums"
+  </source>
+  <dest>
+    *: "Albums"
+  </dest>
+  <voice>
+    *: "Albums"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_GENRES
+  desc: Apple2026 music submenu genres view
+  user: core
+  <source>
+    *: "Genres"
+  </source>
+  <dest>
+    *: "Genres"
+  </dest>
+  <voice>
+    *: "Genres"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_SEARCH
+  desc: Apple2026 music submenu search view
+  user: core
+  <source>
+    *: "Search"
+  </source>
+  <dest>
+    *: "Search"
+  </dest>
+  <voice>
+    *: "Search"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_FOLDERS
+  desc: Apple2026 music submenu folder view of /Music
+  user: core
+  <source>
+    *: "Folders"
+  </source>
+  <dest>
+    *: "Folders"
+  </dest>
+  <voice>
+    *: "Folders"
+  </voice>
+</phrase>

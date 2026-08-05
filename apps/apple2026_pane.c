@@ -49,10 +49,13 @@
 /* Static pane images live with the theme's other bitmaps. */
 #define PANE_ASSET_DIR WPS_DIR "/Apple2026"
 #define PANE_MAX_W 160
-#define PANE_MAX_H 152
+#define PANE_MAX_H 202
+/* Left-edge drop shadow of the list over the pane */
+#define PANE_SHADOW_W 12
 
-/* Slideshow geometry / timing */
-#define COVER_SIZE          140
+/* Slideshow geometry / timing: covers decode into a box wider than the
+ * 160px pane so a slow horizontal pan (iPod-style) has room to travel. */
+#define COVER_SIZE          202
 #define COVER_AREA          (COVER_SIZE * COVER_SIZE)
 #define COVER_POOL_MAX      96
 #define SCAN_QUEUE_MAX      96
@@ -107,26 +110,41 @@ static enum { MUSIC_EMPTY, MUSIC_FADING, MUSIC_HOLD } music_state = MUSIC_EMPTY;
 static long fade_start_tick = 0;
 static long hold_until_tick = 0;
 static bool music_active = false;
+/* slow horizontal pan across the displayed cover */
+static bool pan_left_to_right = true;
+static int  pan_last_drawn_x = -1;
+
+/* left-edge shadow work strip */
+static fb_data shadow_strip[PANE_SHADOW_W * PANE_MAX_H];
 
 /* ---- static tile ------------------------------------------------------ */
-static void pane_load(enum a26_pane_id id)
+static bool pane_load_bmp(const char *name)
 {
     char path[MAX_PATH];
     int ret;
 
-    pane_loaded_id = id;
-    pane_load_failed = true;
-
-    if (id <= A26_PANE_NONE || id >= A26_PANE_COUNT || !pane_asset_name[id])
-        return;
-
-    snprintf(path, sizeof(path), PANE_ASSET_DIR "/%s", pane_asset_name[id]);
+    snprintf(path, sizeof(path), PANE_ASSET_DIR "/%s", name);
     memset(&pane_bmp, 0, sizeof(pane_bmp));
     pane_bmp.data = (unsigned char *)pane_pixels;
     ret = read_bmp_file(path, &pane_bmp, sizeof(pane_pixels),
                         FORMAT_NATIVE | FORMAT_DITHER, NULL);
-    if (ret > 0 && pane_bmp.width > 0 && pane_bmp.height > 0
-        && pane_bmp.width <= PANE_MAX_W && pane_bmp.height <= PANE_MAX_H)
+    return ret > 0 && pane_bmp.width > 0 && pane_bmp.height > 0
+        && pane_bmp.width <= PANE_MAX_W && pane_bmp.height <= PANE_MAX_H;
+}
+
+static void pane_load(enum a26_pane_id id)
+{
+    pane_loaded_id = id;
+    pane_load_failed = true;
+
+    if (id > A26_PANE_NONE && id < A26_PANE_COUNT && pane_asset_name[id]
+        && pane_load_bmp(pane_asset_name[id]))
+    {
+        pane_load_failed = false;
+        return;
+    }
+    /* fall back to the plain gradient background */
+    if (pane_load_bmp("pane_bg.bmp"))
         pane_load_failed = false;
 }
 
@@ -341,13 +359,71 @@ static unsigned fade_alpha_now(void)
     return (unsigned)(elapsed * 256 / PANE_FADE_TICKS);
 }
 
+/* RGB565 darken (multiply by a/256) — left-edge shadow. */
+static inline fb_data pane_dark_px(fb_data c, unsigned a)
+{
+    unsigned rb = ((c & 0xF81Fu) * a) & 0xF81F00u;
+    unsigned g  = ((c & 0x07E0u) * a) & 0x07E000u;
+    return (fb_data)((rb | g) >> 8);
+}
+
+/* Redraw the pane's leftmost columns darkened: the list column appears to
+ * cast a soft shadow onto the pane, like the original iPod menu. */
+static void pane_edge_shadow(struct screen *display, const fb_data *src,
+                             int stride, int src_x, int src_y, int h)
+{
+    int x, y;
+
+    if (h > PANE_MAX_H)
+        h = PANE_MAX_H;
+    for (y = 0; y < h; y++)
+    {
+        const fb_data *row = src + (src_y + y) * stride + src_x;
+        fb_data *out = shadow_strip + y * PANE_SHADOW_W;
+        for (x = 0; x < PANE_SHADOW_W; x++)
+        {
+            /* 55% black at the edge, easing out to fully transparent */
+            unsigned a = 140 + (116 * (unsigned)x) / PANE_SHADOW_W;
+            out[x] = pane_dark_px(row[x], a);
+        }
+    }
+    display->bitmap_part(shadow_strip, 0, 0,
+                         STRIDE(SCREEN_MAIN, PANE_SHADOW_W, h),
+                         0, 0, PANE_SHADOW_W, h);
+}
+
+/* Slow horizontal pan: travels the spare cover width over the whole
+ * fade+hold period, alternating direction randomly per cover. */
+static int pan_x_now(const struct bitmap *bm, int vp_w)
+{
+    int range = bm->width - vp_w;
+    long total = PANE_FADE_TICKS + PANE_HOLD_TICKS;
+    long elapsed = current_tick - fade_start_tick;
+    int x;
+
+    if (range <= 0)
+        return 0;
+    if (elapsed < 0)
+        elapsed = 0;
+    if (elapsed > total)
+        elapsed = total;
+    x = (int)((long long)range * elapsed / total);
+    return pan_left_to_right ? x : range - x;
+}
+
 /* ---- public: tick / animating ----------------------------------------- */
 /* music_active is maintained by apple2026_pane_draw(): any list draw that
  * is not the music pane clears it, so ticks stop as soon as another list
  * takes the screen.  Screens without lists (WPS, plugins) never tick. */
 bool apple2026_pane_animating(void)
 {
-    return music_active && music_state == MUSIC_FADING;
+    if (!music_active)
+        return false;
+    if (music_state == MUSIC_FADING)
+        return true;
+    /* pan runs through the hold as well (redraws only on 1px steps) */
+    return music_state == MUSIC_HOLD && cover_slot_ready[cover_front]
+        && cover_slot_bmp[cover_front].width > PANE_MAX_W;
 }
 
 bool apple2026_pane_tick(void)
@@ -371,6 +447,8 @@ bool apple2026_pane_tick(void)
             {
                 music_state = MUSIC_FADING;
                 fade_start_tick = current_tick;
+                pan_left_to_right = (rand() & 1) != 0;
+                pan_last_drawn_x = -1;
                 return true;
             }
             return false;
@@ -386,9 +464,13 @@ bool apple2026_pane_tick(void)
                 cover_slot_ready[cover_front ^ 1] = false;
                 music_state = MUSIC_FADING;
                 fade_start_tick = current_tick;
+                pan_left_to_right = (rand() & 1) != 0;
+                pan_last_drawn_x = -1;
                 return true;
             }
-            return false;
+            /* slow pan: request a redraw only when it moved a full pixel */
+            return pan_x_now(&cover_slot_bmp[cover_front], PANE_MAX_W)
+                   != pan_last_drawn_x;
         case MUSIC_FADING:
             return true;   /* redraw drives fade progress */
     }
@@ -403,19 +485,21 @@ static void pane_draw_static(struct screen *display, struct viewport *vp,
         pane_load(id);
     if (pane_load_failed)
         return;
+    /* full-pane image, top-aligned (crops at the mini-player state) */
     display->bitmap_part(pane_pixels, 0, 0,
                          STRIDE(SCREEN_MAIN, pane_bmp.width, pane_bmp.height),
-                         (vp->width - pane_bmp.width) / 2,
-                         (vp->height - pane_bmp.height) / 2,
+                         0, 0,
                          MIN(pane_bmp.width, vp->width),
                          MIN(pane_bmp.height, vp->height));
+    pane_edge_shadow(display, pane_pixels, pane_bmp.width, 0, 0,
+                     MIN(pane_bmp.height, vp->height));
 }
 
 static void pane_draw_music(struct screen *display, struct viewport *vp)
 {
     struct bitmap *bm = &cover_slot_bmp[cover_front];
     const fb_data *src;
-    int w, h;
+    int stride, src_x, src_y, dst_x, dst_y, w, h;
 
     if (!cover_slot_ready[cover_front])
     {
@@ -424,9 +508,19 @@ static void pane_draw_music(struct screen *display, struct viewport *vp)
         return;
     }
 
+    /* covers that do not fill the pane sit on the gradient background */
+    if (bm->width < vp->width || bm->height < vp->height)
+        pane_draw_static(display, vp, A26_PANE_NONE);
+
     src = cover_slot_px[cover_front];
+    stride = bm->width;
     w = MIN(bm->width, vp->width);
     h = MIN(bm->height, vp->height);
+    src_x = pan_x_now(bm, vp->width);
+    src_y = (bm->height > vp->height) ? (bm->height - vp->height) / 2 : 0;
+    dst_x = (vp->width - w) / 2;
+    dst_y = (vp->height - h) / 2;
+    pan_last_drawn_x = src_x;
 
     if (music_state == MUSIC_FADING)
     {
@@ -438,18 +532,25 @@ static void pane_draw_music(struct screen *display, struct viewport *vp)
         }
         else
         {
+            /* blend only the visible window into the work buffer */
             fb_data *dst = (fb_data *)pane_workbuf;
-            int count = bm->width * bm->height;
-            int i;
-            for (i = 0; i < count; i++)
-                dst[i] = pane_fade_px(src[i], a);
+            int x, y;
+            for (y = 0; y < h; y++)
+            {
+                const fb_data *row = src + (src_y + y) * stride + src_x;
+                for (x = 0; x < w; x++)
+                    dst[y * w + x] = pane_fade_px(row[x], a);
+            }
             src = dst;
+            stride = w;
+            src_x = 0;
+            src_y = 0;
         }
     }
 
-    display->bitmap_part(src, 0, 0,
-                         STRIDE(SCREEN_MAIN, bm->width, bm->height),
-                         (vp->width - w) / 2, (vp->height - h) / 2, w, h);
+    display->bitmap_part(src, src_x, src_y, STRIDE(SCREEN_MAIN, stride, h),
+                         dst_x, dst_y, w, h);
+    pane_edge_shadow(display, src, stride, src_x, src_y, h);
 }
 
 void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,

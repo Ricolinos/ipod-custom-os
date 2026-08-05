@@ -116,7 +116,7 @@
 # Font slot 2 actual bitmap height = 34px; VP height must be >= 34.
 # At root: single 38px band holds "Library" title + battery/status icons.
 # No separate compact header at root â€” saves vertical space for content.
-%Vl(large_title,16,2,-16,35,2)
+%Vl(large_title,10,2,-10,35,2)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%Sx(Library)
@@ -132,6 +132,7 @@
 # remove them:
 # (pane_music.bmp) (pane_videos.bmp) (pane_photos.bmp) (pane_podcasts.bmp)
 # (pane_extras.bmp) (pane_settings.bmp) (pane_shuffle.bmp) (pane_nowplaying.bmp)
+# (pane_bg.bmp)
 # mainlarge: used when playing/paused (content area above 50px mini-player)
 %Vi(-,0,38,-,-50,5)
 %Vf(000000)

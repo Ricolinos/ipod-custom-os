@@ -693,9 +693,9 @@ static int item_callback(int action,
 MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
                         NULL, Icon_Bookmark);
 
-/* Apple2026: primary library at /Music (full-disk browse not exposed at root). */
-MENUITEM_RETURNVALUE(music_library, ID2P(LANG_ROOT_SONGS), GO_TO_MUSICLIB,
-                        NULL, Icon_Audio);
+/* Apple2026: /Music folder view inside the Music submenu ("Carpetas"). */
+MENUITEM_RETURNVALUE(music_library, ID2P(LANG_ROOT_FOLDERS), GO_TO_MUSICLIB,
+                        NULL, Icon_Folder);
 /* Apple2026 split root menu: curated media libraries */
 MENUITEM_RETURNVALUE(video_library, ID2P(LANG_ROOT_VIDEOS), GO_TO_VIDEOLIB,
                         NULL, Icon_Display_menu);
@@ -782,11 +782,34 @@ MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
           &files_browser, &rocks_browser, &shortcut_menu, &equalizer_item);
 #endif
 
-/* Apple2026: Music opens a submenu (iPod-style): Cover Flow, Songs
- * (bounded /Music browser), Database, Playlists. */
+/* Apple2026: Music opens an iPod-style submenu of database views (direct
+ * entry into the tagnavi root: 0=Songs 1=Artists 2=Albums 3=Genres
+ * 4=Search — must match the "main" menu order in apps/tagnavi.config),
+ * plus Cover Flow, Playlists and the /Music folder view. */
 #ifdef HAVE_TAGCACHE
+static int db_view_fn(void *param)
+{
+    tagtree_request_initial_entry((intptr_t)param);
+    return GO_TO_DBBROWSER;
+}
+MENUITEM_FUNCTION_W_PARAM(db_songs_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_ROOT_SONGS), db_view_fn, (void *)0,
+                  NULL, Icon_Audio);
+MENUITEM_FUNCTION_W_PARAM(db_artists_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_ROOT_ARTISTS), db_view_fn, (void *)1,
+                  NULL, Icon_Artist);
+MENUITEM_FUNCTION_W_PARAM(db_albums_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_ROOT_ALBUMS), db_view_fn, (void *)2,
+                  NULL, Icon_Album);
+MENUITEM_FUNCTION_W_PARAM(db_genres_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_ROOT_GENRES), db_view_fn, (void *)3,
+                  NULL, Icon_Bookmark);
+MENUITEM_FUNCTION_W_PARAM(db_search_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_ROOT_SEARCH), db_view_fn, (void *)4,
+                  NULL, Icon_Preset);
 MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_Audio,
-          &pictureflow_item, &music_library, &db_browser, &playlists);
+          &db_songs_item, &pictureflow_item, &playlists, &db_artists_item,
+          &db_albums_item, &db_genres_item, &db_search_item, &music_library);
 #else
 MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_Audio,
           &music_library, &playlists);
@@ -994,14 +1017,6 @@ static int item_callback(int action,
                 if (this_item == &bookmarks)
             {
                 if (global_settings.usemrb == 0)
-                    return ACTION_EXIT_MENUITEM;
-            }
-            else if (this_item == &wps_item)
-            {
-                /* Apple2026: hide Now Playing / Resume Playback while there
-                 * is nothing playing and nothing to resume (iPod-style). */
-                if (!(audio_status() & AUDIO_STATUS_PLAY) &&
-                    playlist_amount() <= 0)
                     return ACTION_EXIT_MENUITEM;
             }
         break;

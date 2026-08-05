@@ -906,6 +906,25 @@ static int dirbrowse(void)
         return exit_to_new_screen(GO_TO_PREVIOUS);  /* No files found for rockbox_browse() */
     }
 
+#ifdef HAVE_TAGCACHE
+    /* Apple2026: direct entry into a database root view (Music submenu
+     * Songs/Artists/Albums/Genres/Search items). */
+    if (*tc.dirfilter == SHOW_ID3DB && tc.dirlevel == 0)
+    {
+        int want = tagtree_take_pending_entry();
+        if (want >= 0 && want < numentries)
+        {
+            tc.selected_item = want;
+            if (tagtree_enter(&tc, true) == 0)
+            {
+                numentries = update_dir();
+                if (numentries == -1)
+                    return exit_to_new_screen(GO_TO_PREVIOUS);
+            }
+        }
+    }
+#endif
+
     while(tc.browse && tc.is_browsing) {
         bool restore = false;
         if (tc.dirlevel < 0)

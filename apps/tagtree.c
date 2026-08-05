@@ -2120,6 +2120,22 @@ int tagtree_load(struct tree_context* c)
  * true, make sure that you are back at the previous dirlevel, by
  * calling tagtree_exit as needed, with is_visible set to false.
  */
+/* Apple2026: Music submenu direct views — index into the tagnavi root
+ * menu to auto-enter on the next database browse. */
+static int a26_pending_entry = -1;
+
+void tagtree_request_initial_entry(int index)
+{
+    a26_pending_entry = index;
+}
+
+int tagtree_take_pending_entry(void)
+{
+    int v = a26_pending_entry;
+    a26_pending_entry = -1;
+    return v;
+}
+
 int tagtree_enter(struct tree_context* c, bool is_visible)
 {
     logf( "%s", __func__);

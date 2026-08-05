@@ -34,6 +34,10 @@
 int tagtree_export(void);
 int tagtree_import(void);
 void tagtree_init(void) INIT_ATTR;
+/* Apple2026: request that the next database browse immediately enters the
+ * root view at the given index (Music submenu direct views). */
+void tagtree_request_initial_entry(int index);
+int tagtree_take_pending_entry(void);
 int tagtree_enter(struct tree_context* c, bool is_visible);
 void tagtree_exit(struct tree_context* c, bool is_visible);
 int tagtree_load(struct tree_context* c);
