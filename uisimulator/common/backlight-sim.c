@@ -38,11 +38,21 @@ bool backlight_hw_init(void)
 
 #ifdef HAVE_BACKLIGHT_BRIGHTNESS
 
+/* The simulator fakes brightness by alpha-blending the whole LCD surface,
+ * so the lowest settings render as an unreadable (nearly black) window —
+ * unlike real hardware, whose minimum backlight is dim but usable.  Keep a
+ * visible floor so the simulated screen never goes dark. */
+#define SIM_BACKLIGHT_FLOOR_PCT 25
+
 static inline int normalize_backlight(int val)
 {
     /* normalize to xx% brightness for sdl */
-    return ((val - MIN_BRIGHTNESS_SETTING + 1) * 100) /
-           (MAX_BRIGHTNESS_SETTING - MIN_BRIGHTNESS_SETTING + 1);
+    int pct = ((val - MIN_BRIGHTNESS_SETTING + 1) * 100) /
+              (MAX_BRIGHTNESS_SETTING - MIN_BRIGHTNESS_SETTING + 1);
+
+    if (pct > 0 && pct < SIM_BACKLIGHT_FLOOR_PCT)
+        pct = SIM_BACKLIGHT_FLOOR_PCT;
+    return pct;
 }
 
 void backlight_hw_brightness(int val)
