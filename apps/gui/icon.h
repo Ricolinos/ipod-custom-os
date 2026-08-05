@@ -71,6 +71,7 @@ enum themable_icons {
     Icon_Photos,
     Icon_ShuffleAll,
     Icon_Genre,
+    Icon_MusicApp,
 #endif
     Icon_Last_Themeable,
 };

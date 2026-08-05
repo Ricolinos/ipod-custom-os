@@ -363,7 +363,7 @@ static const unsigned char pf_dither_table[16] =
 #define ERROR_USER_ABORT    -4
 
 /* current version for cover cache */
-#define CACHE_VERSION 5
+#define CACHE_VERSION 6
 #define CONFIG_VERSION 1
 
 /* Frame profiling for the FPS overlay: USEC_TIMER is a free-running

@@ -830,11 +830,11 @@ MENUITEM_FUNCTION_W_PARAM(db_genres_item, MENU_FUNC_CHECK_RETVAL,
 MENUITEM_FUNCTION_W_PARAM(db_search_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_SEARCH), db_view_fn, (void *)4,
                   NULL, Icon_Preset);
-MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_Audio,
+MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_MusicApp,
           &db_songs_item, &pictureflow_item, &playlists, &db_artists_item,
           &db_albums_item, &db_genres_item, &db_search_item, &music_library);
 #else
-MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_Audio,
+MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_MusicApp,
           &music_library, &playlists);
 #endif
 

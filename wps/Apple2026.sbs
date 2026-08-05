@@ -39,7 +39,7 @@
 %xl(A,holdSlider.bmp,0,0,2)
 %xl(S,sleep.bmp,0,0)
 %xl(L,busyIndicator.bmp,0,0,16)
-%xl(B,batteryStatus.bmp,0,4,10)
+%xl(B,batteryStatus.bmp,0,0,10)
 %xl(M,usbBackdrop.bmp,0,0)
 %xl(N,LockNotification.bmp,0,0)
 %xl(O,LockNotifPlay.bmp,0,0,2)
@@ -230,13 +230,13 @@
 %bs
 
 # â”€â”€ Battery icon (upper-right â€” moved up 2px from prior position) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon,-32,1,-,18,3)
+%Vl(battery_icon,-32,2,-,16,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
 
 # â”€â”€ Battery icon aligned within large-title band (root only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon_root,128,1,28,18,3)
+%Vl(battery_icon_root,128,2,28,16,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
