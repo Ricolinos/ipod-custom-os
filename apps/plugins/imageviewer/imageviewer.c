@@ -136,9 +136,57 @@ static enum image_type image_type = IMAGE_UNKNOWN;
 /************************* Implementation ***************************/
 
 /* Read directory contents for scrolling. */
+/* Apple2026: launched with a directory parameter (Photos > Slideshow) —
+ * build the image list by scanning that directory instead of relying on
+ * the browser's tree context, and autostart the slideshow. */
+static bool a26_dir_mode = false;
+
 static void get_pic_list(bool single_file)
 {
     file_pt = (char **) buf;
+
+    if (a26_dir_mode)
+    {
+        const int cap = 512;
+        char *store = buf + cap * sizeof(char *);
+        size_t store_left = buf_size - cap * sizeof(char *);
+        DIR *d = rb->opendir(np_file);
+        struct dirent *entry;
+
+        entries = 0;
+        curfile = 0;
+        if (d)
+        {
+            while ((entry = rb->readdir(d)) && entries < cap)
+            {
+                struct dirinfo info = rb->dir_get_info(d, entry);
+                size_t l;
+                if (info.attribute & ATTR_DIRECTORY)
+                    continue;
+                if (get_image_type(entry->d_name, true) == IMAGE_UNKNOWN)
+                    continue;
+                l = rb->strlen(entry->d_name) + 1;
+                if (l > store_left)
+                    break;
+                rb->strcpy(store, entry->d_name);
+                file_pt[entries++] = store;
+                store += l;
+                store_left -= l;
+            }
+            rb->closedir(d);
+        }
+        buf = store;
+        buf_size = store_left;
+        if (entries > 0)
+        {
+            /* seed np_file = <dir>/<first image> so the normal
+             * basename-join navigation works unchanged */
+            size_t dl = rb->strlen(np_file);
+            rb->snprintf(np_file + dl, sizeof(np_file) - dl, "/%s",
+                         file_pt[0]);
+        }
+        return;
+    }
 
     if (single_file)
     {
@@ -956,6 +1004,15 @@ reload_decoder:
     else if (ds_max < ds_min && !(ds_max == 1 && imgdec->unscaled_avail))
         ds_max = ds_min;
 
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+    /* Apple2026: iPod-style photo viewing — exactly two states, screen-fit
+     * ("fit", letterboxed) and one step closer ("fill", cropped).  Never
+     * decode beyond that, so photos open fast and memory stays small. */
+    if (ds_min < ds_max / 2)
+        ds_min = (ds_max > 1) ? ds_max / 2 : 1;
+    if (ds_min < 1)
+        ds_min = 1;
+#endif
     ds = ds_max; /* initialize setting */
     cx = info->x_size/ds/2; /* center the view */
     cy = info->y_size/ds/2;
@@ -1000,7 +1057,12 @@ reload_decoder:
 
             if (status == ZOOM_IN)
             {
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+                /* Apple2026: no full-resolution jump — fill is the max */
+                if (ds > ds_min)
+#else
                 if (ds > ds_min || (imgdec->unscaled_avail && ds > 1))
+#endif
                 {
                     /* if 1/1 is always available, jump ds from ds_min to 1. */
                     int zoom = (ds == ds_min)? ds_min: 2;
@@ -1122,7 +1184,12 @@ enum plugin_status plugin_start(const void* parameter)
     else
     {
         rb->strcpy(np_file, parameter);
-        if ((status = get_image_type(np_file, false)) == IMAGE_UNKNOWN)
+        if (rb->dir_exists(np_file))
+        {
+            a26_dir_mode = true;   /* Photos slideshow launch */
+            status = IMAGE_UNKNOWN;
+        }
+        else if ((status = get_image_type(np_file, false)) == IMAGE_UNKNOWN)
             {
                 rb->splash(HZ * 2, "Unsupported file");
                 return PLUGIN_ERROR;
@@ -1163,6 +1230,22 @@ enum plugin_status plugin_start(const void* parameter)
     configfile_load(IMGVIEW_CONFIGFILE, config,
                     ARRAYLEN(config), IMGVIEW_SETTINGS_MINVERSION);
     rb->memcpy(&old_settings, &settings, sizeof (settings));
+
+    if (a26_dir_mode)
+    {
+        if (entries == 0)
+        {
+            rb->splash(HZ * 2, "No photos");
+            return PLUGIN_OK;
+        }
+        status = get_image_type(np_file, false);
+        if (status == IMAGE_UNKNOWN)
+            return PLUGIN_ERROR;
+        /* autostart the slideshow with the core Photos settings */
+        iv_api.slideshow_enabled = true;
+        if (rb->global_settings->a26_photo_ss_interval > 0)
+            settings.ss_timeout = rb->global_settings->a26_photo_ss_interval;
+    }
 
     /* Turn off backlight timeout */
     backlight_ignore_timeout();

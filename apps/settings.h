@@ -712,6 +712,9 @@ struct user_settings
 
     /* power settings */
     int poweroff;   /* idle power off timer */
+    /* Apple2026 Photos slideshow */
+    int a26_photo_ss_interval;  /* seconds per photo */
+    int a26_photo_ss_music;     /* 0=keep current, 1=shuffle all, 2=none */
 #if BATTERY_CAPACITY_INC > 0
     int battery_capacity; /* in mAh */
 #endif

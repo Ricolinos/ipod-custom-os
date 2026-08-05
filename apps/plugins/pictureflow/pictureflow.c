@@ -363,7 +363,7 @@ static const unsigned char pf_dither_table[16] =
 #define ERROR_USER_ABORT    -4
 
 /* current version for cover cache */
-#define CACHE_VERSION 6
+#define CACHE_VERSION 7
 #define CONFIG_VERSION 1
 
 /* Frame profiling for the FPS overlay: USEC_TIMER is a free-running
@@ -2358,9 +2358,40 @@ static unsigned int mfnv(char *str)
 /**
  Save the given bitmap as filename in the pfraw format
  */
+/* Apple2026: gently round the slide corners (radius 7, toward black) —
+ * matches the now-playing card and the empty-slide placeholder. */
+static void pf_round_slide_corners(struct bitmap *bm)
+{
+    const int rad = 7;
+    pix_t *px = (pix_t *)bm->data;
+    int w = bm->width, h = bm->height, x, y;
+
+    if (w < 2 * rad || h < 2 * rad)
+        return;
+    for (y = 0; y < h; y++)
+    {
+        int dy = (y < rad) ? rad - y
+               : (y >= h - rad) ? y - (h - 1 - rad) : 0;
+        if (!dy)
+        {
+            if (y == rad)
+                y = h - rad - 1;   /* skip the untouched middle band */
+            continue;
+        }
+        for (x = 0; x < w; x++)
+        {
+            int dx = (x < rad) ? rad - x
+                   : (x >= w - rad) ? x - (w - 1 - rad) : 0;
+            if (dx && dx * dx + dy * dy > rad * rad)
+                px[y * w + x] = 0;
+        }
+    }
+}
+
 static bool save_pfraw(char* filename, struct bitmap *bm)
 {
     struct pfraw_header bmph;
+    pf_round_slide_corners(bm);
     bmph.width = bm->width;
     bmph.height = bm->height;
     int fh = rb->open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0666);
@@ -4268,6 +4299,7 @@ static inline void draw_gradient(int y, int h)
 #if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
 static int pf_tracklist_font_id = -1;
 static int pf_album_title_font_id = -1;
+static int pf_artist_font_id = -1;
 
 static int pf_track_row_height(void)
 {
@@ -4307,6 +4339,7 @@ static int pf_album_block_px(int ui_char_h)
 #else
 static int pf_tracklist_font_id = -1;
 static int pf_album_title_font_id = -1;
+static int pf_artist_font_id = -1;
 
 static int pf_track_row_height(void)
 {
@@ -5017,7 +5050,21 @@ static void draw_album_text(void)
             set_scroll_line(artisttxt, PF_SCROLL_ARTIST);
         artisttxt_x = get_scroll_line_offset(PF_SCROLL_ARTIST);
         int y_offset = char_height * 3 / 4;
+        /* Apple2026: artist in the lighter 14px face at ~70% opacity */
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+        if (pf_artist_font_id >= 0)
+        {
+            rb->lcd_setfont(pf_artist_font_id);
+            y_offset = char_height + 2;
+        }
+        mylcd_set_foreground(pf_color_mix(c * 7 / 10));
+#endif
         mylcd_putsxy(artisttxt_x, albumtxt_y + y_offset, artisttxt);
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+        if (pf_album_title_font_id >= 0)
+            rb->lcd_setfont(pf_album_title_font_id);
+        mylcd_set_foreground(pf_color_mix(c));
+#endif
     } else {
         mylcd_putsxy(albumtxt_x, albumtxt_y, album_and_year);
     }
@@ -5142,13 +5189,15 @@ static bool init(void)
     rb->lcd_setfont(FONT_UI);
 
 #if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
-    /* Tracklist 16 Regular; album/artist also 16 Regular — matches dense
-     * track-list font used in the Music file browser (Apple2026 font tier). */
+    /* Tracklist 16 Regular; album title 16 Semibold; artist 14 Regular
+     * drawn at ~70% (Apple2026 typography pass). */
     {
         int id = rb->font_load(ROCKBOX_DIR "/fonts/16-SFProText-Regular.fnt");
         pf_tracklist_font_id = id >= 0 ? id : -1;
-        id = rb->font_load(ROCKBOX_DIR "/fonts/16-SFProText-Regular.fnt");
+        id = rb->font_load(ROCKBOX_DIR "/fonts/16-SFProText-Semibold.fnt");
         pf_album_title_font_id = id >= 0 ? id : -1;
+        id = rb->font_load(ROCKBOX_DIR "/fonts/14-SFProText-Regular.fnt");
+        pf_artist_font_id = id >= 0 ? id : -1;
     }
 #endif
 

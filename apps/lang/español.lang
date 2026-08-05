@@ -17316,3 +17316,87 @@
     *: "Carpetas"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_ROOT_SLIDESHOW
+  desc: Apple2026 photos submenu slideshow item
+  user: core
+  <source>
+    *: "Slideshow"
+  </source>
+  <dest>
+    *: "Slideshow"
+  </dest>
+  <voice>
+    *: "Slideshow"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PHOTO_SS_INTERVAL
+  desc: Apple2026 photos slideshow interval
+  user: core
+  <source>
+    *: "Seconds per Photo"
+  </source>
+  <dest>
+    *: "Segundos por foto"
+  </dest>
+  <voice>
+    *: "Segundos por foto"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PHOTO_SS_MUSIC
+  desc: Apple2026 photos slideshow music behaviour
+  user: core
+  <source>
+    *: "Slideshow Music"
+  </source>
+  <dest>
+    *: "Música del slideshow"
+  </dest>
+  <voice>
+    *: "Música del slideshow"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PHOTO_SS_MUSIC_CURRENT
+  desc: keep whatever is playing
+  user: core
+  <source>
+    *: "Keep Current"
+  </source>
+  <dest>
+    *: "La actual"
+  </dest>
+  <voice>
+    *: "La actual"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PHOTO_SS_MUSIC_SHUFFLE
+  desc: shuffle the music library
+  user: core
+  <source>
+    *: "Shuffle Music"
+  </source>
+  <dest>
+    *: "Aleatoria"
+  </dest>
+  <voice>
+    *: "Aleatoria"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PHOTO_SS_MUSIC_OFF
+  desc: no music during slideshow
+  user: core
+  <source>
+    *: "None"
+  </source>
+  <dest>
+    *: "Ninguna"
+  </dest>
+  <voice>
+    *: "Ninguna"
+  </voice>
+</phrase>

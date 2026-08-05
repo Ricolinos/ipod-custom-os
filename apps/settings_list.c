@@ -1277,6 +1277,15 @@ const struct settings_list settings[] = {
                 "idle poweroff", UNIT_MIN, 0,60,1,
                 formatter_time_unit_0_is_off, getlang_time_unit_0_is_off,
                 set_poweroff_timeout),
+    /* Apple2026 Photos slideshow */
+    INT_SETTING(0, a26_photo_ss_interval, LANG_PHOTO_SS_INTERVAL, 5,
+                "photo slideshow seconds", UNIT_SEC, 2, 30, 1,
+                NULL, NULL, NULL),
+    CHOICE_SETTING(0, a26_photo_ss_music, LANG_PHOTO_SS_MUSIC, 0,
+                   "photo slideshow music", "current,shuffle,off", NULL, 3,
+                   ID2P(LANG_PHOTO_SS_MUSIC_CURRENT),
+                   ID2P(LANG_PHOTO_SS_MUSIC_SHUFFLE),
+                   ID2P(LANG_PHOTO_SS_MUSIC_OFF)),
     INT_SETTING(F_BANFROMQS, max_files_in_playlist,
                 LANG_MAX_FILES_IN_PLAYLIST,
 #if CONFIG_CPU == PP5002 || CONFIG_CPU == PP5020 || CONFIG_CPU == PP5022

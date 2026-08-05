@@ -709,8 +709,67 @@ MENUITEM_FUNCTION(music_library, MENU_FUNC_CHECK_RETVAL,
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 MENUITEM_RETURNVALUE(video_library, ID2P(LANG_ROOT_VIDEOS), GO_TO_VIDEOLIB,
                         NULL, Icon_Display_menu);
-MENUITEM_RETURNVALUE(photo_library, ID2P(LANG_ROOT_PHOTOS), GO_TO_PHOTOLIB,
-                        NULL, Icon_Photos);
+/* Photos submenu (iPod-style): Slideshow / Folders / Settings.
+ * All inline so backing out stays inside the Photos menu. */
+static int photo_folders_fn(void)
+{
+    int ret = browser((void *)GO_TO_PHOTOLIB);
+    if (ret == GO_TO_ROOT || ret == GO_TO_PREVIOUS)
+        return 0;
+    return ret;
+}
+MENUITEM_FUNCTION(photo_library, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_ROOT_FOLDERS), photo_folders_fn, NULL,
+                  Icon_Folder);
+
+static bool a26_shuffle_all_music(void)
+{
+    playlist_create(NULL, NULL);
+    playlist_insert_directory(NULL, "/Music", PLAYLIST_INSERT_LAST,
+                              false, true, NULL);
+    if (playlist_amount() <= 0)
+        return false;
+    playlist_shuffle(current_tick, -1);
+    playlist_start(0, 0, 0);
+    playlist_set_modified(NULL, true);
+    return true;
+}
+
+static int photo_slideshow_fn(void)
+{
+    switch (global_settings.a26_photo_ss_music)
+    {
+        case 1:   /* shuffle the music library */
+            splash(0, ID2P(LANG_WAIT));
+            a26_shuffle_all_music();
+            break;
+        case 2:   /* silence */
+            if (audio_status() & AUDIO_STATUS_PLAY)
+                audio_stop();
+            break;
+        default:  /* keep whatever is playing */
+            break;
+    }
+    if (!dir_exists("/Photos"))
+        mkdir("/Photos");
+    /* imageviewer autostarts its slideshow when handed a directory */
+    plugin_load(VIEWERS_DIR "/imageviewer.rock", "/Photos");
+    return 0;
+}
+MENUITEM_FUNCTION(photo_ss_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_ROOT_SLIDESHOW), photo_slideshow_fn, NULL,
+                  Icon_Playback_menu);
+
+MENUITEM_SETTING(photo_ss_interval_item,
+                 &global_settings.a26_photo_ss_interval, NULL);
+MENUITEM_SETTING(photo_ss_music_item,
+                 &global_settings.a26_photo_ss_music, NULL);
+MAKE_MENU(photo_settings_menu, ID2P(LANG_SETTINGS), 0,
+          Icon_General_settings_menu,
+          &photo_ss_interval_item, &photo_ss_music_item);
+
+MAKE_MENU(photos_submenu, ID2P(LANG_ROOT_PHOTOS), 0, Icon_Photos,
+          &photo_ss_item, &photo_library, &photo_settings_menu);
 MENUITEM_RETURNVALUE(podcast_library, ID2P(LANG_ROOT_PODCASTS), GO_TO_PODCASTLIB,
                         NULL, Icon_Voice);
 #endif
@@ -843,17 +902,11 @@ MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_MusicApp,
 static int shuffle_songs_fn(void)
 {
     splash(0, ID2P(LANG_WAIT));
-    playlist_create(NULL, NULL);
-    playlist_insert_directory(NULL, "/Music", PLAYLIST_INSERT_LAST,
-                              false /*queue*/, true /*recurse*/, NULL);
-    if (playlist_amount() <= 0)
+    if (!a26_shuffle_all_music())
     {
         splash(HZ, ID2P(LANG_NO_FILES));
         return 0;
     }
-    playlist_shuffle(current_tick, -1);
-    playlist_start(0, 0, 0);
-    playlist_set_modified(NULL, true);
     return GO_TO_WPS;
 }
 MENUITEM_FUNCTION(shuffle_songs_item, MENU_FUNC_CHECK_RETVAL,
@@ -863,7 +916,7 @@ MENUITEM_FUNCTION(shuffle_songs_item, MENU_FUNC_CHECK_RETVAL,
 static struct menu_table menu_table[] = {
     { "music", (const struct menu_item_ex *)&music_submenu },
     { "videos", &video_library },
-    { "photos", &photo_library },
+    { "photos", (const struct menu_item_ex *)&photos_submenu },
     { "podcasts", &podcast_library },
     { "extras", (const struct menu_item_ex *)&extras_submenu },
     { "settings", &menu_ },
@@ -880,7 +933,7 @@ enum a26_pane_id root_menu_pane_id_for_item(const struct menu_item_ex *item)
         return A26_PANE_MUSIC;
     if (item == &video_library)
         return A26_PANE_VIDEOS;
-    if (item == &photo_library)
+    if (item == (const struct menu_item_ex *)&photos_submenu)
         return A26_PANE_PHOTOS;
     if (item == &podcast_library)
         return A26_PANE_PODCASTS;
