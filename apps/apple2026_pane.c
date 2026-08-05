@@ -133,6 +133,10 @@ static int np_font_title = -1, np_font_sub = -1;
 static long np_last_sec = -1;
 static bool np_visible = false;
 static bool np_audio_active(void);
+/* marquee state for title (0) / artist (1) */
+#define NP_MARQUEE_GAP   28
+static int np_scroll_px[2];
+static int np_scroll_max[2];
 
 /* ---- static tile ------------------------------------------------------ */
 static bool pane_load_bmp(const char *name)
@@ -458,6 +462,8 @@ bool apple2026_pane_animating(void)
  * only moves ~4px/s, so HZ/8 wakeups are plenty (device battery). */
 int apple2026_pane_anim_timeout(void)
 {
+    if (np_visible)
+        return (np_scroll_max[0] > 0 || np_scroll_max[1] > 0) ? HZ / 12 : 0;
     if (!music_active)
         return 0;
     if (music_state == MUSIC_FADING)
@@ -476,13 +482,29 @@ bool apple2026_pane_tick(void)
      * when the track changes or when playback just stopped. */
     if (np_visible)
     {
+        bool want = false;
+        int i;
         if (!np_audio_active())
             return true;   /* restore the per-item pane */
         const struct mp3entry *id3 = audio_current_track();
-        if (id3 && (strcmp(np_art_path, id3->path) != 0 ||
-                    (long)(id3->elapsed / 1000) != np_last_sec))
+        if (id3 && strcmp(np_art_path, id3->path) != 0)
+        {
+            np_scroll_px[0] = np_scroll_px[1] = 0;
             return true;
-        return false;
+        }
+        for (i = 0; i < 2; i++)
+        {
+            if (np_scroll_max[i] > 0)
+            {
+                np_scroll_px[i] += 2;
+                if (np_scroll_px[i] >= np_scroll_max[i])
+                    np_scroll_px[i] = 0;
+                want = true;
+            }
+        }
+        if (id3 && (long)(id3->elapsed / 1000) != np_last_sec)
+            want = true;
+        return want;
     }
 
     if (!music_active)
@@ -619,7 +641,12 @@ static void np_load_art(const struct mp3entry *id3)
     {
         const struct dim art_dim = { .width = NP_ART, .height = NP_ART };
         if (!find_albumart(id3, path, sizeof(path), &art_dim))
-            return;
+        {
+            /* No cover for this track: show the standard placeholder tile.
+             * (The idle slideshow never does this — it only ever picks
+             * albums that actually have art.) */
+            strmemccpy(path, PANE_ASSET_DIR "/np_noart.bmp", sizeof(path));
+        }
     }
     memset(&bm, 0, sizeof(bm));
     bm.data = pane_workbuf;
@@ -644,8 +671,11 @@ static void np_load_art(const struct mp3entry *id3)
     np_art_ok = true;
 }
 
+/* Slow marquee for text wider than the pane: scrolls left and repeats
+ * until the track changes. */
 static void np_center_text(struct screen *display, struct viewport *vp,
-                           int font, int y, const char *text, fb_data fg)
+                           int font, int y, const char *text, fb_data fg,
+                           int slot)
 {
     struct viewport tv = *vp;
     int w, h;
@@ -656,9 +686,23 @@ static void np_center_text(struct screen *display, struct viewport *vp,
     tv.fg_pattern = fg;
     tv.bg_pattern = np_bg;
     tv.drawmode = DRMODE_FG;
+    tv.y = vp->y + y;
+    tv.height = font_get(tv.font)->height;
     display->set_viewport(&tv);
+    display->clear_viewport();
     display->getstringsize(text, &w, &h);
-    display->putsxy(w >= tv.width ? 2 : (tv.width - w) / 2, y, text);
+    if (w <= tv.width)
+    {
+        np_scroll_max[slot] = 0;
+        display->putsxy((tv.width - w) / 2, 0, text);
+    }
+    else
+    {
+        int off = np_scroll_px[slot];
+        np_scroll_max[slot] = w + NP_MARQUEE_GAP;
+        display->putsxy(-off, 0, text);
+        display->putsxy(-off + w + NP_MARQUEE_GAP, 0, text);
+    }
     display->set_viewport(vp);
 }
 
@@ -695,9 +739,9 @@ static void np_draw_card(struct screen *display, struct viewport *vp)
           : (id3 ? id3->path : "");
     artist = (id3 && id3->artist) ? id3->artist : "";
     np_center_text(display, vp, np_font_title, art_y + NP_ART + 14, title,
-                   LCD_WHITE);
+                   LCD_WHITE, 0);
     np_center_text(display, vp, np_font_sub, art_y + NP_ART + 36, artist,
-                   np_mix(LCD_WHITE, np_bg, 180));
+                   np_mix(LCD_WHITE, np_bg, 180), 1);
 
     /* progress bar */
     if (id3 && id3->length > 0)

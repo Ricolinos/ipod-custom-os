@@ -58,7 +58,7 @@
 %xl(I,vb.bmp,0,0)
 %xl(J,vb_backdrop.bmp,0,0)
 # Preload album art framing assets (Apple Music-style rounded corners + soft shadow)
-%xl(K,wpsArtCorners.bmp,0,0)
+%xl(K,wpsArtCorners110.bmp,0,0)
 # Wheel-mode row: 5 icons x (inactive a-e / active f-j)
 %xl(W,wps_modes.bmp,0,0,10)
 
@@ -115,10 +115,10 @@
 # Corner trim is drawn in this same viewport after %Cd. The trim corners are
 # backdrop-matched cutout pixels, so the curved edge reveals the real shadowed
 # shell instead of flat white caps on top of the shadow.
-%Vl(album_art,85,8,150,150,-)%VB
+%Vl(album_art,14,28,110,110,-)%VB
 %Vf(FFFFFF)
 %Vb(FFFFFF)
-%Cl(0,0,150,150,c,c)
+%Cl(0,0,110,110,c,c)
 %?C<|%x(AlbumPlaceholder,albumPlaceholder.bmp,0,0)>
 %Cd%xd(K)
 
@@ -166,14 +166,14 @@
 %ac%?mm<||All|One|All|A-B>
 
 # Playlist position  -  centered in time row (font slot 3, RB12 h=18; VP h=18)
-%Vl(pl_counter,107,-32,106,18,3)
+%Vl(pl_counter,107,192,106,18,3)
 %Vf(6E6E73)
 %Vb(FFFFFF)
 %ac%pp %Sx(of) %pe
 
 # Song title  -  16pt Medium (slot 9, RB12 h=20); width locked to the
 # metadata safe area so long titles never enter the bottom-right status lane.
-%Vl(title_line,18,-79,258,20,9)
+%Vl(title_line,136,44,172,22,9)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%?it<%it|%fn>
@@ -181,14 +181,14 @@
 # Artist / Album  -  14pt Regular (slot 3, RB12 h=18); VP h=18
 # Single viewport alternates: 5s artist (gray), then 5s album (darker gray).
 # Width matches the title safe area so the right lane stays reserved for status.
-%Vl(artist_line,18,-60,258,18,3)
+%Vl(artist_line,136,70,172,18,3)
 %Vf(8E8E93)
 %Vb(FFFFFF)
 %t(5)%s%al%?ia<%ia|%fn>;%t(5)%s%al%?id<%id|%fn>
 
 # Player status icon  -  bottom-right, aligned to the playback/time zone rather
 # than the top chrome. Branch: 0=stop 1=play 2=pause 3=ff 4=rew
-%Vl(player_status_lane,280,178,20,20,-)
+%Vl(player_status_lane,150,212,20,20,-)
 %Vb(FFFFFF)
 %?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Nd)|>>
 
@@ -198,30 +198,30 @@
 # -------------------------------------------------------
 
 # Progress bar (inactive - uses pill bitmap)
-%Vl(pb,20,-39,-20,4,-)
+%Vl(pb,20,182,280,5,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
 %pb(0,0,-,4,image,E,backdrop,F)
 
 # Progress bar (active - uses pill bitmap, 1px taller for visual weight)
-%Vl(pb_active,20,-39,-20,5,-)
+%Vl(pb_active,20,182,280,5,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
 %pb(0,0,-,5,image,G,backdrop,H)
 
 # Elapsed time  -  left, 14pt Regular (RB12 h=18), gray
-%Vl(elapsed_time,18,-32,87,18,3)
+%Vl(elapsed_time,18,192,87,18,3)
 %Vf(6E6E73)
 %Vb(FFFFFF)
 %s%al%pc
 
 # Lossless indicator  -  right of center, only shown for lossless formats
-%Vl(lossless_ind,127,-12,66,11,-)
+%Vl(lossless_ind,14,150,66,11,-)
 %Vb(FFFFFF)
 %?or(%if(%fc, =, 4),%if(%fc, =, 5),%if(%fc, =, 7),%if(%fc, =, 11),%if(%fc, =, 13))<%xd(L)>
 
 # Remaining time  -  right, 14pt Regular (RB12 h=18), gray
-%Vl(remain_time,-87,-32,-20,18,3)
+%Vl(remain_time,-107,192,87,18,3)
 %Vf(6E6E73)
 %Vb(FFFFFF)
 %s%ar-%pr
@@ -241,22 +241,22 @@
 # Wheel-mode row (Apple2026): SELECT cycles Volume / Scrub / Playlist /
 # Lyrics / Rating.  %Wm is the active mode; active icon is Apple pink,
 # the others are the muted secondary gray.
-%Vl(mode_vol,109,-16,14,14,-)
+%Vl(mode_vol,196,150,14,14,-)
 %Vb(FFFFFF)
 %?if(%Wm, =, 0)<%xd(Wf)|%xd(Wa)>
 
-%Vl(mode_scrub,131,-16,14,14,-)
+%Vl(mode_scrub,218,150,14,14,-)
 %Vb(FFFFFF)
 %?if(%Wm, =, 1)<%xd(Wg)|%xd(Wb)>
 
-%Vl(mode_pl,153,-16,14,14,-)
+%Vl(mode_pl,240,150,14,14,-)
 %Vb(FFFFFF)
 %?if(%Wm, =, 2)<%xd(Wh)|%xd(Wc)>
 
-%Vl(mode_lyr,175,-16,14,14,-)
+%Vl(mode_lyr,262,150,14,14,-)
 %Vb(FFFFFF)
 %?if(%Wm, =, 3)<%xd(Wi)|%xd(Wd)>
 
-%Vl(mode_rate,197,-16,14,14,-)
+%Vl(mode_rate,284,150,14,14,-)
 %Vb(FFFFFF)
 %?if(%Wm, =, 4)<%xd(Wj)|%xd(We)>

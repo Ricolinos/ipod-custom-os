@@ -115,13 +115,13 @@
 %Vl(title,74,0,-74,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%ac%?cs<|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
+%s%ac%?cs<%Lt|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
 
 # â”€â”€ Header title (when battery % not shown â€” wide) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 %Vl(titlewide,56,0,-56,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%ac%?cs<|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP> - %?if(%bl, =, 100)<100%%|%bl%%>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
+%s%ac%?cs<%Lt|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP> - %?if(%bl, =, 100)<100%%|%bl%%>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
 
 # â”€â”€ Split-screen titles (20px iPod-scale bar, left 160 column only) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Root: "Biblioteca"; Music submenu: the live list title (%Lt).
@@ -147,7 +147,7 @@
 # remove them:
 # (pane_music.bmp) (pane_videos.bmp) (pane_photos.bmp) (pane_podcasts.bmp)
 # (pane_extras.bmp) (pane_settings.bmp) (pane_shuffle.bmp) (pane_nowplaying.bmp)
-# (pane_bg.bmp) (wps_stars.bmp)
+# (pane_bg.bmp) (wps_stars.bmp) (np_noart.bmp)
 # mainlarge: used when playing/paused (content area above 50px mini-player)
 %Vi(-,0,20,-,-50,5)
 %Vf(000000)

@@ -846,7 +846,7 @@ static void a26_wps_run_mode(struct mp3entry *id3)
 
 #ifdef HAVE_TAGCACHE
         case A26_WPS_RATING:
-            if (id3 && id3->tagcache_idx && global_settings.runtimedb)
+            if (id3 && id3->tagcache_idx)
             {
                 gwps_leave_wps(false);
                 a26_wps_rating_screen(id3);
