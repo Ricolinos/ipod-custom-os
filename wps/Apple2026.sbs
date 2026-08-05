@@ -104,13 +104,13 @@
 %Vl(title,74,5,-74,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%ac%?cs<|%Sx(of)|Recording|FM Radio|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
+%s%ac%?cs<|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
 
 # â”€â”€ Header title (when battery % not shown â€” wide) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 %Vl(titlewide,56,5,-56,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%ac%?cs<|%Sx(of)|Recording|FM Radio|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP> - %?if(%bl, =, 100)<100%%|%bl%%>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
+%s%ac%?cs<|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP> - %?if(%bl, =, 100)<100%%|%bl%%>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
 
 # â”€â”€ Large title band (root only â€” replaces compact header, Apple Music style) â”€
 # Font slot 2 actual bitmap height = 34px; VP height must be >= 34.
@@ -119,7 +119,7 @@
 %Vl(large_title,16,2,-16,35,2)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%alLibrary
+%s%al%Sx(Library)
 
 # â”€â”€ Content viewports (full width: selector + list dividers edge-to-edge; 16px row
 #    inset is applied in apps/gui/bitmap/list.c for Apple2026 iPod targets)
@@ -274,7 +274,7 @@
 %V(80,8,160,18,8)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%acQuick Settings|>
+%?if(%cs, =, 10)<%ac%Sx(Quick Settings)|>
 
 # Top strip: battery
 %V(248,8,56,18,8)
@@ -297,7 +297,7 @@
 %V(104,52,112,16,8)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%acBrightness|>
+%?if(%cs, =, 10)<%ac%Sx(Brightness)|>
 
 %V(112,66,96,20,3)
 %Vf(000000)
@@ -314,7 +314,7 @@
 %V(20,112,72,16,8)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%arShuffle|>
+%?if(%cs, =, 10)<%ar%Sx(Shuffle)|>
 
 %V(20,130,72,20,3)
 %Vf(000000)
@@ -324,7 +324,7 @@
 %V(228,112,72,16,8)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%alRepeat|>
+%?if(%cs, =, 10)<%al%Sx(Repeat)|>
 
 %V(228,130,72,20,3)
 %Vf(000000)

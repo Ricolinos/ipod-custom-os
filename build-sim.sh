@@ -213,6 +213,8 @@ ROCKPOD_THEME
     echo "RockPod: config.cfg written to simdisk."
     printf '%s\n' "$APPLE2026_THEME_VERSION" > "$simdisk/.apple2026_version"
     echo "RockPod: .apple2026_version written to simdisk."
+    # Music library root expected by the Canciones/Music root menu item.
+    mkdir -p "$(dirname "$simdisk")/Music"
 }
 
 prepare_core_generated_headers() {
@@ -289,7 +291,14 @@ BUILDDIR="build-sim"
 WANT_STAMP="simulator ipod6g"
 
 run_configure() {
-    ../tools/configure --target=ipod6g --type=s
+    # macOS blocks the sigaltstack signal-stack trick at runtime
+    # (make_context(): Operation not permitted, endless retry loop),
+    # so force SDL threads there.
+    case "$(uname -s)" in
+        Darwin) CONFIGURE_EXTRA="--sdl-threads" ;;
+        *)      CONFIGURE_EXTRA="" ;;
+    esac
+    ../tools/configure --target=ipod6g --type=s $CONFIGURE_EXTRA
     printf '%s\n' "$WANT_STAMP" > .rockpod_configure_stamp
 }
 

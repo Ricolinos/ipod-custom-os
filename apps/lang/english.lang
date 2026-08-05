@@ -17139,3 +17139,59 @@
     lcd_color: "Dynamic Colors"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_LIBRARY
+  desc: Apple2026 root menu title
+  user: core
+  <source>
+    *: "Library"
+  </source>
+  <dest>
+    *: "Library"
+  </dest>
+  <voice>
+    *: "Library"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_QUICK_SETTINGS
+  desc: Apple2026 quickscreen overlay title
+  user: core
+  <source>
+    *: "Quick Settings"
+  </source>
+  <dest>
+    *: "Quick Settings"
+  </dest>
+  <voice>
+    *: "Quick Settings"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_MUSIC_LIBRARY
+  desc: Apple2026 root menu music library item
+  user: core
+  <source>
+    *: "Music"
+  </source>
+  <dest>
+    *: "Music"
+  </dest>
+  <voice>
+    *: "Music"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_DB_BROWSER
+  desc: Apple2026 root menu database browser item
+  user: core
+  <source>
+    *: "Database"
+  </source>
+  <dest>
+    *: "Database"
+  </dest>
+  <voice>
+    *: "Database"
+  </voice>
+</phrase>

@@ -80,7 +80,10 @@ void gui_synclist_scroll_stop(struct gui_synclist *lists)
     {
         screens[i].scroll_stop_viewport(&list_text[i]);
         screens[i].scroll_stop_viewport(&title_text[i]);
-        screens[i].scroll_stop_viewport(lists->parent[i]);
+        /* parent is NULL when the list was never initialized, e.g. tree.c
+         * bailing out of dirbrowse() before gui_synclist_init() */
+        if (lists->parent[i])
+            screens[i].scroll_stop_viewport(lists->parent[i]);
     }
 }
 

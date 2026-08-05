@@ -660,8 +660,8 @@ sub simbuilds {
 	},
         'enabled' => 1,
     },
-    'espanol' => {
-	'lang' => 'espanol',
+    'español' => {
+	'lang' => 'español',
 	'name' => 'Spanish (Peninsular)',
         'short' => 'es-es',
         'defengine' => 'piper',
@@ -674,7 +674,7 @@ sub simbuilds {
         'enabled' => 1,
     },
     'espanol-mx' => {
-	'lang' => 'espanol',
+	'lang' => 'español',
 	'name' => 'Spanish (Mexican)',
         'short' => 'es-mx',
         'defengine' => 'piper',

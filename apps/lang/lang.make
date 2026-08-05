@@ -7,7 +7,10 @@
 # $Id$
 #
 
-LANGS := $(call preprocess, $(APPSDIR)/lang/SOURCES)
+# Read SOURCES directly instead of $(call preprocess, ...): the C preprocessor
+# rewrites non-ASCII filenames (español.lang) as UCN escapes (espa\U000000f1ol),
+# breaking the .lng pattern rules. lang/SOURCES contains no cpp directives.
+LANGS := $(addprefix $(APPSDIR)/lang/, $(shell grep -v "^$(_hash_)" $(APPSDIR)/lang/SOURCES | grep -v "^ *$$"))
 LANGOBJ := $(LANGS:$(ROOTDIR)/%.lang=$(BUILDDIR)/%.lng)
 VOICEOBJ := $(LANGS:$(ROOTDIR)/%.lang=$(BUILDDIR)/%.vstrings)
 LANG_O = $(BUILDDIR)/lang/lang_core.o
