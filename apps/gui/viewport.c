@@ -108,6 +108,19 @@ static void toggle_theme(enum screen_type screen, bool force)
     static bool after_boot[NB_SCREENS] = {false};
     struct viewport *last_vp;
 
+    /* A26 diagnostics: catch runaway theme recursion */
+    static int tt_depth = 0;
+    tt_depth++;
+    if (tt_depth >= 4 && tt_depth <= 8)
+        DEBUGF("A26 toggle_theme depth=%d caller=%p\n", tt_depth,
+               __builtin_return_address(0));
+    if (tt_depth > 30)
+    {
+        DEBUGF("A26 toggle_theme runaway suppressed\n");
+        tt_depth--;
+        return;
+    }
+
     FOR_NB_SCREENS(i)
     {
         enable_event = enable_event || is_theme_enabled(i);
@@ -176,6 +189,7 @@ static void toggle_theme(enum screen_type screen, bool force)
     sb_bypass_touchregions(!is_theme_enabled(SCREEN_MAIN));
 #endif
     after_boot[screen] = true;
+    tt_depth--;
 }
 
 void viewportmanager_theme_enable(enum screen_type screen, bool enable,

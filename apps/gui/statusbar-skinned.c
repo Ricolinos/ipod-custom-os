@@ -147,10 +147,24 @@ struct viewport *sb_skin_get_info_vp(enum screen_type screen)
     if (oldinfovp_label[screen] &&
         (oldinfovp_label[screen] != infovp_label[screen]))
     {
-        /* UI viewport changed, so force a redraw */
+        /* UI viewport changed, so force a redraw.
+         *
+         * Apple2026: guard against re-entry.  toggle_theme() clears the
+         * list title and renders the SBS, which can flip title-dependent
+         * %VI routing (%Lo/%LM) and re-trigger this path from inside the
+         * forced redraw — unbounded recursion through the theme stack
+         * (stack exhaustion, no list_draw frames).  Nested label changes
+         * only update the bookkeeping; the outer redraw repaints with the
+         * final label anyway. */
+        static bool infovp_redraw_active[NB_SCREENS];
         oldinfovp_label[screen] = infovp_label[screen];
-        viewportmanager_theme_enable(screen, false, NULL);
-        viewportmanager_theme_undo(screen, true);
+        if (!infovp_redraw_active[screen])
+        {
+            infovp_redraw_active[screen] = true;
+            viewportmanager_theme_enable(screen, false, NULL);
+            viewportmanager_theme_undo(screen, true);
+            infovp_redraw_active[screen] = false;
+        }
     }
     if (infovp_label[screen] == VP_DEFAULT_LABEL)
         label = VP_DEFAULT_LABEL_STRING;
