@@ -243,15 +243,26 @@ static unsigned int pf_bg_rb;  /* pf_bg_color & 0xf81f */
 static unsigned int pf_bg_g;   /* pf_bg_color & 0x7e0 */
 
 #ifdef HAVE_ALBUMART
-static void pf_update_dynamic_colors(void)
+/* Returns true when any resolved color changed (e.g. during the core's
+   adaptive color fade) so the idle loop knows the scene needs a repaint. */
+static bool pf_update_dynamic_colors(void)
 {
-    pf_bg_color = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->bg_color);
-    pf_fg_color = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->fg_color);
-    pf_lss_color = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->lss_color);
-    pf_lse_color = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->lse_color);
-    pf_lst_color = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->lst_color);
+    pix_t bg  = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->bg_color);
+    pix_t fg  = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->fg_color);
+    pix_t lss = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->lss_color);
+    pix_t lse = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->lse_color);
+    pix_t lst = (pix_t)rb->dynamic_colors_resolve(rb->global_settings->lst_color);
+    bool changed = bg != pf_bg_color || fg != pf_fg_color
+                || lss != pf_lss_color || lse != pf_lse_color
+                || lst != pf_lst_color;
+    pf_bg_color = bg;
+    pf_fg_color = fg;
+    pf_lss_color = lss;
+    pf_lse_color = lse;
+    pf_lst_color = lst;
     pf_bg_rb = pf_bg_color & 0xf81f;
     pf_bg_g  = pf_bg_color & 0x7e0;
+    return changed;
 }
 #endif
 
@@ -304,7 +315,24 @@ static inline pix_t pf_color_mix(int brightness)
 
 #define MAX_SLIDES_COUNT 10
 
-#define THREAD_STACK_SIZE DEFAULT_STACK_SIZE + 0x200
+/* Frame pacing: render animated states at a locked 33 fps (3 ticks at
+   HZ=100). A constant 33 looks smoother than an uncapped rate that
+   jitters between frame times. */
+#define PF_FRAME_TICKS (HZ / 33)
+/* Reference framerate the scroll/transition speed settings were tuned at.
+   Time-based stepping scales tick deltas by this so the configured speeds
+   keep their historical meaning. */
+#define PF_REF_FPS 25
+/* Cover in/out keyframe rate: 18 keyframes at 30 fps ~= 600 ms, matching
+   the previous per-frame animation at its typical framerate. */
+#define PF_ANIM_FPS 30
+/* Extra load priority added to the side behind the scroll direction so
+   covers ahead of the user load first and free last. */
+#define PF_PREFETCH_BIAS 3
+
+/* Stack must fit the JPEG decoder + scaler now that the album art cache is
+   built on the loader thread. */
+#define THREAD_STACK_SIZE DEFAULT_STACK_SIZE + 0x2000
 #define CACHE_PREFIX PLUGIN_DEMOS_DATA_DIR "/pictureflow"
 #define ALBUM_INDEX CACHE_PREFIX "/pictureflow_album.idx"
 
@@ -337,6 +365,15 @@ static const unsigned char pf_dither_table[16] =
 /* current version for cover cache */
 #define CACHE_VERSION 5
 #define CONFIG_VERSION 1
+
+/* Frame profiling for the FPS overlay: USEC_TIMER is a free-running
+   microsecond counter on both iPod targets; the simulator falls back to
+   the centisecond tick. */
+#if defined(USEC_TIMER) && !defined(SIMULATOR)
+#define PF_PROF_NOW() ((unsigned long)USEC_TIMER)
+#else
+#define PF_PROF_NOW() ((unsigned long)*rb->current_tick * (1000000UL / HZ))
+#endif
 #define CONFIG_FILE "pictureflow.cfg"
 #define INDEX_HDR "PFID"
 
@@ -656,8 +693,21 @@ static bool wants_to_quit;
 static struct mutex buf_ctx_mutex;
 static bool buf_ctx_locked;
 
-static int cover_animation_keyframe;
 static int extra_fade;
+
+/* Time-based animation state: cover in/out progress and scroll stepping are
+   functions of elapsed ticks, not of how many frames happened to render. */
+static long cover_anim_start_tick;
+static long pf_anim_last_tick;
+/* Sign of the last scroll direction; biases the loader thread's prefetch
+   toward the covers the user is heading for. */
+static volatile int pf_scroll_dir;
+/* Set whenever the idle scene must be re-rendered (slide loaded, colors
+   changed, state transition). Written by the loader thread too. */
+static volatile bool pf_frame_dirty = true;
+/* Set by the loader thread when the album art cache build completes so the
+   UI thread does the config save. */
+static volatile bool aa_cache_finished_pending;
 
 static struct pf_scroll_line_info scroll_line_info;
 static struct pf_scroll_line scroll_lines[PF_MAX_SCROLL_LINES];
@@ -1118,12 +1168,15 @@ static int get_scroll_line_offset(enum pf_scroll_line_type type)
     return scroll_lines[type].offset;
 }
 
-static void update_scroll_lines(void)
+/* Returns true when any line's offset moved so the idle loop knows the
+   text band needs a partial repaint. */
+static bool update_scroll_lines(void)
 {
     int i;
+    bool moved = false;
 
     if (TIME_BEFORE(*rb->current_tick, scroll_line_info.next_scroll))
-        return;
+        return false;
 
     scroll_line_info.next_scroll = *rb->current_tick + scroll_line_info.ticks;
 
@@ -1133,6 +1186,7 @@ static void update_scroll_lines(void)
         if (s->step && TIME_BEFORE(s->start_tick, *rb->current_tick))
         {
             s->offset -= s->step;
+            moved = true;
 
             if (s->offset >= 0) {
                 /* at beginning of line */
@@ -1148,6 +1202,7 @@ static void update_scroll_lines(void)
             }
         }
     }
+    return moved;
 }
 
 /* Create the lookup table with the scaling values for the reflections */
@@ -2388,10 +2443,12 @@ aa_failure:
 aa_success:
     if (aa_cache.inspected >= pf_idx.album_ct)
     {
-        configfile_save(CONFIG_FILE, config, CONFIG_NUM_ITEMS,
-                            CONFIG_VERSION);
+        /* Runs on the loader thread: leave the config save to the UI
+         * thread, free stale slides so they reload with the new art and
+         * wake ourselves up to start reloading. */
+        aa_cache_finished_pending = true;
         free_all_slide_prio(0);
-        if (pf_state == pf_idle)
+        if (thread_is_running)
             rb->queue_post(&thread_q, EV_WAKEUP, 0);
     }
 
@@ -2484,8 +2541,24 @@ static void thread(void)
                 buf_ctx_unlock();
                 if (!slide_loaded)
                     break;
+                pf_frame_dirty = true;
                 rb->yield();
             }
+        }
+
+        /* Nearby slides are loaded: spend the remaining idle time building
+         * the album art cache off the UI thread, one album per iteration.
+         * Re-check the queue so slide loads triggered by scrolling take
+         * priority, and only run while idle so the decode (which cannot
+         * yield) never stalls an animation or the track list build. */
+        while (pf_state == pf_idle && !wants_to_quit
+               && aa_cache.inspected < pf_idx.album_ct
+               && rb->queue_empty(&thread_q))
+        {
+            buf_ctx_lock();
+            incremental_albumart_cache(false);
+            buf_ctx_unlock();
+            rb->yield();
         }
     }
 }
@@ -2892,6 +2965,12 @@ bool load_new_slide(void)
 
         int prio_l = center - left + 1;
         int prio_r = right - center + 1;
+        /* Bias loading (and eviction) toward the direction the user is
+         * scrolling: covers ahead load first and free last. */
+        if (pf_scroll_dir > 0)
+            prio_l += PF_PREFETCH_BIAS;
+        else if (pf_scroll_dir < 0)
+            prio_r += PF_PREFETCH_BIAS;
         if ((prio_l < prio_r
              || right >= number_of_slides - 1) && left > 0)
         {
@@ -3318,6 +3397,7 @@ static inline void set_current_slide(const int slide_index)
     target = center_index;
     slide_frame = center_index << 16;
     reset_slides();
+    pf_frame_dirty = true;
 }
 
 
@@ -3334,6 +3414,7 @@ static void return_to_idle_state(void)
         set_current_slide(target);
 
     pf_state = pf_idle;
+    pf_frame_dirty = true;
 }
 
 
@@ -3440,6 +3521,8 @@ static bool sort_albums(int new_sorting, bool from_settings)
 static void start_animation(void)
 {
     step = (target < center_slide.slide_index) ? -1 : 1;
+    pf_scroll_dir = step;
+    pf_anim_last_tick = *rb->current_tick;
     pf_state = pf_scrolling;
 }
 
@@ -3510,13 +3593,13 @@ static void render_all_slides(void)
         for (index = nleft - 2; index >= 0; index--) {
             alpha = (index < nleft - 2) ? 256 : 128;
             alpha -= extra_fade;
-            if (alpha > 0 )
+            if (alpha >= 16)  /* skip nearly invisible slides */
                 render_slide(&left_slides[index], alpha);
         }
         for (index = nright - 2; index >= 0; index--) {
             alpha = (index < nright - 2) ? 256 : 128;
             alpha -= extra_fade;
-            if (alpha > 0 )
+            if (alpha >= 16)
                 render_slide(&right_slides[index], alpha);
         }
     } else {
@@ -3548,7 +3631,7 @@ static void render_all_slides(void)
                 if (alpha > 256) alpha = 256;
                 continue;
             }
-            if (alpha > 0)
+            if (alpha >= 16)  /* skip nearly invisible slides */
                 render_slide(&left_slides[index], alpha);
             alpha += 128;
             if (alpha > 256) alpha = 256;
@@ -3561,7 +3644,7 @@ static void render_all_slides(void)
                 if (alpha > 256) alpha = 256;
                 continue;
             }
-            if (alpha > 0)
+            if (alpha >= 16)
                 render_slide(&right_slides[index], alpha);
             alpha += 128;
             if (alpha > 256) alpha = 256;
@@ -3617,7 +3700,18 @@ static void update_scroll_animation(void)
               + accel * pf_cfg.scroll_speed / 100;
     }
 
-    slide_frame += speed * step;
+    pf_scroll_dir = step;
+
+    /* Time-based stepping: scale by the ticks elapsed since the last
+     * animation frame so scroll duration is independent of framerate.
+     * Clamped so a stalled frame can't teleport the animation. */
+    {
+        long now = *rb->current_tick;
+        long dt = now - pf_anim_last_tick;
+        pf_anim_last_tick = now;
+        dt = fbound(1, dt, HZ / 5);
+        slide_frame += step * (int)((speed * dt * PF_REF_FPS) / HZ);
+    }
 
     int index = slide_frame >> 16;
     int pos = slide_frame & 0xffff;
@@ -4051,23 +4145,42 @@ static int main_menu(void)
 #define KEYFRAME_COUNT ZOOMIN_FRAME_COUNT + ROTATE_FRAME_COUNT
 
 /**
+   Apply the cover zoom/rotate state for keyframe k. Absolute form: progress
+   is a pure function of k, so it can be driven by elapsed time and reversed
+   without accumulating drift.
+ */
+static void pf_cover_anim_apply(int k)
+{
+    int zk = MIN(k, ZOOMIN_FRAME_COUNT);
+    int rk = MAX(0, k - ZOOMIN_FRAME_COUNT);
+    center_slide.distance = zk * ZOOMIN_FRAME_DIST;
+    center_slide.angle = zk * ZOOMIN_FRAME_ANGLE + rk * ROTATE_FRAME_ANGLE;
+    extra_fade = zk * ZOOMIN_FRAME_FADE;
+}
+
+/* Current keyframe from the elapsed time since the animation started */
+static int pf_cover_anim_keyframe(void)
+{
+    int k = (int)((*rb->current_tick - cover_anim_start_tick)
+                  * PF_ANIM_FPS / HZ);
+    return MIN(k, KEYFRAME_COUNT);
+}
+
+static void start_cover_animation(int state)
+{
+    pf_state = state;
+    cover_anim_start_tick = *rb->current_tick;
+}
+
+/**
    Animation step for zooming into the current cover
  */
 static void update_cover_in_animation(void)
 {
-    cover_animation_keyframe++;
-
-    if(cover_animation_keyframe <= ZOOMIN_FRAME_COUNT)
+    int k = pf_cover_anim_keyframe();
+    pf_cover_anim_apply(k);
+    if (k >= KEYFRAME_COUNT)
     {
-        center_slide.distance += ZOOMIN_FRAME_DIST;
-        center_slide.angle +=    ZOOMIN_FRAME_ANGLE;
-        extra_fade +=            ZOOMIN_FRAME_FADE;
-    }
-    else if(cover_animation_keyframe <= KEYFRAME_COUNT)
-        center_slide.angle += ROTATE_FRAME_ANGLE;
-    else
-    {
-        cover_animation_keyframe = 0;
         pf_state = pf_show_tracks;
         schedule_tracklist_playing_focus();
     }
@@ -4078,20 +4191,12 @@ static void update_cover_in_animation(void)
  */
 static void update_cover_out_animation(void)
 {
-    cover_animation_keyframe++;
-
-    if(cover_animation_keyframe <= ROTATE_FRAME_COUNT)
-        center_slide.angle -= ROTATE_FRAME_ANGLE;
-    else if(cover_animation_keyframe <= KEYFRAME_COUNT)
+    int k = pf_cover_anim_keyframe();
+    pf_cover_anim_apply(KEYFRAME_COUNT - k);
+    if (k >= KEYFRAME_COUNT)
     {
-        center_slide.distance -= ZOOMIN_FRAME_DIST;
-        center_slide.angle -=    ZOOMIN_FRAME_ANGLE;
-        extra_fade -=            ZOOMIN_FRAME_FADE;
-    }
-    else
-    {
-        cover_animation_keyframe = 0;
         pf_state = pf_idle;
+        pf_frame_dirty = true;
     }
 }
 
@@ -4101,13 +4206,8 @@ static void update_cover_out_animation(void)
 static void skip_animation_to_show_tracks(void)
 {
     pf_state = pf_show_tracks;
-    cover_animation_keyframe = 0;
     schedule_tracklist_playing_focus();
-
-    extra_fade =            ZOOMIN_FRAME_COUNT * ZOOMIN_FRAME_FADE;
-    center_slide.distance = ZOOMIN_FRAME_COUNT * ZOOMIN_FRAME_DIST;
-    center_slide.angle   = (ZOOMIN_FRAME_COUNT * ZOOMIN_FRAME_ANGLE) +
-                           (ROTATE_FRAME_COUNT * ROTATE_FRAME_ANGLE);
+    pf_cover_anim_apply(KEYFRAME_COUNT);
 }
 
 /**
@@ -4116,9 +4216,9 @@ static void skip_animation_to_show_tracks(void)
 static void skip_animation_to_idle_state(void)
 {
     pf_state = pf_idle;
-    cover_animation_keyframe = 0;
     extra_fade = 0;
     set_current_slide(center_index);
+    pf_frame_dirty = true;
 }
 
 /**
@@ -4126,8 +4226,11 @@ static void skip_animation_to_idle_state(void)
 */
 static void reverse_animation(void)
 {
+    int k = pf_cover_anim_keyframe();
     pf_state = pf_state == pf_cover_out ? pf_cover_in : pf_cover_out;
-    cover_animation_keyframe = KEYFRAME_COUNT - cover_animation_keyframe;
+    /* Continue from the mirrored keyframe of the reversed animation */
+    cover_anim_start_tick = *rb->current_tick
+                          - (long)(KEYFRAME_COUNT - k) * HZ / PF_ANIM_FPS;
 }
 
 /**
@@ -4366,7 +4469,7 @@ static bool show_track_list(void)
         create_track_index(center_slide.slide_index);
         if (pf_tracks.count == 0)
         {
-            pf_state = pf_cover_out;
+            start_cover_animation(pf_cover_out);
             free_borrowed_tracks();
             return false;
         }
@@ -4769,6 +4872,33 @@ static bool start_playback(bool return_to_WPS)
 }
 #endif /* PF_PLAYBACK_CAPABLE */
 
+/* Snapshot/restore of the album text band: while idle, a scrolling long
+ * title can be redrawn by restoring the band from the last full frame and
+ * pushing only that stripe to the LCD, instead of re-rendering the scene.
+ * Only used with the statusbar hidden, where pf_vp starts at y=0. */
+#define PF_TEXT_BAND_MAX_H 48
+static pix_t pf_text_band_save[LCD_WIDTH * PF_TEXT_BAND_MAX_H];
+static int pf_text_band_y = -1;
+static int pf_text_band_h;
+
+static void pf_snapshot_text_band(void)
+{
+    if (pf_text_band_y < 0 || pf_text_band_h <= 0)
+        return;
+    rb->memcpy(pf_text_band_save,
+               buffer + pf_text_band_y * BUFFER_WIDTH,
+               pf_text_band_h * BUFFER_WIDTH * sizeof(pix_t));
+}
+
+static void pf_restore_text_band(void)
+{
+    if (pf_text_band_y < 0 || pf_text_band_h <= 0)
+        return;
+    rb->memcpy(buffer + pf_text_band_y * BUFFER_WIDTH,
+               pf_text_band_save,
+               pf_text_band_h * BUFFER_WIDTH * sizeof(pix_t));
+}
+
 /**
    Draw the current album name
  */
@@ -4875,6 +5005,17 @@ static void draw_album_text(void)
     } else {
         mylcd_putsxy(albumtxt_x, albumtxt_y, album_and_year);
     }
+
+    /* Record the band the text occupies for the idle partial-update path.
+     * Two-line mode spans char_height*7/4; char_height*2 covers both modes
+     * with margin for descenders. */
+    pf_text_band_y = albumtxt_y;
+    pf_text_band_h = char_height * 2;
+    if (pf_text_band_y + pf_text_band_h > pf_height)
+        pf_text_band_h = pf_height - pf_text_band_y;
+    if (pf_text_band_h > PF_TEXT_BAND_MAX_H)
+        pf_text_band_h = PF_TEXT_BAND_MAX_H;
+
 #if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
     if (pf_album_title_font_id >= 0)
         rb->lcd_setfont(FONT_UI);
@@ -5038,8 +5179,12 @@ static bool init(void)
     number_of_slides = pf_idx.album_ct;
 
     size_t aa_min = DISPLAY_WIDTH * DISPLAY_HEIGHT * sizeof(pix_t);
-    size_t aa_bufsz = ALIGN_DOWN(MAX(aa_min * 3, pf_idx.buf_sz / 8),
-                                 sizeof(long));
+    /* Working space for building one cover: output bitmap + JPEG decoder
+     * state + scaler line buffers. 3x the output bitmap is a proven size on
+     * these targets; anything beyond that is better spent on the slide
+     * cache, so drop the old buf_sz/8 term that over-reserved on targets
+     * with a large plugin buffer. */
+    size_t aa_bufsz = ALIGN_DOWN(aa_min * 3, sizeof(long));
     if (aa_bufsz < aa_min)
     {
         error_wait("Not enough memory for album art cache");
@@ -5162,7 +5307,7 @@ static bool prompt_reinit(void)
 static int pictureflow_main(void)
 {
     int ret;
-    char fpstxt[10];
+    char fpstxt[24];
     int button;
     int frames = 0;
     long last_update = *rb->current_tick;
@@ -5171,6 +5316,13 @@ static int pictureflow_main(void)
     int fps = 0;
     int fpstxt_y;
     bool instant_update;
+    /* Frame pacing and profiling */
+    long next_frame_tick = *rb->current_tick;
+    unsigned long prof_render = 0, prof_update = 0;   /* accumulated us */
+    unsigned long prof_render_avg = 0, prof_update_avg = 0; /* us/frame */
+    /* Throttled album art cache progress display */
+    long last_pct_tick = *rb->current_tick;
+    int last_pct_inspected = -1;
 
     rb->skin_render_inhibit_flush(false);
 
@@ -5188,11 +5340,21 @@ static int pictureflow_main(void)
         if (pf_cfg.show_statusbar)
             rb->skin_render_inhibit_flush(true);
 
+        /* Frame pacing: in animated states sleep until the next frame is
+         * due instead of spinning at an uneven, uncapped rate. */
+        long timeout = HZ/16;
+        if (instant_update)
+        {
+            timeout = next_frame_tick - *rb->current_tick;
+            if (timeout < 0)
+                timeout = 0;
+        }
+
         button = rb->get_custom_action(CONTEXT_PLUGIN
 #ifndef USE_CORE_PREVNEXT
             |(pf_state == pf_show_tracks ? 1 : 0)
 #endif
-            ,instant_update ? 0 : HZ/16,
+            ,timeout,
             get_context_map);
 
         if (pf_cfg.show_statusbar)
@@ -5203,12 +5365,63 @@ static int pictureflow_main(void)
         rb->lcd_set_viewport(&pf_vp);
 
         current_update = *rb->current_tick;
-        frames++;
+
+        /* Any input can change what's on screen (menus, jumps, overlays);
+         * one extra repaint per keypress is cheap insurance. */
+        if (button != ACTION_NONE)
+            pf_frame_dirty = true;
+
+        /* Loader thread finished the album art cache: save config from the
+         * UI thread and repaint to clear the progress overlay. */
+        if (aa_cache_finished_pending)
+        {
+            aa_cache_finished_pending = false;
+            configfile_save(CONFIG_FILE, config, CONFIG_NUM_ITEMS,
+                            CONFIG_VERSION);
+            pf_frame_dirty = true;
+        }
 
 #if defined(HAVE_LCD_COLOR) && defined(HAVE_ALBUMART)
-        pf_update_dynamic_colors();
+        if (pf_update_dynamic_colors())
+            pf_frame_dirty = true;
 #endif
-        update_scroll_lines();
+        bool text_moved = update_scroll_lines();
+
+        /* In animated states only render when the frame is due; an early
+         * wakeup (button event) just processes input below. */
+        bool do_render = !instant_update ||
+                         !TIME_BEFORE(current_update, next_frame_tick);
+
+        /* Idle with the statusbar hidden: the scene is static, skip
+         * rendering entirely unless something marked it dirty. (With the
+         * statusbar shown the SBS scribbles into our area during
+         * get_custom_action(), so keep repainting over it as before.) */
+        if (pf_state == pf_idle && !pf_cfg.show_statusbar)
+        {
+            if (pf_cfg.show_fps)
+                pf_frame_dirty = true;
+#ifdef USEGSLIB
+            /* greylib has no direct partial LCD update; fall back to a
+             * full repaint whenever the text scrolls */
+            if (text_moved)
+                pf_frame_dirty = true;
+#endif
+            if (aa_cache.inspected < pf_idx.album_ct
+                && aa_cache.inspected != last_pct_inspected
+                && !TIME_BEFORE(current_update, last_pct_tick + HZ/2))
+            {
+                last_pct_inspected = aa_cache.inspected;
+                last_pct_tick = current_update;
+                pf_frame_dirty = true;
+            }
+            if (!pf_frame_dirty)
+                do_render = false;
+        }
+
+        if (do_render)
+        {
+        frames++;
+        unsigned long prof_t0 = PF_PROF_NOW();
 
         /* Handle states */
         switch ( pf_state ) {
@@ -5243,18 +5456,20 @@ static int pictureflow_main(void)
             case pf_idle:
                 show_tracks_while_browsing = false;
                 render_all_slides();
-                if (aa_cache.inspected < pf_idx.album_ct)
-                {
-                    buf_ctx_lock();
-                    incremental_albumart_cache(false);
-                    buf_ctx_unlock();
-                }
                 break;
         }
+
+        prof_render += PF_PROF_NOW() - prof_t0;
 
         /* Calculate FPS */
         if (current_update - last_update > update_interval) {
             fps = frames * HZ / (current_update - last_update);
+            if (frames > 0) {
+                prof_render_avg = prof_render / frames;
+                prof_update_avg = prof_update / frames;
+            }
+            prof_render = 0;
+            prof_update = 0;
             last_update = current_update;
             frames = 0;
         }
@@ -5267,7 +5482,13 @@ static int pictureflow_main(void)
             mylcd_set_foreground(G_PIX(255,0,0));
 #endif
             if(aa_cache.inspected >= pf_idx.album_ct)
-                 rb->snprintf(fpstxt, sizeof(fpstxt), "FPS: %d", fps);
+                /* fps plus avg per-frame render (R) and lcd update (U) ms */
+                rb->snprintf(fpstxt, sizeof(fpstxt), "%d R%lu.%lu U%lu.%lu",
+                             fps,
+                             prof_render_avg / 1000,
+                             (prof_render_avg % 1000) / 100,
+                             prof_update_avg / 1000,
+                             (prof_update_avg % 1000) / 100);
             else
             {
                 int progress_pct = 100 * aa_cache.inspected / pf_idx.album_ct;
@@ -5284,16 +5505,47 @@ static int pictureflow_main(void)
         }
         draw_album_text();
 
+        /* Keep a copy of the pixels under the text so the idle loop can
+         * scroll long titles with a partial update only. */
+        if (pf_state == pf_idle && !pf_cfg.show_statusbar)
+            pf_snapshot_text_band();
 
         /* Copy offscreen buffer to LCD and give time to other threads */
+        prof_t0 = PF_PROF_NOW();
         mylcd_update();
+        prof_update += PF_PROF_NOW() - prof_t0;
+        pf_frame_dirty = false;
+
+        if (instant_update)
+        {
+            next_frame_tick += PF_FRAME_TICKS;
+            /* don't accumulate debt after a slow frame */
+            if (TIME_AFTER(*rb->current_tick, next_frame_tick))
+                next_frame_tick = *rb->current_tick;
+        }
+        else
+            next_frame_tick = *rb->current_tick;
+        }
+#ifndef USEGSLIB
+        else if (text_moved && pf_state == pf_idle && !pf_cfg.show_statusbar)
+        {
+            /* Only the scrolling album/artist text moved: restore the band
+             * from the last full frame, redraw the text and push just that
+             * stripe to the LCD. */
+            pf_restore_text_band();
+            draw_album_text();
+            if (pf_text_band_y >= 0 && pf_text_band_h > 0)
+                rb->lcd_update_rect(0, pf_vp_y + pf_text_band_y,
+                                    LCD_WIDTH, pf_text_band_h);
+        }
+#endif
         rb->yield();
 
         switch (button) {
         case PF_QUIT:
             if (pf_state == pf_show_tracks)
             {
-                pf_state = pf_cover_out;
+                start_cover_animation(pf_cover_out);
                 free_borrowed_tracks();
                 break;
             }
@@ -5305,7 +5557,7 @@ static int pictureflow_main(void)
                 show_tracks_while_browsing = false;
             else if (pf_state == pf_show_tracks)
             {
-                pf_state = pf_cover_out;
+                start_cover_animation(pf_cover_out);
                 free_borrowed_tracks();
             }
             else if (pf_state == pf_cover_in)
@@ -5319,7 +5571,7 @@ static int pictureflow_main(void)
         case PF_MENU:
             if (pf_state == pf_show_tracks)
             {
-                pf_state = pf_cover_out;
+                start_cover_animation(pf_cover_out);
                 free_borrowed_tracks();
                 break;
             }
@@ -5477,7 +5729,7 @@ static int pictureflow_main(void)
                 }
                 else
 #endif
-                    pf_state = pf_cover_in;
+                    start_cover_animation(pf_cover_in);
             }
             else if (pf_state == pf_cover_out)
                 reverse_animation();
