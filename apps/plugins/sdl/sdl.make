@@ -39,11 +39,10 @@ SDLFLAGS = -I$(SDL_SRCDIR)/include $(filter-out -O%,$(PLUGINFLAGS))		\
 #-ffast-math -funroll-loops -fomit-frame-pointer -fexpensive-optimizations	\
 #-D_GNU_SOURCE=1 -D_REENTRANT -DSDL -DELF
 
-# CTRU does need these to avoid compiler errors
-ifeq ($(APP_TYPE),ctru-app)
+# Legacy game-port code predates modern C diagnostics; GCC >= 14 turns
+# these into hard errors on every target, so relax them unconditionally.
 SDLFLAGS += -Wno-int-conversion -Wno-incompatible-pointer-types        \
 -Wno-implicit-function-declaration -Wno-implicit-int
-endif
 
 ifndef APP_TYPE
     ### no target has a big enough plugin buffer
