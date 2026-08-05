@@ -746,15 +746,6 @@ static bool paths_same_directory(const char *a, const char *b)
     return strncmp(a, b, la) == 0;
 }
 
-/* Main-menu Music browse root is `/Music/` only — not `/Music/Artist/…` (resume). */
-static bool path_is_curated_music_library_root(const char *path)
-{
-    size_t n = strlen(path);
-    while (n > 1 && path[n - 1] == '/')
-        n--;
-    return n == 6 && !strncmp(path, "/Music", 6);
-}
-
 /* Selects a path + file and update tree context properly */
 static void set_current_file_ex(const char *path, const char *filename)
 {
@@ -987,24 +978,24 @@ static int dirbrowse(void)
                     break;
                 }
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-                /* Apple2026: intercept back at the /Music/ boundary so
-                 * the curated music browser returns to the main menu, not
-                 * the raw filesystem root.  path_is_curated_music_library_root()
-                 * is an exact match against "/Music" (trailing-slash tolerant)
-                 * so it cannot false-positive on deeper paths like
-                 * "/Music/Artist/".  The BROWSE_APPLE2026_MUSICLIB flag
-                 * ensures this only fires for the main-menu Music entry,
-                 * never for Extras → Files or other browse sessions.
+                /* Apple2026: intercept back at the curated-library boundary
+                 * (browse_context.root, e.g. /Music, /Videos) so bounded
+                 * root-menu browsers return to the main menu, not the raw
+                 * filesystem root.  paths_same_directory() is an exact
+                 * trailing-slash-tolerant match, so it cannot
+                 * false-positive on deeper paths like "/Music/Artist/".
+                 * The BROWSE_A26_BOUNDED flag ensures this only fires for
+                 * root-menu library entries, never for Extras → Files or
+                 * other browse sessions.
                  *
-                 * The previous guard also required dirlevel <= 1, but
-                 * dirlevel can desynchronize from currdir after
-                 * stale-path resumes, playback-context redirects, or
-                 * deep navigation.  Removing the dirlevel constraint
-                 * eliminates the intermittent regression where backing
-                 * out of Music sometimes leaked into the / root. */
+                 * No dirlevel constraint: dirlevel can desynchronize from
+                 * currdir after stale-path resumes, playback-context
+                 * redirects, or deep navigation; comparing paths directly
+                 * avoids the intermittent leak into the / root. */
                 if (*tc.dirfilter != SHOW_ID3DB && tc.browse
-                    && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB)
-                    && path_is_curated_music_library_root(tc.currdir))
+                    && (tc.browse->flags & BROWSE_A26_BOUNDED)
+                    && tc.browse->bounded_root
+                    && paths_same_directory(tc.currdir, tc.browse->bounded_root))
                 {
                     if (oldbutton == ACTION_TREE_PGLEFT)
                         break;
@@ -1030,7 +1021,7 @@ static int dirbrowse(void)
                         exit_func = true;
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
                     if (!exit_func && tc.browse
-                        && (tc.browse->flags & BROWSE_APPLE2026_MUSICLIB)
+                        && (tc.browse->flags & BROWSE_A26_BOUNDED)
                         && tc.currdir[0] == '/' && tc.currdir[1] == '\0')
                     {
                         return exit_to_new_screen(GO_TO_ROOT);

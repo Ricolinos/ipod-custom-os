@@ -40,6 +40,7 @@
 #include "audio.h"
 #include "shortcuts.h"
 #include "dir.h"
+#include "apple2026_pane.h"
 
 #ifdef HAVE_HOTSWAP
 #include "storage.h"
@@ -133,6 +134,43 @@ static void rootmenu_track_changed_callback(unsigned short id, void* param)
     struct mp3entry *id3 = ((struct track_event *)param)->id3;
     strmemccpy(current_track_path, id3->path, MAX_PATH);
 }
+/* Apple2026 curated-library folder resolution: fixed root, resume at the
+ * last visited folder only while it is still inside the root.  Creates the
+ * root on first use (fresh disk/simdisk); browsing a nonexistent dir aborts
+ * dirbrowse() to no benefit. */
+static void a26_library_folder(char *folder, size_t folder_size,
+                               const char *root, const char *last)
+{
+    size_t rootlen = strlen(root);
+
+    if (!dir_exists(root))
+        mkdir(root);
+    if (strncmp(last, root, rootlen) != 0 ||
+        (last[rootlen] != '/' && last[rootlen] != '\0'))
+    {
+        /* Trailing '/' required: "/Videos" parses as file "Videos" in "/" */
+        snprintf(folder, folder_size, "%s/", root);
+    }
+    else
+        strmemccpy(folder, last, folder_size);
+}
+
+/* Persist a curated library's resume folder, discarding paths that escaped
+ * the library root (they would defeat the bounded back-nav guard). */
+static void a26_library_remember(char *last, size_t last_size,
+                                 const char *root)
+{
+    size_t rootlen = strlen(root);
+
+    if (!get_current_file(last, last_size) ||
+        strncmp(last, root, rootlen) != 0 ||
+        (last[rootlen] != '/' && last[rootlen] != '\0'))
+    {
+        last[0] = '/';
+        last[1] = '\0';
+    }
+}
+
 static int browser(void* param)
 {
     int ret_val;
@@ -145,6 +183,10 @@ static int browser(void* param)
     static char last_folder[MAX_PATH] = "/";
     /* Apple2026: music library root (/Music); "/" means open default /Music */
     static char last_music_folder[MAX_PATH] = "/";
+    /* Apple2026 split root menu: curated library resume folders */
+    static char last_video_folder[MAX_PATH] = "/";
+    static char last_photo_folder[MAX_PATH] = "/";
+    static char last_podcast_folder[MAX_PATH] = "/";
     /* and stuff for the database browser */
 #ifdef HAVE_TAGCACHE
     static int last_db_dirlevel = 0, last_db_selection = 0, last_ft_dirlevel = 0;
@@ -206,17 +248,13 @@ static int browser(void* param)
         break;
         case GO_TO_MUSICLIB:
             filter = global_settings.dirfilter;
-            /* Create the library root on first use (fresh disk/simdisk);
-             * browsing a nonexistent dir aborts dirbrowse() to no benefit. */
-            if (!dir_exists("/Music"))
-                mkdir("/Music");
             /* Apple2026: never follow the current-track path for the music
              * library.  The file browser has that behaviour (browse_current
              * setting), but the music library is a fixed-root curated view
              * of /Music/.  Injecting an arbitrary track path here breaks the
              * Apple2026 back-navigation guard in tree.c which expects currdir
-             * to always be inside /Music/.  Always resume at last_music_folder
-             * (validated below) or the library root. */
+             * to always be inside /Music/.  Resume at the playback-context
+             * folder (WPS return) or last_music_folder, both validated. */
             if (last_screen == GO_TO_WPS &&
                 global_status.playback_context == PLAYBACK_CONTEXT_FILESYSTEM &&
                 global_status.playback_context_screen == GO_TO_MUSICLIB &&
@@ -225,40 +263,27 @@ static int browser(void* param)
                 strmemccpy(folder, global_status.playback_context_path,
                            sizeof(folder));
             }
-            else if (!strcmp(last_music_folder, "/") ||
-                strncmp(last_music_folder, "/Music", 6) != 0 ||
-                (last_music_folder[6] != '/' && last_music_folder[6] != '\0'))
-            {
-                /* Trailing '/' required: "/Music" parses as file "Music" in "/" */
-                strcpy(folder, "/Music/");
-            }
             else
             {
-#ifdef HAVE_HOTSWAP
-                bool in_hotswap = false;
-                int i;
-                for (i = 0; i < NUM_VOLUMES; i++)
-                {
-                    char vol_string[VOL_MAX_LEN + 1];
-                    if (!volume_removable(i))
-                        continue;
-                    get_volume_name(i, vol_string);
-                    if (!volume_present(i) &&
-                            (strstr(last_music_folder, vol_string)
-#ifdef HAVE_HOTSWAP_STORAGE_AS_MAIN
-                                                                || (i == 0)
-#endif
-                                                                ))
-                    {
-                        strcpy(folder, "/Music/");
-                        in_hotswap = true;
-                        break;
-                    }
-                }
-                if (!in_hotswap)
-#endif /*HAVE_HOTSWAP*/
-                    strcpy(folder, last_music_folder);
+                a26_library_folder(folder, sizeof(folder), "/Music",
+                                   last_music_folder);
             }
+            push_current_activity(ACTIVITY_FILEBROWSER);
+        break;
+        case GO_TO_VIDEOLIB:
+            a26_library_folder(folder, sizeof(folder), "/Videos",
+                               last_video_folder);
+            push_current_activity(ACTIVITY_FILEBROWSER);
+        break;
+        case GO_TO_PHOTOLIB:
+            a26_library_folder(folder, sizeof(folder), "/Photos",
+                               last_photo_folder);
+            push_current_activity(ACTIVITY_FILEBROWSER);
+        break;
+        case GO_TO_PODCASTLIB:
+            filter = global_settings.dirfilter;
+            a26_library_folder(folder, sizeof(folder), "/Podcasts",
+                               last_podcast_folder);
             push_current_activity(ACTIVITY_FILEBROWSER);
         break;
 #ifdef HAVE_TAGCACHE
@@ -378,12 +403,19 @@ static int browser(void* param)
 #endif /*HAVE_TAGCACHE*/
     }
 
+    intptr_t which = (intptr_t)param;
+    const char *lib_root = (which == GO_TO_MUSICLIB)   ? "/Music" :
+                           (which == GO_TO_VIDEOLIB)   ? "/Videos" :
+                           (which == GO_TO_PHOTOLIB)   ? "/Photos" :
+                           (which == GO_TO_PODCASTLIB) ? "/Podcasts" : NULL;
     struct browse_context browse = {
         .dirfilter = filter,
-        .icon = ((intptr_t)param == GO_TO_MUSICLIB) ? Icon_Audio : Icon_NOICON,
+        .icon = (which == GO_TO_MUSICLIB) ? Icon_Audio : Icon_NOICON,
         .root = folder,
+        .bounded_root = lib_root,
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-        .flags = ((intptr_t)param == GO_TO_MUSICLIB) ? BROWSE_APPLE2026_MUSICLIB : 0u,
+        .flags = (lib_root ? BROWSE_A26_BOUNDED : 0u) |
+                 ((which == GO_TO_MUSICLIB) ? BROWSE_APPLE2026_MUSICLIB : 0u),
 #endif
     };
 
@@ -400,7 +432,7 @@ static int browser(void* param)
      * browse exited abnormally (e.g. ft_load failed on a stale path).
      * Map it to GO_TO_ROOT so root_menu never uses a stale last_screen as
      * the next destination, which could accidentally open GO_TO_FILEBROWSER. */
-    if ((intptr_t)param == GO_TO_MUSICLIB && ret_val == GO_TO_PREVIOUS)
+    if (lib_root && ret_val == GO_TO_PREVIOUS)
         ret_val = GO_TO_ROOT;
 
     switch ((intptr_t)param)
@@ -415,17 +447,16 @@ static int browser(void* param)
             }
         break;
         case GO_TO_MUSICLIB:
-            if (!get_current_file(last_music_folder, MAX_PATH) ||
-                /* Apple2026: must be a path with at least one separator (a
-                 * directory, not a bare root) AND must be inside /Music/.
-                 * An out-of-range path could cause the next Music session to
-                 * open outside /Music, defeating the back-nav guard. */
-                strncmp(last_music_folder, "/Music", 6) != 0 ||
-                (last_music_folder[6] != '/' && last_music_folder[6] != '\0'))
-            {
-                last_music_folder[0] = '/';
-                last_music_folder[1] = '\0';
-            }
+            a26_library_remember(last_music_folder, MAX_PATH, "/Music");
+        break;
+        case GO_TO_VIDEOLIB:
+            a26_library_remember(last_video_folder, MAX_PATH, "/Videos");
+        break;
+        case GO_TO_PHOTOLIB:
+            a26_library_remember(last_photo_folder, MAX_PATH, "/Photos");
+        break;
+        case GO_TO_PODCASTLIB:
+            a26_library_remember(last_podcast_folder, MAX_PATH, "/Podcasts");
         break;
 #ifdef HAVE_TAGCACHE
         case GO_TO_DBBROWSER:
@@ -660,8 +691,15 @@ MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
                         NULL, Icon_Bookmark);
 
 /* Apple2026: primary library at /Music (full-disk browse not exposed at root). */
-MENUITEM_RETURNVALUE(music_library, ID2P(LANG_MUSIC_LIBRARY), GO_TO_MUSICLIB,
+MENUITEM_RETURNVALUE(music_library, ID2P(LANG_ROOT_SONGS), GO_TO_MUSICLIB,
                         NULL, Icon_Audio);
+/* Apple2026 split root menu: curated media libraries */
+MENUITEM_RETURNVALUE(video_library, ID2P(LANG_ROOT_VIDEOS), GO_TO_VIDEOLIB,
+                        NULL, Icon_Display_menu);
+MENUITEM_RETURNVALUE(photo_library, ID2P(LANG_ROOT_PHOTOS), GO_TO_PHOTOLIB,
+                        NULL, Icon_Folder);
+MENUITEM_RETURNVALUE(podcast_library, ID2P(LANG_ROOT_PODCASTS), GO_TO_PODCASTLIB,
+                        NULL, Icon_Voice);
 #ifdef HAVE_TAGCACHE
 MENUITEM_RETURNVALUE(db_browser, ID2P(LANG_DB_BROWSER), GO_TO_DBBROWSER,
                         NULL, Icon_Config);
@@ -679,7 +717,8 @@ static char *get_wps_item_name(int selected_item, void * data,
         return ID2P(LANG_NOW_PLAYING);
     return ID2P(LANG_RESUME_PLAYBACK);
 }
-MENUITEM_RETURNVALUE_DYNTEXT(wps_item, GO_TO_WPS, NULL, get_wps_item_name,
+MENUITEM_RETURNVALUE_DYNTEXT(wps_item, GO_TO_WPS, item_callback,
+                                get_wps_item_name,
                                 NULL, NULL, Icon_Playback_menu);
 MENUITEM_RETURNVALUE(equalizer_item, ID2P(LANG_EQUALIZER), GO_TO_EQUALIZER,
                      NULL, Icon_EQ);
@@ -706,12 +745,13 @@ static struct menu_callback_with_desc root_menu_desc = {
         item_callback, ID2P(LANG_ROCKBOX_TITLE), Icon_Rockbox };
 
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-/* Apple2026: no Plugins / Shortcuts at root — keep shell music-first.
- * Cover Flow is second since it is a core playback surface, not a utility.
+/* Apple2026 split root menu (iPod 5G information architecture):
+ * Music (submenu: Cover Flow / Songs / Database / Playlists), Videos,
+ * Photos, Podcasts, Extras, Settings, Shuffle Songs, Now Playing.
  * System (info/credits/debug) folded into Settings; accessible via
  * Settings > General Settings > System.
  * Extras menu gathers Files (full filesystem), Plugins, Shortcuts,
- * Recording for non-core access.
+ * Equalizer and Recording for non-core access.
  *
  * Files (GO_TO_FILEBROWSER) is the standard full-disk browser.  It uses
  * separate state (last_folder), has no BROWSE_APPLE2026_MUSICLIB flag,
@@ -731,27 +771,80 @@ static int extras_files_fn(void)
 MENUITEM_FUNCTION(files_browser, MENU_FUNC_CHECK_RETVAL,
                   "Files", extras_files_fn, NULL, Icon_file_view_menu);
 #ifdef HAVE_RECORDING
-MAKE_MENU(extras_submenu, "Extras", 0, Icon_Plugin,
-          &files_browser, &rocks_browser, &shortcut_menu, &rec);
+MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
+          &files_browser, &rocks_browser, &shortcut_menu, &equalizer_item,
+          &rec);
 #else
-MAKE_MENU(extras_submenu, "Extras", 0, Icon_Plugin,
-          &files_browser, &rocks_browser, &shortcut_menu);
+MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
+          &files_browser, &rocks_browser, &shortcut_menu, &equalizer_item);
 #endif
 
+/* Apple2026: Music opens a submenu (iPod-style): Cover Flow, Songs
+ * (bounded /Music browser), Database, Playlists. */
+#ifdef HAVE_TAGCACHE
+MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_Audio,
+          &pictureflow_item, &music_library, &db_browser, &playlists);
+#else
+MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_Audio,
+          &music_library, &playlists);
+#endif
+
+/* Apple2026: Shuffle Songs — queue the whole /Music library shuffled and
+ * start playback (iPod-style). */
+static int shuffle_songs_fn(void)
+{
+    splash(0, ID2P(LANG_WAIT));
+    playlist_create(NULL, NULL);
+    playlist_insert_directory(NULL, "/Music", PLAYLIST_INSERT_LAST,
+                              false /*queue*/, true /*recurse*/, NULL);
+    if (playlist_amount() <= 0)
+    {
+        splash(HZ, ID2P(LANG_NO_FILES));
+        return 0;
+    }
+    playlist_shuffle(current_tick, -1);
+    playlist_start(0, 0, 0);
+    playlist_set_modified(NULL, true);
+    return GO_TO_WPS;
+}
+MENUITEM_FUNCTION(shuffle_songs_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_SHUFFLE_SONGS), shuffle_songs_fn, NULL,
+                  Icon_Playlist);
+
 static struct menu_table menu_table[] = {
-    { "music", &music_library },
-#ifdef HAVE_TAGCACHE
-    { "pictureflow", &pictureflow_item },
-#endif
-    { "wps", &wps_item },
-    { "equalizer", &equalizer_item },
-    { "playlists", &playlists },
-#ifdef HAVE_TAGCACHE
-    { "database", &db_browser },
-#endif
-    { "settings", &menu_ },
+    { "music", (const struct menu_item_ex *)&music_submenu },
+    { "videos", &video_library },
+    { "photos", &photo_library },
+    { "podcasts", &podcast_library },
     { "extras", (const struct menu_item_ex *)&extras_submenu },
+    { "settings", &menu_ },
+    { "shuffle_songs", &shuffle_songs_item },
+    { "wps", &wps_item },
 };
+
+/* Apple2026 split root menu: identify a root item for the preview pane.
+ * Pointer comparison against our own definitions — survives menu reorder
+ * via config and item hiding. */
+enum a26_pane_id root_menu_pane_id_for_item(const struct menu_item_ex *item)
+{
+    if (item == (const struct menu_item_ex *)&music_submenu)
+        return A26_PANE_MUSIC;
+    if (item == &video_library)
+        return A26_PANE_VIDEOS;
+    if (item == &photo_library)
+        return A26_PANE_PHOTOS;
+    if (item == &podcast_library)
+        return A26_PANE_PODCASTS;
+    if (item == (const struct menu_item_ex *)&extras_submenu)
+        return A26_PANE_EXTRAS;
+    if (item == &menu_)
+        return A26_PANE_SETTINGS;
+    if (item == &shuffle_songs_item)
+        return A26_PANE_SHUFFLE;
+    if (item == &wps_item)
+        return A26_PANE_NOWPLAYING;
+    return A26_PANE_NONE;
+}
 #else
 static struct menu_table menu_table[] = {
     { "music", &music_library },
@@ -886,6 +979,14 @@ static int item_callback(int action,
                 if (this_item == &bookmarks)
             {
                 if (global_settings.usemrb == 0)
+                    return ACTION_EXIT_MENUITEM;
+            }
+            else if (this_item == &wps_item)
+            {
+                /* Apple2026: hide Now Playing / Resume Playback while there
+                 * is nothing playing and nothing to resume (iPod-style). */
+                if (!(audio_status() & AUDIO_STATUS_PLAY) &&
+                    playlist_amount() <= 0)
                     return ACTION_EXIT_MENUITEM;
             }
         break;

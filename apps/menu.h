@@ -137,6 +137,10 @@ void do_setting_screen(const struct settings_list *setting, const char * title,
 int do_menu(const struct menu_item_ex *menu, int *start_selected,
             struct viewport parent[NB_SCREENS], bool hide_theme);
 
+/* Apple2026: resolve the currently selected menu item of a synclist that is
+ * displaying a menu (accounts for hidden items).  NULL when unresolvable. */
+const struct menu_item_ex *menu_get_selected_item_ex(struct gui_synclist *lists);
+
 /* In all the following macros the argument names are as follows:
     - name: The name for the variable (so it can be used in a MAKE_MENU()
     - str:  the string to display for this menu item. use ID2P() for LANG_* id's

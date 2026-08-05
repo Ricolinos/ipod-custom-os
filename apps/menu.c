@@ -123,6 +123,26 @@ static int find_menu_selection(int selected)
             return i;
     return 0;
 }
+
+/* Apple2026: resolve the currently selected item of a synclist showing a
+ * menu (list->data == the menu).  Accounts for items hidden via
+ * ACTION_EXIT_MENUITEM.  Returns NULL when the list is not the currently
+ * initialized menu or the index cannot be resolved. */
+const struct menu_item_ex *menu_get_selected_item_ex(struct gui_synclist *lists)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)lists->data;
+    int sel, count;
+
+    if (!menu || menu != current_submenus_menu)
+        return NULL;
+    if ((menu->flags & MENU_TYPE_MASK) != MT_MENU)
+        return NULL;
+    sel = get_menu_selection(lists->selected_item, menu);
+    count = MIN(MENU_GET_COUNT(menu->flags), MAX_MENU_SUBITEMS);
+    if (sel < 0 || sel >= count)
+        return NULL;
+    return menu->submenus[sel];
+}
 static const char* get_menu_item_name(int selected_item,
                                       void * data,
                                       char *buffer,

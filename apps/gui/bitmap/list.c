@@ -44,6 +44,7 @@
 #include "line.h"
 #include "../skin_engine/skin_albumart_color.h"
 #include "apple2026_shell.h"
+#include "apple2026_pane.h"
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 /* Reference to the dense font loaded in apps/gui/list.c */
 extern int apple2026_dense_font_id;
@@ -592,6 +593,9 @@ void list_draw(struct screen *display, struct gui_synclist *list)
     parent->fg_pattern = dc_saved_list_fg;
     parent->bg_pattern = dc_saved_list_bg;
 #endif
+    /* Apple2026 split root menu: paint the right-half preview pane in the
+     * same frame as the list, so full clears never leave it blank. */
+    apple2026_pane_draw(display, parent, list);
     display->set_viewport(parent);
     if (list_need_full_update() | skin_render_pending_update())
     {

@@ -45,6 +45,7 @@ struct entry {
 #define BROWSE_DIRFILTER        0x0080  /* override global_settings.dirfilter with browse_context.dirfilter */
 #define BROWSE_SELECTED         0x0100  /* this bit is set if user selected item */
 #define BROWSE_APPLE2026_MUSICLIB 0x0200  /* main-menu Music (GO_TO_MUSICLIB); not Storage/Files */
+#define BROWSE_A26_BOUNDED      0x0400  /* back-nav stops at browse_context.root (curated root-menu libraries) */
 
 
 struct tree_context;
@@ -73,6 +74,9 @@ struct browse_context {
     const char *selected;       /* name of selected file in the root */
     char *buf;                  /* buffer to store selected file */
     size_t bufsize;             /* size of the buffer */
+    const char *bounded_root;   /* BROWSE_A26_BOUNDED: back-nav boundary
+                                   (library root, e.g. "/Music"); root may be
+                                   a resumed subfolder inside it */
 };
 
 /* browser context for file or db */

@@ -71,6 +71,11 @@ enum {
     /* Apple2026: browse Picard library at /Music (distinct from full storage). */
     GO_TO_MUSICLIB,
     GO_TO_EQUALIZER,
+    /* Apple2026 split root menu: curated libraries (append only — values are
+     * persisted in global_status playback contexts). */
+    GO_TO_VIDEOLIB,
+    GO_TO_PHOTOLIB,
+    GO_TO_PODCASTLIB,
 };
 #ifndef PLUGIN
 extern struct menu_item_ex root_menu_;

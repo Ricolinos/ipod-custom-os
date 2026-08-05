@@ -121,8 +121,17 @@
 %Vb(FFFFFF)
 %s%al%Sx(Library)
 
-# â”€â”€ Content viewports (full width: selector + list dividers edge-to-edge; 16px row
+# â”€â”€ Content viewports (selector + list dividers edge-to-edge; 16px row
 #    inset is applied in apps/gui/bitmap/list.c for Apple2026 iPod targets)
+#
+# Split root menu: the *_lt (root-only) viewports are 160px wide; the right
+# half (x=160..320) is the preview pane painted by apps/apple2026_pane.c.
+# C-drawn preview pane assets (loaded by apple2026_pane.c, NOT the skin
+# engine).  The parenthesized references below exist solely so
+# wps/wpsbuild.pl packages them into /.rockbox/wps/Apple2026/ — do not
+# remove them:
+# (pane_music.bmp) (pane_videos.bmp) (pane_photos.bmp) (pane_podcasts.bmp)
+# (pane_extras.bmp) (pane_settings.bmp) (pane_shuffle.bmp) (pane_nowplaying.bmp)
 # mainlarge: used when playing/paused (content area above 50px mini-player)
 %Vi(-,0,38,-,-50,5)
 %Vf(000000)
@@ -132,7 +141,7 @@
 %Vf(000000)
 %Vb(FFFFFF)
 
-%Vi(mainlarge_lt,0,38,-,-50,5)
+%Vi(mainlarge_lt,0,38,160,-50,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
@@ -141,7 +150,7 @@
 %Vf(000000)
 %Vb(FFFFFF)
 
-%Vi(main_full_lt,0,38,-,-,5)
+%Vi(main_full_lt,0,38,160,-,5)
 %Vf(000000)
 %Vb(FFFFFF)
 

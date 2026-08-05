@@ -16583,10 +16583,10 @@
     *: "Shuffle Songs"
   </source>
   <dest>
-    *: "Canciones en Aleatorio"
+    *: "Aleatorio"
   </dest>
   <voice>
-    *: "Canciones en Aleatorio"
+    *: "Aleatorio"
   </voice>
 </phrase>
 <phrase>
@@ -16961,10 +16961,10 @@
     *: "Music"
   </source>
   <dest>
-    *: "Canciones"
+    *: "Música"
   </dest>
   <voice>
-    *: "Canciones"
+    *: "Música"
   </voice>
 </phrase>
 <phrase>
@@ -17174,5 +17174,75 @@
   <voice>
     *: none
     lcd_color: "Colores dinámicos"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_VIDEOS
+  desc: Apple2026 root menu videos item
+  user: core
+  <source>
+    *: "Videos"
+  </source>
+  <dest>
+    *: "Videos"
+  </dest>
+  <voice>
+    *: "Videos"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_PHOTOS
+  desc: Apple2026 root menu photos item
+  user: core
+  <source>
+    *: "Photos"
+  </source>
+  <dest>
+    *: "Fotos"
+  </dest>
+  <voice>
+    *: "Fotos"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_PODCASTS
+  desc: Apple2026 root menu podcasts item
+  user: core
+  <source>
+    *: "Podcasts"
+  </source>
+  <dest>
+    *: "Podcasts"
+  </dest>
+  <voice>
+    *: "Podcasts"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_EXTRAS
+  desc: Apple2026 root menu extras submenu
+  user: core
+  <source>
+    *: "Extras"
+  </source>
+  <dest>
+    *: "Extras"
+  </dest>
+  <voice>
+    *: "Extras"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ROOT_SONGS
+  desc: Apple2026 music submenu songs item (bounded /Music browser)
+  user: core
+  <source>
+    *: "Songs"
+  </source>
+  <dest>
+    *: "Canciones"
+  </dest>
+  <voice>
+    *: "Canciones"
   </voice>
 </phrase>
