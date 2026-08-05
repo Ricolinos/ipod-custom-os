@@ -38,6 +38,7 @@
 
 bool apple2026_theme_selected(void);
 bool apple2026_quicksettings_enabled(void);
+void apple2026_playpause(void);
 
 #else
 
@@ -51,6 +52,10 @@ static inline bool apple2026_theme_selected(void)
 static inline bool apple2026_quicksettings_enabled(void)
 {
     return false;
+}
+
+static inline void apple2026_playpause(void)
+{
 }
 
 #endif

@@ -299,6 +299,12 @@ int show_logo_boot( void )
     else
         lcd_putsxy((LCD_WIDTH/2) - (ver_w/2), 0, version);
     lcd_bmp(&bm_rockboxlogo, (LCD_WIDTH - BMPWIDTH_rockboxlogo) / 2, 16);
+#elif (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    /* Apple2026: full-screen splash (white apple centered on black),
+     * no version text. */
+    (void)font_h; (void)ver_w; (void)version;
+    lcd_bmp(&bm_rockboxlogo, (LCD_WIDTH - BMPWIDTH_rockboxlogo) / 2,
+            (LCD_HEIGHT - BMPHEIGHT_rockboxlogo) / 2);
 #else
     lcd_bmp(&bm_rockboxlogo, (LCD_WIDTH - BMPWIDTH_rockboxlogo) / 2, 10);
     if (ver_w > LCD_WIDTH)

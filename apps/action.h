@@ -379,6 +379,9 @@ enum {
     ACTION_USB_HID_MOUSE_WHEEL_SCROLL_DOWN,
     ACTION_USB_HID_LAST, /* Place holder */
 
+    /* Apple2026: global play/pause from any list (original iPod PLAY) */
+    ACTION_A26_PLAYPAUSE,
+
     LAST_ACTION_PLACEHOLDER, /* custom actions should be this + something */
 };
 

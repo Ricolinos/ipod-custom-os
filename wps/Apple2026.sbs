@@ -24,8 +24,8 @@
 %Fl(2,28-SFProDisplay-Bold.fnt)
 # Slot 3: header chrome â€” 16pt SF Pro Text Semibold (RB12 h=20px)
 %Fl(3,16-SFProText-Semibold.fnt)
-# Slot 5: list rows â€” 18pt SF Pro Text Regular (RB12 h=23px)
-%Fl(5,18-SFProText-Regular.fnt)
+# Slot 5: list rows â€” 16pt SF Pro Text Regular (RB12 h=20px)
+%Fl(5,16-SFProText-Regular.fnt)
 # Slot 6: dense list rows â€” 16pt SF Pro Text Regular (RB12 h=20px; loaded by list.c)
 %Fl(6,16-SFProText-Regular.fnt)
 # Slot 7: lockscreen clock â€” 35pt SF Pro Display Bold (RB12 h=43px)
@@ -74,18 +74,21 @@
 # cleanup path would blank them on the next ordinary action update. Keep the
 # mini-player in normal always-rendered SBS viewports instead.
 #
-# Header indicators
-%?Lo<%Vd(battery_icon_root)|%Vd(battery_icon)>
-%?if(%St(battery display), =, numeric)<%?Lo<%Vd(batterytext_root)|%Vd(batterytext)>>
-%?mh<%Vd(lock)|>
-%?bs<%Vd(sleeptimertext)|>
-%?lh<%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>|>
+# Header background: split screens (root %Lo / Music submenu %LM) get a
+# 160px-wide 20px bar on the left only; full screens get the full-width bar.
+%?Lo<%Vd(hdr_split)|%?LM<%Vd(hdr_split)|%Vd(hdr_full)>>
 #
-# Header title â€” suppressed at root (large title replaces it)
-%?Lo<|%?if(%St(battery display), =, numeric)<%Vd(title)|%Vd(titlewide)>>
+# Header indicators â€” split screens use the left-bar battery variants
+%?Lo<%Vd(battery_icon_root)|%?LM<%Vd(battery_icon_root)|%Vd(battery_icon)>>
+%?if(%St(battery display), =, numeric)<%?Lo<%Vd(batterytext_root)|%?LM<%Vd(batterytext_root)|%Vd(batterytext)>>>
+%?mh<%?Lo<|%?LM<|%Vd(lock)>>|>
+%?bs<%?Lo<|%?LM<|%Vd(sleeptimertext)>>|>
+%?lh<%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>>>|>
 #
-# Large title â€” root only
-%?Lo<%Vd(large_title)|>
+# Header title â€” full screens center it; split screens use the small
+# left-bar titles (large_title at root, lm_title in the Music submenu)
+%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(title)|%Vd(titlewide)>>>
+%?Lo<%Vd(large_title)|%?LM<%Vd(lm_title)|>>
 %?if(%cs, =, 10)<|%?mv(1.2)<%?mp<|%Vd(mp_volume_bg)%Vd(mp_volume_clip)||%Vd(mp_volume_bg)%Vd(mp_volume_clip)|%Vd(mp_volume_bg)%Vd(mp_volume_clip)>>|>
 #
 # USB backdrop
@@ -94,32 +97,42 @@
 # Homescreen lockscreen â€” covers root menu when hold is engaged
 # %?if(%cs, =, 1)<%?mh<%Vd(home_lock_wallpaper)%Vd(home_lock_clock)%Vd(home_lock_date)%Vd(home_lock_battery)%?bs<%Vd(home_lock_sleep)>%Vd(home_lock_notif)%Vd(home_lock_notif_art)%Vd(home_lock_title)%Vd(home_lock_artist)%Vd(home_lock_play)%?pS(0.2)<%Vd(home_lock_refresh)>|>|>
 
-# â”€â”€ Header background (30px, FFFFFF) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%V(0,0,-,30,-)
+# â”€â”€ Header backgrounds (20px, iPod-scale; split = left 160 only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+%Vl(hdr_full,0,0,-,20,-)
 %Vf(FFFFFF)
 %Vb(FFFFFF)
+%dr(0,0,320,20,FFFFFF,FFFFFF)
+
+%Vl(hdr_split,0,0,160,20,-)
+%Vf(FFFFFF)
+%Vb(FFFFFF)
+%dr(0,0,160,20,FFFFFF,FFFFFF)
 
 # â”€â”€ Header title (when battery % shown â€” shorter to leave room for numbers) â”€â”€
 # Font slot 3 RB12 height = 20px; VP height must be >= 20 to avoid clipping.
-%Vl(title,74,5,-74,20,3)
+%Vl(title,74,0,-74,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%ac%?cs<|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
 
 # â”€â”€ Header title (when battery % not shown â€” wide) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(titlewide,56,5,-56,20,3)
+%Vl(titlewide,56,0,-56,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%ac%?cs<|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP> - %?if(%bl, =, 100)<100%%|%bl%%>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
 
-# â”€â”€ Large title band (root only â€” replaces compact header, Apple Music style) â”€
-# Font slot 2 actual bitmap height = 34px; VP height must be >= 34.
-# At root: single 38px band holds "Library" title + battery/status icons.
-# No separate compact header at root â€” saves vertical space for content.
-%Vl(large_title,10,2,-10,35,2)
+# â”€â”€ Split-screen titles (20px iPod-scale bar, left 160 column only) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Root: "Biblioteca"; Music submenu: the live list title (%Lt).
+# Battery shares the bar at x>=124 (see battery_*_root).
+%Vl(large_title,10,0,112,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%Sx(Library)
+
+%Vl(lm_title,10,0,112,20,3)
+%Vf(000000)
+%Vb(FFFFFF)
+%s%al%Lt
 
 # â”€â”€ Content viewports (selector + list dividers edge-to-edge; 16px row
 #    inset is applied in apps/gui/bitmap/list.c for Apple2026 iPod targets)
@@ -134,34 +147,34 @@
 # (pane_extras.bmp) (pane_settings.bmp) (pane_shuffle.bmp) (pane_nowplaying.bmp)
 # (pane_bg.bmp)
 # mainlarge: used when playing/paused (content area above 50px mini-player)
-%Vi(-,0,38,-,-50,5)
+%Vi(-,0,20,-,-50,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
-%Vi(mainlarge,0,30,-,-50,5)
+%Vi(mainlarge,0,20,-,-50,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
-%Vi(mainlarge_lt,0,38,160,-50,5)
+%Vi(mainlarge_lt,0,20,160,-50,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
 # main_full: used when stopped (no bottom bar â€” full content area)
-%Vi(main_full,0,30,-,-,5)
+%Vi(main_full,0,20,-,-,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
-%Vi(main_full_lt,0,38,160,-,5)
+%Vi(main_full_lt,0,20,160,-,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
 # Music submenu split (compact 30px header instead of the large title band;
 # %LM = list title matches the Music menu — see SKIN_TOKEN_LIST_TITLE_IS_MUSIC)
-%Vi(sub_full_split,0,30,160,-,5)
+%Vi(sub_full_split,0,20,160,-,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
-%Vi(sub_large_split,0,30,160,-50,5)
+%Vi(sub_large_split,0,20,160,-50,5)
 %Vf(000000)
 %Vb(FFFFFF)
 
@@ -184,31 +197,31 @@
 
 # â”€â”€ Battery percentage text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Font slot 6 RB12 h=20px; VP height = 20 to prevent clipping.
-%Vl(batterytext,-70,5,38,20,6)
+%Vl(batterytext,-70,0,38,20,6)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%bl, =, 100)<100%%|%bl%%>
 
 # â”€â”€ Battery text within large-title band (root only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(batterytext_root,-70,5,38,20,6)
+%Vl(batterytext_root,88,0,38,20,6)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%bl, =, 100)<100%%|%bl%%>
 
 # â”€â”€ Sleep timer text countdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(sleeptimertext,-100,5,58,20,6)
+%Vl(sleeptimertext,-100,0,58,20,6)
 %Vf(8E8E93)
 %Vb(FFFFFF)
 %bs
 
 # â”€â”€ Battery icon (upper-right â€” moved up 2px from prior position) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon,-32,3,-,20,3)
+%Vl(battery_icon,-32,1,-,18,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
 
 # â”€â”€ Battery icon aligned within large-title band (root only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon_root,-32,3,-,20,3)
+%Vl(battery_icon_root,128,1,28,18,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>

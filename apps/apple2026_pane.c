@@ -49,13 +49,13 @@
 /* Static pane images live with the theme's other bitmaps. */
 #define PANE_ASSET_DIR WPS_DIR "/Apple2026"
 #define PANE_MAX_W 160
-#define PANE_MAX_H 202
+#define PANE_MAX_H 240
 /* Left-edge drop shadow of the list over the pane */
 #define PANE_SHADOW_W 12
 
 /* Slideshow geometry / timing: covers decode into a box wider than the
  * 160px pane so a slow horizontal pan (iPod-style) has room to travel. */
-#define COVER_SIZE          202
+#define COVER_SIZE          240
 #define COVER_AREA          (COVER_SIZE * COVER_SIZE)
 #define COVER_POOL_MAX      96
 #define SCAN_QUEUE_MAX      96
@@ -579,6 +579,11 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
     pane_vp = *list_vp;
     pane_vp.x = list_vp->x + list_vp->width;
     pane_vp.width = LCD_WIDTH - pane_vp.x;
+    /* The split status bar only covers the left column: the pane runs from
+     * the very top down to the list's bottom edge (240 stopped, 190 with
+     * the mini-player). */
+    pane_vp.y = 0;
+    pane_vp.height = list_vp->y + list_vp->height;
     pane_vp.fg_pattern = A26_TEXT_PRIMARY;
     pane_vp.bg_pattern = A26_SHELL_BG;
     if (pane_vp.width <= 0 || pane_vp.height <= 0)

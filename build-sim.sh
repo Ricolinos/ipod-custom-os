@@ -117,7 +117,7 @@ check_asset_freshness() {
         20-SFProText-Medium.fnt \
         19-SFProText-Medium.fnt \
         19-SFProText-Semibold.fnt \
-        18-SFProText-Regular.fnt \
+        16-SFProText-Regular.fnt \
         17-SFProText-Bold.fnt \
         16-SFProText-Medium.fnt \
         16-SFProText-Semibold.fnt \
@@ -163,7 +163,7 @@ line selector end color: E5E5EA
 line selector text color: 000000
 list separator height: 1
 list separator color: C6C6C8
-font: /.rockbox/fonts/18-SFProText-Regular.fnt
+font: /.rockbox/fonts/16-SFProText-Regular.fnt
 statusbar: top
 iconset: /.rockbox/icons/Apple2026Icons.bmp
 viewers iconset: -
@@ -194,7 +194,7 @@ line selector end color: E5E5EA
 line selector text color: 000000
 list separator height: 1
 list separator color: C6C6C8
-font: /.rockbox/fonts/18-SFProText-Regular.fnt
+font: /.rockbox/fonts/16-SFProText-Regular.fnt
 statusbar: top
 iconset: /.rockbox/icons/Apple2026Icons.bmp
 viewers iconset: -

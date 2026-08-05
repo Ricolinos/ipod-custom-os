@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "settings.h"
+#include "audio.h"
 
 #if ROCKPOD_APPLE2026_IPOD
 /* TEXT_SETTING strips the WPS_DIR prefix and extension when loading, so
@@ -28,5 +29,16 @@ bool apple2026_theme_selected(void)
 bool apple2026_quicksettings_enabled(void)
 {
     return apple2026_theme_selected();
+}
+
+/* Original-iPod PLAY button: toggle pause of whatever is playing; do
+ * nothing when idle. */
+void apple2026_playpause(void)
+{
+    int status = audio_status();
+    if (status & AUDIO_STATUS_PAUSE)
+        audio_resume();
+    else if (status & AUDIO_STATUS_PLAY)
+        audio_pause();
 }
 #endif

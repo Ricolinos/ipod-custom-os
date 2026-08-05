@@ -44,14 +44,14 @@
 #include "apple2026_shell.h"
 #include "apple2026_pane.h"
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
-/* Dense list font (16pt Regular) — loaded once on first use.
+/* Dense list font (14pt Regular) — loaded once on first use.
  * Matches Cover Flow tracklist and album-level file browser density. */
 int apple2026_dense_font_id = -1;
 void apple2026_ensure_dense_font(void)
 {
     if (apple2026_dense_font_id < 0)
         apple2026_dense_font_id =
-            font_load(FONT_DIR "/16-SFProText-Regular.fnt");
+            font_load(FONT_DIR "/14-SFProText-Regular.fnt");
 }
 #endif
 
@@ -698,6 +698,15 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
 {
     int action = *actionptr;
     static bool pgleft_allow_cancel = false;
+
+    /* Apple2026: original-iPod PLAY — toggle pause from any list; the
+     * action is fully consumed here (no-op when nothing is playing). */
+    if (action == ACTION_A26_PLAYPAUSE)
+    {
+        apple2026_playpause();
+        *actionptr = ACTION_NONE;
+        return false;
+    }
 
 #ifdef HAVE_WHEEL_ACCELERATION
     int next_item_modifier = button_apply_acceleration(get_action_data());
