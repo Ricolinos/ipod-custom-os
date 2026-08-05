@@ -297,6 +297,21 @@ int gui_list_get_item_offset(struct gui_synclist * gui_list,
  */
 void gui_synclist_draw(struct gui_synclist *gui_list)
 {
+    /* A26 diagnostics: net #4 for the deep-recursion crash — this is the
+     * only gateway into list_draw, and its small frame lets the guard
+     * actually run before the stack dies. */
+    static int gsd_depth = 0;
+    gsd_depth++;
+    if (gsd_depth >= 2 && gsd_depth <= 6)
+        DEBUGF("A26 gui_synclist_draw depth=%d caller=%p\n", gsd_depth,
+               __builtin_return_address(0));
+    if (gsd_depth > 8)
+    {
+        DEBUGF("A26 gui_synclist_draw runaway suppressed\n");
+        gsd_depth--;
+        return;
+    }
+
     if (list_is_dirty(gui_list))
     {
         list_init_viewports(gui_list);
@@ -310,6 +325,7 @@ void gui_synclist_draw(struct gui_synclist *gui_list)
         if (!skinlist_draw(&screens[i], gui_list))
             list_draw(&screens[i], gui_list);
     }
+    gsd_depth--;
 }
 
 /* sets up the list so the selection is shown correctly on the screen */
@@ -702,13 +718,22 @@ void apple2026_list_settle(struct gui_synclist *lists)
     gui_synclist_refresh_layout(lists);
 }
 
-/* First-letter bucket of an item: 'A'..'Z' or '#'. */
+/* First-letter bucket of an item: 'A'..'Z' or '#'.  Hardened: the name
+ * callback can be mid-reload (tagtree) when a draw lands, and may return
+ * junk for indexes that are stale versus the list's nb_items. */
 static char a26_item_letter(struct gui_synclist *lists, int item)
 {
     char buf[64];
-    const char *name = lists->callback_get_item_name(item, lists->data,
-                                                     buf, sizeof(buf));
-    unsigned char c = name ? (unsigned char)name[0] : 0;
+    const char *name;
+    unsigned char c;
+
+    if (!lists->callback_get_item_name || item < 0 || item >= lists->nb_items)
+        return '#';
+    buf[0] = '\0';
+    name = lists->callback_get_item_name(item, lists->data, buf, sizeof(buf));
+    if ((uintptr_t)name < 4096)   /* NULL or junk pointer from a reload */
+        name = buf;
+    c = (unsigned char)name[0];
     if (c >= 'a' && c <= 'z')
         c -= 'a' - 'A';
     return (c >= 'A' && c <= 'Z') ? (char)c : '#';
