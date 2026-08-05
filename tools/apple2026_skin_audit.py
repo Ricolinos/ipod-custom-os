@@ -131,11 +131,11 @@ REQUIRED_BMP_DIMENSIONS = {
 CLAIM_CONTRACTS = {
     "Apple2026.sbs": {
         "required": [
-            ("%Vl(batterytext,-70,5,38,20,6)", "SBS battery text must use dense slot 6"),
-            ("%Vl(batterytext_root,-70,5,38,20,6)", "root SBS battery text must use dense slot 6"),
+            ("%Vl(batterytext,-70,0,38,20,6)", "SBS battery text must use dense slot 6"),
+            ("%Vl(batterytext_root,88,0,38,20,6)", "root SBS battery text must use dense slot 6 in the split bar"),
             ("%?if(%bl, =, 100)<100%%|%bl%%>", "battery percentage must not contain a space before '%'"),
             ("%Vl(lock,-82,6,9,12,-)", "lock icon must live in the right-side battery cluster"),
-            ("%Vl(sleeptimertext,-100,5,58,20,6)", "SBS sleep text must live in the right-side battery cluster"),
+            ("%Vl(sleeptimertext,-100,0,58,20,6)", "SBS sleep text must live in the right-side battery cluster"),
             ("%?if(%cs, =, 10)<%VI(qs_blank)|", "quickscreen must suppress underlying content viewport ownership"),
             ("%Vi(qs_blank,0,0,1,1,5)", "quickscreen must define a dedicated blank info viewport"),
             ("%V(80,8,160,18,8)", "quickscreen header must use the smaller centered title block"),
@@ -305,7 +305,7 @@ ASSET_SAMPLE_EXPECTATIONS = {
     },
     "icons/Apple2026Icons.bmp": {
         (15, 45): (255, 46, 86),
-        (15, 315): (255, 45, 85),
+        (15, 315): (255, 46, 86),
     },
 }
 
