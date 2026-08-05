@@ -691,7 +691,6 @@ static bool wants_to_quit;
     performing buffer-shifting operations.
 */
 static struct mutex buf_ctx_mutex;
-static bool buf_ctx_locked;
 
 static int extra_fade;
 
@@ -758,13 +757,11 @@ static void focus_playing_track_once(void);
 static inline void buf_ctx_lock(void)
 {
     rb->mutex_lock(&buf_ctx_mutex);
-    buf_ctx_locked = true;
 }
 
 static inline void buf_ctx_unlock(void)
 {
     rb->mutex_unlock(&buf_ctx_mutex);
-    buf_ctx_locked = false;
 }
 
 static bool check_database(void)
@@ -2110,7 +2107,14 @@ static void create_track_index(const int slide_index)
     const long tcs_bufsz = sizeof(tcs_buf);
     buf_ctx_lock();
     if ( slide_index == pf_tracks.cur_idx )
+    {
+        /* Track list already built: the outer lock level from the build is
+         * still held, so release this recursive level to stay balanced
+         * with the single unlock in free_borrowed_tracks(). Leaking it
+         * left buf_ctx owned forever and starved the loader thread. */
+        buf_ctx_unlock();
         return;
+    }
 
     if (!rb->tagcache_search(&tcs, tag_title))
         goto fail;
@@ -3803,8 +3807,12 @@ static void cleanup(void)
 {
     rb->skin_render_inhibit_flush(false);
     wants_to_quit = true;
-    if (buf_ctx_locked)
-        buf_ctx_unlock();
+    /* Return any borrowed track-list buffer (e.g. exiting straight from
+     * the track list via the WPS action); this also releases buf_ctx so
+     * the loader thread can wind down in end_pf_thread(). borrowed is 0
+     * until tracks are built, so this is safe on early init failures. */
+    if (pf_tracks.borrowed > 0)
+        free_borrowed_tracks();
 
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
     rb->cpu_boost(false);
@@ -4196,6 +4204,11 @@ static void update_cover_out_animation(void)
     if (k >= KEYFRAME_COUNT)
     {
         pf_state = pf_idle;
+        /* A track list precomputed during cover-in but never shown
+         * (animation reversed) would keep buf_ctx locked through idle,
+         * starving the loader thread. Return it now. */
+        if (pf_tracks.borrowed > 0)
+            free_borrowed_tracks();
         pf_frame_dirty = true;
     }
 }
@@ -4217,6 +4230,9 @@ static void skip_animation_to_idle_state(void)
 {
     pf_state = pf_idle;
     extra_fade = 0;
+    /* see update_cover_out_animation: don't hold buf_ctx through idle */
+    if (pf_tracks.borrowed > 0)
+        free_borrowed_tracks();
     set_current_slide(center_index);
     pf_frame_dirty = true;
 }
@@ -5442,6 +5458,9 @@ static int pictureflow_main(void)
                     create_track_index(center_slide.slide_index);
                     if (pf_tracks.count > 0)
                         reset_track_list();
+                    else
+                        /* failed build would keep buf_ctx locked */
+                        free_borrowed_tracks();
                 }
                 break;
             case pf_cover_out:
