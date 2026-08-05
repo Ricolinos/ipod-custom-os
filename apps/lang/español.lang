@@ -17400,3 +17400,31 @@
     *: "Ninguna"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_WPS_SCRUB
+  desc: Apple2026 now playing wheel mode - seek
+  user: core
+  <source>
+    *: "Scrub"
+  </source>
+  <dest>
+    *: "Avanzar"
+  </dest>
+  <voice>
+    *: "Avanzar"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_WPS_LYRICS
+  desc: Apple2026 now playing wheel mode - lyrics
+  user: core
+  <source>
+    *: "Lyrics"
+  </source>
+  <dest>
+    *: "Letra"
+  </dest>
+  <voice>
+    *: "Letra"
+  </voice>
+</phrase>

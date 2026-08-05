@@ -171,6 +171,29 @@ static void a26_library_remember(char *last, size_t last_size,
     }
 }
 
+static int browser(void* param);
+
+/* Apple2026: run a curated browser inline (inside a submenu's do_menu).
+ *
+ * When a file launches a viewer/plugin, browse returns GO_TO_PLUGIN with
+ * the plugin queued in the open-plugin entry.  Propagating that out of a
+ * menu would reach the root loop with last_screen == GO_TO_ROOT, which
+ * resolves the open-plugin key to LANG_START_SCREEN and fails with
+ * "Can't open Start Screen".  Run the queued plugin here instead, then
+ * stay in the submenu (iPod-style bounded navigation). */
+static int a26_inline_browse(intptr_t screen)
+{
+    int ret = browser((void *)screen);
+    int loops = 8;
+
+    while (ret == GO_TO_PLUGIN && loops-- > 0)
+        ret = open_plugin_run(ID2P(LANG_OPEN_PLUGIN));
+
+    if (ret == GO_TO_ROOT || ret == GO_TO_PREVIOUS || ret == GO_TO_PLUGIN)
+        return 0;
+    return ret;
+}
+
 static int browser(void* param)
 {
     int ret_val;
@@ -697,10 +720,7 @@ MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
  * run inline so backing out stays in the Music submenu. */
 static int music_folders_fn(void)
 {
-    int ret = browser((void *)GO_TO_MUSICLIB);
-    if (ret == GO_TO_ROOT || ret == GO_TO_PREVIOUS)
-        return 0;
-    return ret;
+    return a26_inline_browse(GO_TO_MUSICLIB);
 }
 MENUITEM_FUNCTION(music_library, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_FOLDERS), music_folders_fn, NULL,
@@ -713,10 +733,7 @@ MENUITEM_RETURNVALUE(video_library, ID2P(LANG_ROOT_VIDEOS), GO_TO_VIDEOLIB,
  * All inline so backing out stays inside the Photos menu. */
 static int photo_folders_fn(void)
 {
-    int ret = browser((void *)GO_TO_PHOTOLIB);
-    if (ret == GO_TO_ROOT || ret == GO_TO_PREVIOUS)
-        return 0;
-    return ret;
+    return a26_inline_browse(GO_TO_PHOTOLIB);
 }
 MENUITEM_FUNCTION(photo_library, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_FOLDERS), photo_folders_fn, NULL,
@@ -838,13 +855,9 @@ static struct menu_callback_with_desc root_menu_desc = {
  * to /Music/ and returns to the main menu on back. */
 static int extras_files_fn(void)
 {
-    int ret = browser((void*)GO_TO_FILEBROWSER);
-    /* Propagate playback transitions (GO_TO_WPS, GO_TO_PLUGIN, etc.)
-     * but convert normal exits (GO_TO_ROOT, GO_TO_PREVIOUS) to 0
-     * so do_menu() stays in the Extras submenu. */
-    if (ret == GO_TO_ROOT || ret == GO_TO_PREVIOUS)
-        return 0;
-    return ret;
+    /* Propagate playback transitions (GO_TO_WPS) but keep normal exits
+     * and viewer launches inside the Extras submenu. */
+    return a26_inline_browse(GO_TO_FILEBROWSER);
 }
 MENUITEM_FUNCTION(files_browser, MENU_FUNC_CHECK_RETVAL,
                   "Files", extras_files_fn, NULL, Icon_file_view_menu);
@@ -867,12 +880,8 @@ MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
  * back on the Music menu like the original iPod, split pane intact. */
 static int db_view_fn(void *param)
 {
-    int ret;
     tagtree_request_initial_entry((intptr_t)param);
-    ret = browser((void *)GO_TO_DBBROWSER);
-    if (ret == GO_TO_ROOT || ret == GO_TO_PREVIOUS)
-        return 0;
-    return ret;
+    return a26_inline_browse(GO_TO_DBBROWSER);
 }
 MENUITEM_FUNCTION_W_PARAM(db_songs_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_SONGS), db_view_fn, (void *)0,

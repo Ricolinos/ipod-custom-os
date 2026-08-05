@@ -381,6 +381,8 @@ enum {
 
     /* Apple2026: global play/pause from any list (original iPod PLAY) */
     ACTION_A26_PLAYPAUSE,
+    /* Apple2026: cycle the Now Playing wheel mode (original iPod SELECT) */
+    ACTION_A26_WPS_MODE,
 
     LAST_ACTION_PLACEHOLDER, /* custom actions should be this + something */
 };

@@ -64,6 +64,12 @@
 #include "statusbar-skinned.h"
 #include "skin_engine/wps_internals.h"
 #include "plugin.h"
+#include "apple2026_shell.h"
+#include "playlist_catalog.h"
+#include "filetypes.h"
+#ifdef HAVE_TAGCACHE
+#include "tagcache.h"
+#endif
 #include "open_plugin.h"
 #include "rbpaths.h"
 
@@ -686,6 +692,126 @@ static inline int action_wpsab_single(long button)
 /* Apple2026: shared context-preserving leave from WPS via short MENU.
  * Returns false with *out_screen set when root_menu should switch screens.
  * Returns true to stay in WPS (*restore / *theme_enabled updated for plugin case). */
+#if ROCKPOD_APPLE2026_IPOD
+/* Apple2026 Now Playing wheel modes (original iPod: SELECT cycles).
+ *  VOLUME   - wheel changes volume (default)
+ *  SCRUB    - wheel seeks through the track, progress bar follows
+ *  PLAYLIST - add the current track to one of the saved playlists
+ *  LYRICS   - show the track's lyrics
+ *  RATING   - set the star rating
+ * MENU leaves Now Playing from any mode. */
+enum {
+    A26_WPS_VOLUME = 0,
+    A26_WPS_SCRUB,
+    A26_WPS_PLAYLIST,
+    A26_WPS_LYRICS,
+    A26_WPS_RATING,
+    A26_WPS_MODE_COUNT
+};
+static int a26_wps_mode = A26_WPS_VOLUME;
+
+/* one wheel click = 5s, accelerating while the wheel keeps spinning */
+static void a26_wps_scrub(struct mp3entry *id3, int dir)
+{
+    static long last_tick = 0;
+    static int step = 5;
+    long pos;
+
+    if (TIME_BEFORE(current_tick, last_tick + HZ / 3))
+    {
+        if (step < 30)
+            step += 5;
+    }
+    else
+        step = 5;
+    last_tick = current_tick;
+
+    pos = (long)id3->elapsed + dir * step * 1000L;
+    if (pos < 0)
+        pos = 0;
+    if (pos > (long)id3->length)
+        pos = id3->length;
+    audio_ff_rewind(pos);
+}
+
+static void a26_wps_run_mode(struct mp3entry *id3)
+{
+    switch (a26_wps_mode)
+    {
+        case A26_WPS_PLAYLIST:
+            if (id3 && id3->path[0])
+            {
+                gwps_leave_wps(false);
+                catalog_add_to_a_playlist(id3->path, FILE_ATTR_AUDIO,
+                                          false, NULL, NULL);
+                gwps_enter_wps(false);
+            }
+            break;
+
+        case A26_WPS_LYRICS:
+        {
+            static const char * const lrc[] = {
+                PLUGIN_APPS_DIR "/lrcplayer.rock",
+                PLUGIN_DIR "/lrcplayer.rock",
+            };
+            unsigned i;
+            for (i = 0; i < ARRAYLEN(lrc); i++)
+            {
+                if (file_exists(lrc[i]))
+                {
+                    gwps_leave_wps(false);
+                    plugin_load(lrc[i], NULL);
+                    gwps_enter_wps(false);
+                    return;
+                }
+            }
+            splash(HZ, ID2P(LANG_ID3_NO_INFO));
+            break;
+        }
+
+#ifdef HAVE_TAGCACHE
+        case A26_WPS_RATING:
+            if (id3 && id3->tagcache_idx && global_settings.runtimedb)
+            {
+                gwps_leave_wps(false);
+                set_int_ex(str(LANG_MENU_SET_RATING), "", UNIT_INT,
+                           (void *)&id3->rating, NULL, 1, 0, 10,
+                           NULL, NULL);
+                tagcache_update_numeric(id3->tagcache_idx - 1, tag_rating,
+                                        id3->rating);
+                gwps_enter_wps(false);
+            }
+            else
+                splash(HZ, ID2P(LANG_ID3_NO_INFO));
+            break;
+#endif
+        default:
+            break;
+    }
+}
+
+static void a26_wps_cycle_mode(struct mp3entry *id3)
+{
+    static const int mode_lang[A26_WPS_MODE_COUNT] = {
+        LANG_VOLUME, LANG_A26_WPS_SCRUB, LANG_CATALOG_ADD_TO_NEW,
+        LANG_A26_WPS_LYRICS,
+#ifdef HAVE_TAGCACHE
+        LANG_MENU_SET_RATING,
+#else
+        LANG_VOLUME,
+#endif
+    };
+
+    a26_wps_mode = (a26_wps_mode + 1) % A26_WPS_MODE_COUNT;
+#ifndef HAVE_TAGCACHE
+    if (a26_wps_mode == A26_WPS_RATING)
+        a26_wps_mode = A26_WPS_VOLUME;
+#endif
+    splash(HZ / 2, str(mode_lang[a26_wps_mode]));
+    a26_wps_run_mode(id3);
+}
+#endif /* ROCKPOD_APPLE2026_IPOD */
+
 static bool wps_handle_browse_parent(long *out_screen, bool *theme_enabled,
                                    bool *restore)
 {
@@ -968,11 +1094,21 @@ long gui_wps_show(void)
             case ACTION_WPS_BROWSE:
             {
                 long next_screen;
+                /* Apple2026: MENU always leaves Now Playing, whatever the
+                 * wheel mode is; the mode resets for the next visit. */
+                a26_wps_mode = A26_WPS_VOLUME;
                 if (!wps_handle_browse_parent(&next_screen, &theme_enabled,
                                              &restore))
                     return next_screen;
                 break;
             }
+
+#if ROCKPOD_APPLE2026_IPOD
+            case ACTION_A26_WPS_MODE:
+                a26_wps_cycle_mode(state->id3);
+                restore = true;
+                break;
+#endif
 
                 /* play/pause */
             case ACTION_WPS_PLAY:
@@ -981,6 +1117,18 @@ long gui_wps_show(void)
 
             case ACTION_WPS_VOLUP: /* fall through */
             case ACTION_WPS_VOLDOWN:
+#if ROCKPOD_APPLE2026_IPOD
+                /* Apple2026 scrub mode: the wheel moves through the track
+                 * instead of changing volume (iPod behaviour). */
+                if (a26_wps_mode == A26_WPS_SCRUB && state->id3 &&
+                    state->id3->length > 0)
+                {
+                    a26_wps_scrub(state->id3,
+                                  button == ACTION_WPS_VOLUP ? 1 : -1);
+                    update = false;
+                    break;
+                }
+#endif
                 if (button == ACTION_WPS_VOLUP)
                     adjust_volume(1);
                 else

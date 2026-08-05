@@ -17419,3 +17419,31 @@
     *: "None"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_WPS_SCRUB
+  desc: Apple2026 now playing wheel mode - seek
+  user: core
+  <source>
+    *: "Scrub"
+  </source>
+  <dest>
+    *: "Scrub"
+  </dest>
+  <voice>
+    *: "Scrub"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_WPS_LYRICS
+  desc: Apple2026 now playing wheel mode - lyrics
+  user: core
+  <source>
+    *: "Lyrics"
+  </source>
+  <dest>
+    *: "Lyrics"
+  </dest>
+  <voice>
+    *: "Lyrics"
+  </voice>
+</phrase>
