@@ -34,6 +34,7 @@
 #include "string-extra.h"
 #include "system.h"
 #include "kernel.h"
+#include "debug.h"
 #include "lcd.h"
 #include "screen_access.h"
 #include "viewport.h"
