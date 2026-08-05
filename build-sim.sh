@@ -213,6 +213,8 @@ ROCKPOD_THEME
     echo "RockPod: config.cfg written to simdisk."
     printf '%s\n' "$APPLE2026_THEME_VERSION" > "$simdisk/.apple2026_version"
     echo "RockPod: .apple2026_version written to simdisk."
+    # Music library root expected by the Canciones/Music root menu item.
+    mkdir -p "$(dirname "$simdisk")/Music"
 }
 
 prepare_core_generated_headers() {

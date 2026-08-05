@@ -39,6 +39,7 @@
 #include "talk.h"
 #include "audio.h"
 #include "shortcuts.h"
+#include "dir.h"
 
 #ifdef HAVE_HOTSWAP
 #include "storage.h"
@@ -205,6 +206,10 @@ static int browser(void* param)
         break;
         case GO_TO_MUSICLIB:
             filter = global_settings.dirfilter;
+            /* Create the library root on first use (fresh disk/simdisk);
+             * browsing a nonexistent dir aborts dirbrowse() to no benefit. */
+            if (!dir_exists("/Music"))
+                mkdir("/Music");
             /* Apple2026: never follow the current-track path for the music
              * library.  The file browser has that behaviour (browse_current
              * setting), but the music library is a fixed-root curated view
