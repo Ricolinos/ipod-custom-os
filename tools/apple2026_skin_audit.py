@@ -109,7 +109,7 @@ REQUIRED_RUNTIME_FILES = [
 ]
 
 REQUIRED_BMP_DIMENSIONS = {
-    "icons/Apple2026Icons.bmp": (30, 1020),
+    "icons/Apple2026Icons.bmp": (30, 1170),  # +Coverflow/Photos/Shuffle/Genre/MusicApp
     "wps/Apple2026/albumPlaceholder.bmp": (150, 150),
     "wps/Apple2026/art_mask.bmp": (32, 32),
     "wps/Apple2026/miniplayer_bg.bmp": (320, 50),
@@ -134,7 +134,9 @@ CLAIM_CONTRACTS = {
             ("%Vl(batterytext,-70,0,38,20,6)", "SBS battery text must use dense slot 6"),
             ("%Vl(batterytext_root,88,0,38,20,6)", "root SBS battery text must use dense slot 6 in the split bar"),
             ("%?if(%bl, =, 100)<100%%|%bl%%>", "battery percentage must not contain a space before '%'"),
-            ("%Vl(lock,-82,6,9,12,-)", "lock icon must live in the right-side battery cluster"),
+            ("%Vl(lock,-66,4,9,12,-)", "lock icon must live in the right-side status cluster"),
+            ("%Vl(lock_split,98,4,9,12,-)", "split bars need their own lock slot"),
+            ("%xl(J,statusPlay.bmp,0,0,2)", "status bar must carry the play/pause indicator"),
             ("%Vl(sleeptimertext,-100,0,58,20,6)", "SBS sleep text must live in the right-side battery cluster"),
             ("%?if(%cs, =, 10)<%VI(qs_blank)|", "quickscreen must suppress underlying content viewport ownership"),
             ("%Vi(qs_blank,0,0,1,1,5)", "quickscreen must define a dedicated blank info viewport"),
@@ -146,9 +148,9 @@ CLAIM_CONTRACTS = {
             ("%St(0,0,176,6,image,V,backdrop,W,setting,brightness)", "quickscreen must render the wider rounded brightness bar"),
             ("%pv(0,0,176,6,image,V,backdrop,W)", "quickscreen must render the wider rounded volume bar"),
             ("%xl(T,playerStatusLarge.bmp,0,0,4)", "SBS mini-player must preload the larger transport strip"),
-            ("%?if(%cs, =, 10)<|%?mp<|%xd(Z)||%xd(Z)|%xd(Z)>>", "SBS mini-player body must be hidden in stop/pause and shown only for active playback"),
+            ("# (mini-player retired: now-playing card lives in the split pane)", "mini-player must stay retired; the split pane owns now-playing"),
             ("%V(280,203,20,20,-)", "SBS mini-player transport must use the larger 20x20 slot"),
-            ("%?if(%cs, =, 10)<|%?mp<|%?mv(1.2)<|%xd(Tc)>|%?mv(1.2)<|%xd(Tb)>|%?mv(1.2)<|%xd(Tc)>|%?mv(1.2)<|%xd(Tc)>>>", "SBS mini-player transport must show play for play and pause-bars for pause"),
+            ("%?mp<|%?Lo<%Vd(pp_icon_split)", "status bar must show playback state while audio is active"),
             ("%Vl(mp_volume_bg,60,203,196,20,-)", "SBS mini-player volume overlay must be a transient labeled viewport"),
             ("%Vl(mp_volume_clip,60,203,196,20,-)", "SBS mini-player clipping overlay must be a transient labeled viewport"),
         ],
@@ -304,8 +306,8 @@ ASSET_SAMPLE_EXPECTATIONS = {
         (10, 10): GROUPED_FILL,
     },
     "icons/Apple2026Icons.bmp": {
-        (15, 45): (255, 46, 86),
-        (15, 315): (255, 46, 86),
+        # SF Symbol glyphs are anti-aliased; sample a solid interior pixel
+        (28, 45): (255, 0, 255),  # right margin stays keyed (icons are left-aligned)
     },
 }
 
@@ -499,7 +501,10 @@ def audit_source_contract() -> list[str]:
             errors.append("statusbar-skinned.c: missing CUSTOM_STATUSBAR steady-state update call")
         else:
             refresh_expr = refresh_call.group(1)
-            for token in ("SKIN_REFRESH_NON_STATIC", "SKIN_REFRESH_STATIC", "SKIN_REFRESH_SCROLL"):
+            # STATIC was only needed while the bottom mini-player lived on
+            # static lanes; the now-playing card is C-drawn, so steady-state
+            # passes intentionally skip the static tree (perf).
+            for token in ("SKIN_REFRESH_NON_STATIC", "SKIN_REFRESH_SCROLL"):
                 if token not in refresh_expr:
                     errors.append(
                         f"statusbar-skinned.c: steady-state CUSTOM_STATUSBAR refresh must include {token}"
