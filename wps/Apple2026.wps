@@ -64,7 +64,9 @@
 # Rating stars: a=empty b=filled (muted) / c=empty d=filled (pink,
 # shown while the rating mode is active)
 %xl(S,wps_stars.bmp,0,0,4)
-%xl(D,atmos.bmp,0,0)
+%xl(D,dolby.bmp,0,0)
+# Volume row speakers (SF): a=mute b=low c=high
+%xl(V,volIcons.bmp,20,0,3)
 
 
 
@@ -217,7 +219,7 @@
 %?or(%if(%fc, =, 4),%if(%fc, =, 5),%if(%fc, =, 7),%if(%fc, =, 11),%if(%fc, =, 13))<%xd(L)>
 
 # Dolby badge  -  shown for AC3/E-AC3 streams (Dolby content)
-%Vl(atmos_ind,86,150,96,11,-)
+%Vl(atmos_ind,86,150,52,12,-)
 %Vb(FFFFFF)
 %?if(%fc, =, 9)<%xd(D)>
 
@@ -231,11 +233,13 @@
 # Volume bar  -  shown while scroll wheel adjusts volume
 # Occupies the progress+time zone (y=-40, h=20)
 # -------------------------------------------------------
-%Vl(volumebar,0,178,-,14,-)
+%Vl(volumebar,0,177,-,14,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-# Sits exactly where the progress bar lives (x=20 w=280 y=182 h=5)
-%pv(20,4,280,5,image,I,backdrop,J)
+# Sits on the progress row: speaker icon at the left, then the bar with
+# the same pill art as the progress bar so the swap is seamless.
+%xd(Vc)
+%pv(44,5,236,4,image,I,backdrop,J)
 
 # -------------------------------------------------------
 # Wheel-mode row (Apple2026): SELECT cycles Volume / Scrub / Playlist /

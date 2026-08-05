@@ -202,7 +202,7 @@ CLAIM_CONTRACTS = {
             ("%?mm<%xd(Oa)|%xd(Ob)|%xd(Od)|%xd(Ob)|%xd(Ob)>", "repeat lane must render every mode (repeat.1 swaps the glyph)"),
             ("%Vl(player_status_lane,150,212,20,20,-)", "WPS transport sits centred under the time row"),
             ("%Vl(lossless_ind,14,150,66,11,-)", "WPS lossless badge sits on the metadata row"),
-            ("%pv(20,4,280,5,image,I,backdrop,J)", "volume overlay must match the progress-bar geometry"),
+            ("%pv(44,5,236,4,image,I,backdrop,J)", "volume overlay shares the progress-bar art and row"),
             ("%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Nd)|>>", "WPS status icon must use the larger iPod-style play/pause mapping"),
         ],
         "forbidden": [
