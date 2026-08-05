@@ -52,8 +52,15 @@ extern void apple2026_ensure_dense_font(void);
 #endif
 
 /* Figma 1:4008: 29px icon cell + 12px to label; 30px tile + 6+6 pad = 42px to text. */
+#if ROCKPOD_APPLE2026_IPOD
+/* Icons sit exactly on the 10px content margin, flush with the titles
+ * (glyphs are left-aligned inside the strip tiles). */
+#define ICON_PADDING 0
+#define ICON_PADDING_S "0"
+#else
 #define ICON_PADDING 6
 #define ICON_PADDING_S "6"
+#endif
 
 #ifdef HAVE_TOUCHSCREEN
 /* used in gui_synclist->scroll_mode */

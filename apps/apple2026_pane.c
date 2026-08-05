@@ -340,10 +340,15 @@ static bool cover_load_next(int slot)
 /* ---- fade ------------------------------------------------------------- */
 /* RGB565 blend toward white (the Apple2026 shell background).
  * a = 0..256 image opacity.  Same masked-arithmetic scheme as
- * pictureflow's fade_color(). */
+ * pictureflow's fade_color().  a MUST be a multiple of 4 (like
+ * fade_color's `& 0x1fc`): with arbitrary alphas the low bits of the
+ * red product bleed into the blue field — visible as stray blue
+ * pixels. */
 static inline fb_data pane_fade_px(fb_data c, unsigned a)
 {
-    unsigned inv = 256 - a;
+    unsigned inv;
+    a &= ~3u;
+    inv = 256 - a;
     unsigned rb = (((c & 0xF81Fu) * a) + (0xF81Fu * inv)) & 0xF81F00u;
     unsigned g  = (((c & 0x07E0u) * a) + (0x07E0u * inv)) & 0x07E000u;
     return (fb_data)((rb | g) >> 8);
@@ -359,9 +364,11 @@ static unsigned fade_alpha_now(void)
     return (unsigned)(elapsed * 256 / PANE_FADE_TICKS);
 }
 
-/* RGB565 darken (multiply by a/256) — left-edge shadow. */
+/* RGB565 darken (multiply by a/256) — left-edge shadow.  a must be a
+ * multiple of 4 (see pane_fade_px). */
 static inline fb_data pane_dark_px(fb_data c, unsigned a)
 {
+    a &= ~3u;
     unsigned rb = ((c & 0xF81Fu) * a) & 0xF81F00u;
     unsigned g  = ((c & 0x07E0u) * a) & 0x07E000u;
     return (fb_data)((rb | g) >> 8);
@@ -550,7 +557,11 @@ static void pane_draw_music(struct screen *display, struct viewport *vp)
 
     display->bitmap_part(src, src_x, src_y, STRIDE(SCREEN_MAIN, stride, h),
                          dst_x, dst_y, w, h);
-    pane_edge_shadow(display, src, stride, src_x, src_y, h);
+    /* The edge shadow samples the cover, so it is only correct when the
+     * cover actually reaches the pane's left edge; letterboxed covers
+     * already got their shadow from the background draw above. */
+    if (dst_x == 0)
+        pane_edge_shadow(display, src, stride, src_x, src_y, h);
 }
 
 void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,

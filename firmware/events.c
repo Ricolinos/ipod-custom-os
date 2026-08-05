@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include "events.h"
+#include "debug.h"
 #include "panic.h"
 
 #define MAX_SYS_EVENTS 28
@@ -110,6 +111,20 @@ void remove_event_ex(unsigned short id,
 
 void send_event(unsigned short id, void *data)
 {
+    /* A26 diagnostics: catch runaway event recursion (stack exhaustion
+     * crashes with thousands of small frames).  Log the ids around depth
+     * 6-10 to expose the cycle; hard-suppress past depth 24. */
+    static int se_depth = 0;
+    se_depth++;
+    if (se_depth >= 6 && se_depth <= 10)
+        DEBUGF("A26 send_event depth=%d id=%u caller=%p\n", se_depth,
+               (unsigned)id, __builtin_return_address(0));
+    if (se_depth > 24)
+    {
+        DEBUGF("A26 send_event runaway suppressed (id=%u)\n", (unsigned)id);
+        se_depth--;
+        return;
+    }
     for (size_t i = 0; i < MAX_SYS_EVENTS; i++)
     {
         struct sysevent *ev = &events[i];
@@ -125,4 +140,5 @@ void send_event(unsigned short id, void *data)
                 ev->handler.cb(id, data);
         }
     }
+    se_depth--;
 }
