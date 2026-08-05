@@ -1127,6 +1127,16 @@ const char *get_token_value(struct gui_wps *gwps,
                 return NULL;
             return !strcmp(t, root) ? "s" : NULL;
         }
+        case SKIN_TOKEN_LIST_TITLE_IS_MUSIC:
+        {
+            /* Apple2026: true inside the Music submenu (split pane there
+             * too, like the original iPod 5.5G). */
+            const char *t = sb_get_title(gwps->display->screen_type);
+            const char *music = P2STR(ID2P(LANG_MUSIC_LIBRARY));
+            if (!t || !music)
+                return NULL;
+            return !strcmp(t, music) ? "s" : NULL;
+        }
         case SKIN_TOKEN_LIST_TITLE_ICON:
             numeric_ret = sb_get_icon(gwps->display->screen_type);
             itoa_buf(buf, buf_size, numeric_ret);

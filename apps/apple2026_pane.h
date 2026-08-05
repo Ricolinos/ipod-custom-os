@@ -51,6 +51,10 @@ struct menu_item_ex;
 /* Implemented in root_menu.c: maps a root menu item to its pane id. */
 enum a26_pane_id root_menu_pane_id_for_item(const struct menu_item_ex *item);
 
+/* Implemented in root_menu.c: pane for a whole list (root menu resolves
+ * per selected item; the Music submenu is always the cover slideshow). */
+enum a26_pane_id root_menu_pane_id_for_list(struct gui_synclist *list);
+
 /* Paint the right-half pane if (and only if) the given list is the root
  * menu drawn in a half-width viewport with the Apple2026 theme active.
  * Called from the end of list_draw(); does its own update_viewport(). */

@@ -60,8 +60,6 @@
 #define SCAN_MAX_DEPTH      4        /* /Music/a/b/c */
 #define PANE_HOLD_TICKS     (10 * HZ)
 #define PANE_FADE_TICKS     (HZ / 3)
-/* Consider the music pane "live" if it was drawn within this window. */
-#define PANE_ACTIVE_WINDOW  (2 * HZ)
 
 #define MUSIC_LIBRARY_ROOT  "/Music"
 
@@ -108,7 +106,6 @@ static unsigned char pane_workbuf[COVER_AREA * sizeof(fb_data) + 56 * 1024];
 static enum { MUSIC_EMPTY, MUSIC_FADING, MUSIC_HOLD } music_state = MUSIC_EMPTY;
 static long fade_start_tick = 0;
 static long hold_until_tick = 0;
-static long music_drawn_tick = 0;
 static bool music_active = false;
 
 /* ---- static tile ------------------------------------------------------ */
@@ -345,22 +342,19 @@ static unsigned fade_alpha_now(void)
 }
 
 /* ---- public: tick / animating ----------------------------------------- */
-static bool music_pane_recent(void)
-{
-    return music_active &&
-           !TIME_AFTER(current_tick, music_drawn_tick + PANE_ACTIVE_WINDOW);
-}
-
+/* music_active is maintained by apple2026_pane_draw(): any list draw that
+ * is not the music pane clears it, so ticks stop as soon as another list
+ * takes the screen.  Screens without lists (WPS, plugins) never tick. */
 bool apple2026_pane_animating(void)
 {
-    return music_pane_recent() && music_state == MUSIC_FADING;
+    return music_active && music_state == MUSIC_FADING;
 }
 
 bool apple2026_pane_tick(void)
 {
     int back;
 
-    if (!music_pane_recent())
+    if (!music_active)
         return false;
 
     if (scan_state == SCAN_IDLE)
@@ -469,20 +463,17 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
 
     id = A26_PANE_NONE;
     if (apple2026_theme_selected()
-        && list->data == (void *)&root_menu_
-        /* Geometry gate: only a half-width root list has a pane.  Full
-         * width (non-root screens), 1x1 (quickscreen/lockscreen
-         * suppression) and anything else bail out with no extra state. */
+        /* Geometry gate: only a half-width list has a pane.  Full width
+         * (other screens), 1x1 (quickscreen/lockscreen suppression) and
+         * anything else bail out with no extra state. */
         && list_vp->width <= LCD_WIDTH / 2 && list_vp->width > 1)
     {
-        id = root_menu_pane_id_for_item(menu_get_selected_item_ex(list));
+        id = root_menu_pane_id_for_list(list);
     }
 
     music_active = (id == A26_PANE_MUSIC);
     if (id == A26_PANE_NONE)
         return;
-    if (music_active)
-        music_drawn_tick = current_tick;
 
     pane_vp = *list_vp;
     pane_vp.x = list_vp->x + list_vp->width;

@@ -848,6 +848,18 @@ enum a26_pane_id root_menu_pane_id_for_item(const struct menu_item_ex *item)
         return A26_PANE_NOWPLAYING;
     return A26_PANE_NONE;
 }
+
+/* Identify the pane for a whole list: the root menu resolves per selected
+ * item; the Music submenu always shows the cover slideshow (like the
+ * original iPod 5.5G, whose Music submenu keeps the split pane). */
+enum a26_pane_id root_menu_pane_id_for_list(struct gui_synclist *list)
+{
+    if (list->data == (void *)&root_menu_)
+        return root_menu_pane_id_for_item(menu_get_selected_item_ex(list));
+    if (list->data == (void *)&music_submenu)
+        return A26_PANE_MUSIC;
+    return A26_PANE_NONE;
+}
 #else
 static struct menu_table menu_table[] = {
     { "music", &music_library },
