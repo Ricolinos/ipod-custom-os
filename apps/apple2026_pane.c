@@ -45,6 +45,11 @@
 #include "jpeg_load.h"
 #include "dir.h"
 #include "rbpaths.h"
+#include "audio.h"
+#include "metadata.h"
+#include "albumart.h"
+#include "font.h"
+#include "misc.h"
 
 /* Static pane images live with the theme's other bitmaps. */
 #define PANE_ASSET_DIR WPS_DIR "/Apple2026"
@@ -116,6 +121,18 @@ static int  pan_last_drawn_x = -1;
 
 /* left-edge shadow work strip */
 static fb_data shadow_strip[PANE_SHADOW_W * PANE_MAX_H];
+
+/* ---- now-playing card (split screens, audio active) ------------------- */
+#define NP_ART 116
+static fb_data np_art_px[NP_ART * NP_ART];
+static char np_art_path[MAX_PATH];
+static int  np_art_w = 0, np_art_h = 0;
+static bool np_art_ok = false;
+static fb_data np_bg = 0x39e7;           /* derived from the art */
+static int np_font_title = -1, np_font_sub = -1;
+static long np_last_sec = -1;
+static bool np_visible = false;
+static bool np_audio_active(void);
 
 /* ---- static tile ------------------------------------------------------ */
 static bool pane_load_bmp(const char *name)
@@ -399,6 +416,10 @@ static void pane_edge_shadow(struct screen *display, const fb_data *src,
                          0, 0, PANE_SHADOW_W, h);
 }
 
+/* Solid-background variant of the edge shadow (now-playing card): the
+ * column colors are constant per x, so compute one row and replicate. */
+static void pane_edge_shadow_solid(struct screen *display, int h);
+
 /* Slow horizontal pan: travels the spare cover width over the whole
  * fade+hold period, alternating direction randomly per cover. */
 static int pan_x_now(const struct bitmap *bm, int vp_w)
@@ -433,9 +454,36 @@ bool apple2026_pane_animating(void)
         && cover_slot_bmp[cover_front].width > PANE_MAX_W;
 }
 
+/* Poll cadence for the list loop: fades need ~20fps; the slow hold-pan
+ * only moves ~4px/s, so HZ/8 wakeups are plenty (device battery). */
+int apple2026_pane_anim_timeout(void)
+{
+    if (!music_active)
+        return 0;
+    if (music_state == MUSIC_FADING)
+        return HZ / 20;
+    if (music_state == MUSIC_HOLD && cover_slot_ready[cover_front]
+        && cover_slot_bmp[cover_front].width > PANE_MAX_W)
+        return HZ / 8;
+    return 0;
+}
+
 bool apple2026_pane_tick(void)
 {
     int back;
+
+    /* now-playing card: one redraw per second (progress bar), plus one
+     * when the track changes or when playback just stopped. */
+    if (np_visible)
+    {
+        if (!np_audio_active())
+            return true;   /* restore the per-item pane */
+        const struct mp3entry *id3 = audio_current_track();
+        if (id3 && (strcmp(np_art_path, id3->path) != 0 ||
+                    (long)(id3->elapsed / 1000) != np_last_sec))
+            return true;
+        return false;
+    }
 
     if (!music_active)
         return false;
@@ -482,6 +530,190 @@ bool apple2026_pane_tick(void)
             return true;   /* redraw drives fade progress */
     }
     return false;
+}
+
+/* ---- now-playing card -------------------------------------------------- */
+/* generic RGB565 mix: a/256 of c1 over c2 (a multiple of 4) */
+static inline fb_data np_mix(fb_data c1, fb_data c2, unsigned a)
+{
+    unsigned inv;
+    a &= ~3u;
+    inv = 256 - a;
+    unsigned rb = (((c1 & 0xF81Fu) * a) + ((c2 & 0xF81Fu) * inv)) & 0xF81F00u;
+    unsigned g  = (((c1 & 0x07E0u) * a) + ((c2 & 0x07E0u) * inv)) & 0x07E000u;
+    return (fb_data)((rb | g) >> 8);
+}
+
+static void pane_edge_shadow_solid(struct screen *display, int h)
+{
+    fb_data row[PANE_SHADOW_W];
+    int x, y;
+
+    if (h > PANE_MAX_H)
+        h = PANE_MAX_H;
+    for (x = 0; x < PANE_SHADOW_W; x++)
+    {
+        unsigned a = 140 + (116 * (unsigned)x) / PANE_SHADOW_W;
+        row[x] = pane_dark_px(np_bg, a);
+    }
+    for (y = 0; y < h; y++)
+        memcpy(shadow_strip + y * PANE_SHADOW_W, row, sizeof(row));
+    display->bitmap_part(shadow_strip, 0, 0,
+                         STRIDE(SCREEN_MAIN, PANE_SHADOW_W, h),
+                         0, 0, PANE_SHADOW_W, h);
+}
+
+static bool np_audio_active(void)
+{
+    return (audio_status() & AUDIO_STATUS_PLAY) != 0;
+}
+
+static void np_ensure_fonts(void)
+{
+    if (np_font_title < 0)
+        np_font_title = font_load(FONT_DIR "/16-SFProText-Semibold.fnt");
+    if (np_font_sub < 0)
+        np_font_sub = font_load(FONT_DIR "/14-SFProText-Regular.fnt");
+}
+
+/* average the art, derive a deep background tone, round the corners */
+static void np_style_art(void)
+{
+    unsigned r = 0, g = 0, b = 0;
+    int n = np_art_w * np_art_h, i, x, y;
+    const int rad = 10;
+
+    if (n <= 0)
+        return;
+    for (i = 0; i < n; i++)
+    {
+        fb_data c = np_art_px[i];
+        r += (c >> 11) & 0x1F;
+        g += (c >> 5) & 0x3F;
+        b += c & 0x1F;
+    }
+    r /= n; g /= n; b /= n;
+    /* darken toward a rich card background */
+    np_bg = (fb_data)(((r * 5 / 8) << 11) | ((g * 5 / 8) << 5) | (b * 5 / 8));
+
+    for (y = 0; y < np_art_h; y++)
+        for (x = 0; x < np_art_w; x++)
+        {
+            int dx = (x < rad) ? rad - x
+                   : (x >= np_art_w - rad) ? x - (np_art_w - 1 - rad) : 0;
+            int dy = (y < rad) ? rad - y
+                   : (y >= np_art_h - rad) ? y - (np_art_h - 1 - rad) : 0;
+            if (dx * dx + dy * dy > rad * rad)
+                np_art_px[y * np_art_w + x] = np_bg;
+        }
+}
+
+static void np_load_art(const struct mp3entry *id3)
+{
+    char path[MAX_PATH];
+    struct bitmap bm;
+    int ret;
+
+    np_art_ok = false;
+    np_art_w = np_art_h = 0;
+    if (!find_albumart(id3, path, sizeof(path), NULL))
+        return;
+    memset(&bm, 0, sizeof(bm));
+    bm.data = pane_workbuf;
+    bm.width = NP_ART;
+    bm.height = NP_ART;
+    {
+        size_t len = strlen(path);
+        bool is_bmp = len > 4 && !strcasecmp(path + len - 4, ".bmp");
+        int fmt = FORMAT_NATIVE | FORMAT_DITHER | FORMAT_RESIZE |
+                  FORMAT_KEEP_ASPECT;
+        ret = is_bmp
+            ? read_bmp_file(path, &bm, sizeof(pane_workbuf), fmt, NULL)
+            : read_jpeg_file(path, &bm, sizeof(pane_workbuf), fmt, NULL);
+    }
+    if (ret <= 0 || bm.width <= 0 || bm.height <= 0
+        || bm.width > NP_ART || bm.height > NP_ART)
+        return;
+    np_art_w = bm.width;
+    np_art_h = bm.height;
+    memcpy(np_art_px, pane_workbuf, np_art_w * np_art_h * sizeof(fb_data));
+    np_style_art();
+    np_art_ok = true;
+}
+
+static void np_center_text(struct screen *display, struct viewport *vp,
+                           int font, int y, const char *text, fb_data fg)
+{
+    struct viewport tv = *vp;
+    int w, h;
+
+    if (!text || !text[0])
+        return;
+    tv.font = (font >= 0) ? font : FONT_UI;
+    tv.fg_pattern = fg;
+    tv.bg_pattern = np_bg;
+    tv.drawmode = DRMODE_FG;
+    display->set_viewport(&tv);
+    display->getstringsize(text, &w, &h);
+    display->putsxy(w >= tv.width ? 2 : (tv.width - w) / 2, y, text);
+    display->set_viewport(vp);
+}
+
+static void np_draw_card(struct screen *display, struct viewport *vp)
+{
+    const struct mp3entry *id3 = audio_current_track();
+    const char *title, *artist;
+    int art_x, art_y;
+    fb_data track_col, fill_col;
+
+    np_ensure_fonts();
+    if (id3 && strcmp(np_art_path, id3->path))
+    {
+        strmemccpy(np_art_path, id3->path, sizeof(np_art_path));
+        np_load_art(id3);
+    }
+
+    {
+        struct viewport bgvp = *vp;
+        bgvp.bg_pattern = np_bg;
+        display->set_viewport(&bgvp);
+        display->clear_viewport();
+        display->set_viewport(vp);
+    }
+
+    art_x = (vp->width - np_art_w) / 2;
+    art_y = 26;
+    if (np_art_ok)
+        display->bitmap_part(np_art_px, 0, 0,
+                             STRIDE(SCREEN_MAIN, np_art_w, np_art_h),
+                             art_x, art_y, np_art_w, np_art_h);
+
+    title = (id3 && id3->title && id3->title[0]) ? id3->title
+          : (id3 ? id3->path : "");
+    artist = (id3 && id3->artist) ? id3->artist : "";
+    np_center_text(display, vp, np_font_title, art_y + NP_ART + 14, title,
+                   LCD_WHITE);
+    np_center_text(display, vp, np_font_sub, art_y + NP_ART + 36, artist,
+                   np_mix(LCD_WHITE, np_bg, 180));
+
+    /* progress bar */
+    if (id3 && id3->length > 0)
+    {
+        int bar_x = 20, bar_w = vp->width - 40, bar_h = 4;
+        int bar_y = vp->height - 22;
+        int fill = (int)((long long)bar_w * id3->elapsed / id3->length);
+        track_col = np_mix(LCD_WHITE, np_bg, 96);   /* lighter than bg */
+        fill_col = LCD_WHITE;
+        struct viewport bv = *vp;
+        bv.fg_pattern = track_col;
+        display->set_viewport(&bv);
+        display->fillrect(bar_x, bar_y, bar_w, bar_h);
+        bv.fg_pattern = fill_col;
+        display->set_viewport(&bv);
+        display->fillrect(bar_x, bar_y, MIN(fill, bar_w), bar_h);
+        display->set_viewport(vp);
+        np_last_sec = id3->elapsed / 1000;
+    }
 }
 
 /* ---- drawing ---------------------------------------------------------- */
@@ -583,6 +815,27 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
         id = root_menu_pane_id_for_list(list);
     }
 
+    /* Audio active on a split screen: the pane is the now-playing card
+     * (album art + title/artist + progress), regardless of selection. */
+    if (id != A26_PANE_NONE && np_audio_active())
+    {
+        music_active = false;
+        np_visible = true;
+        pane_vp = *list_vp;
+        pane_vp.x = list_vp->x + list_vp->width;
+        pane_vp.width = LCD_WIDTH - pane_vp.x;
+        pane_vp.y = 0;
+        pane_vp.height = list_vp->y + list_vp->height;
+        if (pane_vp.width <= 0 || pane_vp.height <= 0)
+            return;
+        display->set_viewport(&pane_vp);
+        np_draw_card(display, &pane_vp);
+        pane_edge_shadow_solid(display, pane_vp.height);
+        display->update_viewport();
+        return;
+    }
+    np_visible = false;
+
     music_active = (id == A26_PANE_MUSIC);
     if (id == A26_PANE_NONE)
         return;
@@ -601,12 +854,14 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
         return;
 
     display->set_viewport(&pane_vp);
-    display->clear_viewport();
-
+    /* full-pane assets and full-bleed covers repaint every pixel; only
+     * clear when we have nothing to draw (missing asset fallback) */
     if (music_active)
         pane_draw_music(display, &pane_vp);
     else
         pane_draw_static(display, &pane_vp, id);
+    if (pane_load_failed && !music_active)
+        display->clear_viewport();
 
     /* Own the pane's update: on the partial-update path list_draw only
      * refreshes the list viewport.  (On the full-update path this is a

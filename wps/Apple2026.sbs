@@ -63,7 +63,7 @@
 #     branch 2 = STATUS_PAUSE â†’ mainlarge (content above 44px mini-player, paused)
 #     %Lo true = at root â†’ _lt variant (starts at y=38, below large title)
 #
-%?if(%cs, =, 10)<%VI(qs_blank)|%?mp<%?Lo<%VI(main_full_lt)|%?LM<%VI(sub_full_split)|%VI(main_full)>>|%?Lo<%VI(mainlarge_lt)|%?LM<%VI(sub_large_split)|%VI(mainlarge)>>|%?Lo<%VI(main_full_lt)|%?LM<%VI(sub_full_split)|%VI(main_full)>>|%?Lo<%VI(mainlarge_lt)|%?LM<%VI(sub_large_split)|%VI(mainlarge)>>|%?Lo<%VI(mainlarge_lt)|%?LM<%VI(sub_large_split)|%VI(mainlarge)>>>>
+%?if(%cs, =, 10)<%VI(qs_blank)|%?Lo<%VI(main_full_lt)|%?LM<%VI(sub_full_split)|%VI(main_full)>>>
 #
 # Bottom bar + volume:
 #   Stopped (mp=0)      â†’ bottom 50px lane is explicitly cleared back to shell
@@ -259,7 +259,7 @@
 # Keep this in the normal SBS plane. `%VB` here would turn the pill into the
 # active LCD backdrop, and list/menu clears would replay stale boot/WPS pixels.
 %V(0,190,320,50,-)
-%?if(%cs, =, 10)<|%?mp<|%xd(Z)||%xd(Z)|%xd(Z)>>
+# (mini-player retired: now-playing card lives in the split pane)
 
 # â”€â”€ Mini-player content (playing state â€” 50px container) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -268,23 +268,23 @@
 # cannot drift out of sync with the live album bitmap.
 %V(16,197,32,32,-)
 %Cl(0,0,32,32)
-%?if(%cs, =, 10)<|%?mp<|%?mv(1.2)<|%?C<%Cd%xd(Y)|>>||%?mv(1.2)<|%?C<%Cd%xd(Y)|>>|%?mv(1.2)<|%?C<%Cd%xd(Y)|>>>>
+# (mini-player retired: now-playing card lives in the split pane)
 
 # Track title in mini-player (font slot 8, RB12 h=18; compact tier for bar fit)
 %V(60,204,214,18,8)
 %Vf(000000)
-%?if(%cs, =, 10)<|%?mp<|%?mv(1.2)<|%?C<%s%al%?it<%it|%fn>|>>||%?mv(1.2)<|%?C<%s%al%?it<%it|%fn>|>>|%?mv(1.2)<|%?C<%s%al%?it<%it|%fn>|>>>>
+# (mini-player retired: now-playing card lives in the split pane)
 
 # Track title shifted left when no album art
 %V(24,204,250,18,8)
 %Vf(000000)
-%?if(%cs, =, 10)<|%?mp<|%?mv(1.2)<|%?C<|%s%al%?it<%it|%fn>>>||%?mv(1.2)<|%?C<|%s%al%?it<%it|%fn>>>|%?mv(1.2)<|%?C<|%s%al%?it<%it|%fn>>>>>
+# (mini-player retired: now-playing card lives in the split pane)
 
 # Play/pause indicator in mini-player â€” 16x18 Apple-native icon, right-aligned
 # Pa=stop  Pb=pause-bars  Pc=play-triangle  Pd=ff
 # Branch: 0=stop(hidden) 1=playâ†’Pc(play-fill) 2=pauseâ†’Pb(pause-bars) 3+=Pc
 %V(280,203,20,20,-)
-%?if(%cs, =, 10)<|%?mp<|%?mv(1.2)<|%xd(Tc)>|%?mv(1.2)<|%xd(Tb)>|%?mv(1.2)<|%xd(Tc)>|%?mv(1.2)<|%xd(Tc)>>>
+# (mini-player retired: now-playing card lives in the split pane)
 
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # VOLUME BARS â€” rendered inside the 50px mini-player bar when adjusting volume

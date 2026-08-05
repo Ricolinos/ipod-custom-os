@@ -65,12 +65,17 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
  * its timeout to ~HZ/20 so fade frames are smooth. */
 bool apple2026_pane_animating(void);
 
+/* Preferred poll timeout for the list loop while the pane animates:
+ * 0 = no clamp needed, else a tick count (HZ/20 fade, HZ/8 slow pan). */
+int apple2026_pane_anim_timeout(void);
+
 /* Advance the slideshow (scan slice, prefetch, 10s rotation).  Called on
  * the menu idle tick; returns true when a redraw is wanted now. */
 bool apple2026_pane_tick(void);
 #else
 #define apple2026_pane_draw(display, list_vp, list) do { } while (0)
 #define apple2026_pane_animating() false
+#define apple2026_pane_anim_timeout() 0
 #define apple2026_pane_tick() false
 #endif
 

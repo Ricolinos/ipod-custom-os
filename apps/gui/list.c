@@ -1023,12 +1023,11 @@ int list_do_action_timeout(struct gui_synclist *lists, int timeout)
             timeout = fade_timeout;
     }
 #endif
-    /* Apple2026: smooth preview-pane cover fade */
-    if (apple2026_pane_animating())
+    /* Apple2026: preview-pane animation cadence (HZ/20 fade, HZ/8 pan) */
     {
-        int fade_timeout = HZ / 20;
-        if (timeout > fade_timeout)
-            timeout = fade_timeout;
+        int pane_timeout = apple2026_pane_anim_timeout();
+        if (pane_timeout > 0 && timeout > pane_timeout)
+            timeout = pane_timeout;
     }
     add_event_ex(GUI_EVENT_NEED_UI_UPDATE, true, _lists_uiviewport_update_callback, NULL);
     current_lists = lists;

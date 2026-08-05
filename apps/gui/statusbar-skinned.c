@@ -231,15 +231,14 @@ void sb_skin_update(enum screen_type screen, bool force)
         {
             if (force)
                 skin_request_full_update(CUSTOM_STATUSBAR);
-            /* Apple2026 mini-player ownership is mixed:
-             * - title/art/%?C/%Cd/%xd(...) live on static-tag lanes
-             * - playback state, volume, and list chrome live on dynamic lanes
-             * Steady-state SBS updates must therefore include STATIC as well,
-             * otherwise title and album art only appear during transient full redraws.
-             */
+            /* Apple2026: with the bottom mini-player retired (the
+             * now-playing card is drawn by apple2026_pane.c), the SBS no
+             * longer needs STATIC content re-rendered on every steady-state
+             * pass — static pixels persist in the framebuffer and full
+             * redraws re-render them anyway.  Saves a full static-tree
+             * render at ~7Hz. */
             skin_update(CUSTOM_STATUSBAR, screen,
                         SKIN_REFRESH_NON_STATIC |
-                        SKIN_REFRESH_STATIC |
                         SKIN_REFRESH_SCROLL);
         }
         next_update[i] = current_tick + update_delay; /* don't update too often */
