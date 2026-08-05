@@ -363,7 +363,7 @@ static const unsigned char pf_dither_table[16] =
 #define ERROR_USER_ABORT    -4
 
 /* current version for cover cache */
-#define CACHE_VERSION 7
+#define CACHE_VERSION 8
 #define CONFIG_VERSION 1
 
 /* Frame profiling for the FPS overlay: USEC_TIMER is a free-running
@@ -2358,32 +2358,45 @@ static unsigned int mfnv(char *str)
 /**
  Save the given bitmap as filename in the pfraw format
  */
-/* Apple2026: gently round the slide corners (radius 7, toward black) —
- * matches the now-playing card and the empty-slide placeholder. */
+/* Apple2026: gently round the slide corners (radius 7).  The cut corners
+ * take the scene background colour — slides are opaque RGB565, so a black
+ * cut would show as dark notches on the light shell.
+ *
+ * NOTE: pfraw slides are stored TRANSPOSED (column-major, see
+ * output_row_32_transposed): pixel (x, y) lives at data[x * height + y]. */
 static void pf_round_slide_corners(struct bitmap *bm)
 {
     const int rad = 7;
     pix_t *px = (pix_t *)bm->data;
     int w = bm->width, h = bm->height, x, y;
+    pix_t corner;
+
+#ifdef HAVE_ALBUMART
+    pf_update_dynamic_colors();
+    corner = pf_bg_color;
+#else
+    corner = 0;
+#endif
 
     if (w < 2 * rad || h < 2 * rad)
         return;
-    for (y = 0; y < h; y++)
+
+    for (x = 0; x < w; x++)
     {
-        int dy = (y < rad) ? rad - y
-               : (y >= h - rad) ? y - (h - 1 - rad) : 0;
-        if (!dy)
+        int dx = (x < rad) ? rad - x
+               : (x >= w - rad) ? x - (w - 1 - rad) : 0;
+        if (!dx)
         {
-            if (y == rad)
-                y = h - rad - 1;   /* skip the untouched middle band */
+            if (x == rad)
+                x = w - rad - 1;   /* skip the untouched middle columns */
             continue;
         }
-        for (x = 0; x < w; x++)
+        for (y = 0; y < h; y++)
         {
-            int dx = (x < rad) ? rad - x
-                   : (x >= w - rad) ? x - (w - 1 - rad) : 0;
-            if (dx && dx * dx + dy * dy > rad * rad)
-                px[y * w + x] = 0;
+            int dy = (y < rad) ? rad - y
+                   : (y >= h - rad) ? y - (h - 1 - rad) : 0;
+            if (dy && dx * dx + dy * dy > rad * rad)
+                px[x * h + y] = corner;
         }
     }
 }
