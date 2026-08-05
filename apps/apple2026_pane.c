@@ -616,8 +616,11 @@ static void np_load_art(const struct mp3entry *id3)
 
     np_art_ok = false;
     np_art_w = np_art_h = 0;
-    if (!find_albumart(id3, path, sizeof(path), NULL))
-        return;
+    {
+        const struct dim art_dim = { .width = NP_ART, .height = NP_ART };
+        if (!find_albumart(id3, path, sizeof(path), &art_dim))
+            return;
+    }
     memset(&bm, 0, sizeof(bm));
     bm.data = pane_workbuf;
     bm.width = NP_ART;
