@@ -16925,3 +16925,31 @@
     *: "Ordenar pistas de reproducción"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_LIBRARY
+  desc: Apple2026 root menu title
+  user: core
+  <source>
+    *: "Library"
+  </source>
+  <dest>
+    *: "Biblioteca"
+  </dest>
+  <voice>
+    *: "Biblioteca"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_QUICK_SETTINGS
+  desc: Apple2026 quickscreen overlay title
+  user: core
+  <source>
+    *: "Quick Settings"
+  </source>
+  <dest>
+    *: "Ajustes rápidos"
+  </dest>
+  <voice>
+    *: "Ajustes rápidos"
+  </voice>
+</phrase>
