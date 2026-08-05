@@ -714,7 +714,7 @@ static int a26_wps_mode = A26_WPS_VOLUME;
  * (preview only, audio held), and playback resumes from that point once
  * the wheel settles.  Step scales with track length for precision and
  * accelerates while the wheel keeps spinning. */
-#define A26_SCRUB_SETTLE  (HZ * 3 / 4)
+#define A26_SCRUB_SETTLE  (HZ / 2)
 static bool a26_scrubbing = false;
 static long a26_scrub_due = 0;
 
@@ -740,10 +740,11 @@ static void a26_wps_scrub(struct mp3entry *id3, int dir)
         status_set_ffmode(dir > 0 ? STATUS_FASTFORWARD : STATUS_FASTBACKWARD);
     }
 
-    /* ~1/200th of the track per click, at least a second */
-    step = (long)id3->length / 200;
-    if (step < 1000)
-        step = 1000;
+    /* ~1/400th of the track per click (min 500ms) so single clicks are
+     * precise; the acceleration above covers long jumps. */
+    step = (long)id3->length / 400;
+    if (step < 500)
+        step = 500;
     step *= accel;
 
     pos = (long)id3->elapsed + dir * step;
@@ -1182,6 +1183,13 @@ long gui_wps_show(void)
                 {
                     a26_wps_scrub(state->id3,
                                   button == ACTION_WPS_VOLUP ? 1 : -1);
+                    /* repaint straight away, exactly like the volume bar —
+                     * waiting for the periodic refresh made the playhead
+                     * feel laggy */
+                    FOR_NB_SCREENS(i)
+                    {
+                        skin_update(WPS, i, SKIN_REFRESH_NON_STATIC);
+                    }
                     update = false;
                     break;
                 }
