@@ -40,6 +40,12 @@ extern void splashf(int ticks, const char *fmt, ...) ATTRIBUTE_PRINTF(2, 3);
  */
 #define splash(__ticks, __str) splashf(__ticks, __str)
 
+struct screen;
+/* Apple2026 full-page loading visuals (return false when unavailable) */
+bool apple2026_loading_page(struct screen *display);
+bool apple2026_progress_page(struct screen *display, const char *text,
+                             int current, int total);
+
 /* set a delay before displaying the progress meter the first time */
 extern void splash_progress_set_delay(long delay_ticks);
 /*

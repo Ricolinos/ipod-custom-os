@@ -33,9 +33,140 @@
 #include "scrollbar.h"
 #include "font.h"
 #include "apple2026_shell.h"
+#include "bmp.h"
+#include "rbpaths.h"
 #ifndef BOOTLOADER
 #include "misc.h" /* get_current_activity */
 #endif
+
+
+#if ROCKPOD_APPLE2026_IPOD && !defined(BOOTLOADER)
+/* ---- Apple2026 loading screens ---------------------------------------
+ * "Loading..." becomes a clean white page (the status bar stays) with a
+ * centred iOS-style spinner; long jobs (database commit) get an Apple
+ * Music-ish progress page: turning gear + label + percentage + bar. */
+#define A26_SPIN_PX      32
+#define A26_SPIN_FRAMES  12
+#define A26_GEAR_PX      26
+#define A26_GEAR_FRAMES  12
+#define A26_TOPBAR_H     20
+
+static fb_data a26_spin_px[A26_SPIN_PX * A26_SPIN_PX * A26_SPIN_FRAMES];
+static fb_data a26_gear_px[A26_GEAR_PX * A26_GEAR_PX * A26_GEAR_FRAMES];
+static int a26_spin_state;   /* 0 untried, 1 ok, -1 failed */
+static int a26_gear_state;
+
+static bool a26_load_strip(const char *name, fb_data *dst, size_t sz,
+                           int px, int frames, int *state)
+{
+    struct bitmap bm;
+
+    if (*state)
+        return *state > 0;
+    memset(&bm, 0, sizeof(bm));
+    bm.data = (unsigned char *)dst;
+    *state = (read_bmp_file(name, &bm, sz, FORMAT_NATIVE | FORMAT_DITHER,
+                            NULL) > 0
+              && bm.width == px && bm.height == px * frames) ? 1 : -1;
+    return *state > 0;
+}
+
+static void a26_page_begin(struct screen *display, struct viewport *vp)
+{
+    viewport_set_defaults(vp, display->screen_type);
+    vp->x = 0;
+    vp->y = A26_TOPBAR_H;
+    vp->width = display->lcdwidth;
+    vp->height = display->lcdheight - A26_TOPBAR_H;
+    vp->fg_pattern = A26_TEXT_PRIMARY;
+    vp->bg_pattern = A26_SHELL_BG;
+    vp->flags &= ~VP_FLAG_ALIGNMENT_MASK;
+    display->set_viewport(vp);
+    display->clear_viewport();
+}
+
+static void a26_center_text(struct screen *display, struct viewport *vp,
+                            int y, const char *text)
+{
+    int w, h;
+    if (!text || !text[0])
+        return;
+    display->getstringsize(text, &w, &h);
+    display->putsxy((vp->width - w) / 2, y, text);
+}
+
+/* Plain spinner page (replaces the "Loading..." box). */
+bool apple2026_loading_page(struct screen *display)
+{
+    struct viewport vp;
+    static int frame;
+
+    if (!a26_load_strip(WPS_DIR "/Apple2026/loading.bmp", a26_spin_px,
+                        sizeof(a26_spin_px), A26_SPIN_PX, A26_SPIN_FRAMES,
+                        &a26_spin_state))
+        return false;
+
+    a26_page_begin(display, &vp);
+    frame = (frame + 1) % A26_SPIN_FRAMES;
+    display->transparent_bitmap_part(a26_spin_px, 0, frame * A26_SPIN_PX,
+                                     STRIDE(display->screen_type, A26_SPIN_PX,
+                                            A26_SPIN_PX * A26_SPIN_FRAMES),
+                                     (vp.width - A26_SPIN_PX) / 2,
+                                     (vp.height - A26_SPIN_PX) / 2,
+                                     A26_SPIN_PX, A26_SPIN_PX);
+    display->update_viewport();
+    display->set_viewport(NULL);
+    return true;
+}
+
+/* Progress page: gear + label + percentage + Apple-style bar. */
+bool apple2026_progress_page(struct screen *display, const char *text,
+                             int current, int total)
+{
+    struct viewport vp;
+    static int frame;
+    char pct[8];
+    int cy, bar_x, bar_w, bar_y, fill;
+
+    if (!a26_load_strip(WPS_DIR "/Apple2026/gear.bmp", a26_gear_px,
+                        sizeof(a26_gear_px), A26_GEAR_PX, A26_GEAR_FRAMES,
+                        &a26_gear_state))
+        return false;
+
+    a26_page_begin(display, &vp);
+    cy = vp.height / 2;
+    frame = (frame + 1) % A26_GEAR_FRAMES;
+    display->transparent_bitmap_part(a26_gear_px, 0, frame * A26_GEAR_PX,
+                                     STRIDE(display->screen_type, A26_GEAR_PX,
+                                            A26_GEAR_PX * A26_GEAR_FRAMES),
+                                     (vp.width - A26_GEAR_PX) / 2,
+                                     cy - 62, A26_GEAR_PX, A26_GEAR_PX);
+    a26_center_text(display, &vp, cy - 22, text);
+
+    bar_w = vp.width - 80;
+    bar_x = 40;
+    bar_y = cy + 10;
+    fill = (total > 0) ? (bar_w * current) / total : 0;
+    if (fill < 0)
+        fill = 0;
+    if (fill > bar_w)
+        fill = bar_w;
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_PROGRESS_TRACK));
+    display->fillrect(bar_x, bar_y, bar_w, 4);
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_PROGRESS_FILL));
+    display->fillrect(bar_x, bar_y, fill, 4);
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_SECONDARY));
+    if (total > 0)
+    {
+        snprintf(pct, sizeof(pct), "%d%%", (100 * current) / total);
+        a26_center_text(display, &vp, bar_y + 12, pct);
+    }
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
+    display->update_viewport();
+    display->set_viewport(NULL);
+    return true;
+}
+#endif /* ROCKPOD_APPLE2026_IPOD */
 
 static long progress_next_tick, talked_tick;
 
@@ -249,6 +380,17 @@ void splashf(int ticks, const char *fmt, ...)
         }
     }
 
+#if ROCKPOD_APPLE2026_IPOD && !defined(BOOTLOADER)
+    /* Apple2026: "Loading..." is a full page with a spinner, not a box. */
+    if (id == LANG_WAIT && apple2026_theme_selected()
+        && apple2026_loading_page(&screens[SCREEN_MAIN]))
+    {
+        if (ticks > 0)
+            sleep(ticks);
+        return;
+    }
+#endif
+
     /* If fmt is a lang ID then get the corresponding string (which
        still might contain % place holders). */
     fmt = P2STR((unsigned char *)fmt);
@@ -293,6 +435,22 @@ void splash_progress(int current, int total, const char *fmt, ...)
         progress_next_tick = now + HZ/20;
         vp_flag = 0; /* don't mark vp dirty to prevent flashing */
     }
+
+#if ROCKPOD_APPLE2026_IPOD && !defined(BOOTLOADER)
+    /* Apple2026: long jobs get a full progress page (gear + bar). */
+    if (apple2026_theme_selected())
+    {
+        char a26_buf[MAXBUFFER];
+        va_list a26_ap;
+        const char *a26_fmt = P2STR((unsigned char *)fmt);
+        va_start(a26_ap, fmt);
+        vsnprintf(a26_buf, sizeof(a26_buf), a26_fmt, a26_ap);
+        va_end(a26_ap);
+        if (apple2026_progress_page(&screens[SCREEN_MAIN], a26_buf,
+                                    current, total))
+            return;
+    }
+#endif
 
     if (global_settings.talk_menu &&
         total > 0 &&
