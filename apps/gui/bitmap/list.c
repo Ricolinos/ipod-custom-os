@@ -280,7 +280,30 @@ static bool draw_title(struct screen *display,
     return true;
 }
 
+static void list_draw_impl(struct screen *display, struct gui_synclist *list);
+
+/* Apple2026: guard against re-entrant draw cycles (e.g. a viewport-label
+ * change forcing a redraw from inside the draw path).  Depth 2 is legal
+ * (one guarded theme redraw); anything deeper is a cycle — break it and
+ * leave a trace instead of overflowing the stack. */
 void list_draw(struct screen *display, struct gui_synclist *list)
+{
+    static int depth = 0;
+
+    if (depth >= 3)
+    {
+        DEBUGF("A26 list_draw: recursion depth %d suppressed\n", depth);
+        return;
+    }
+    depth++;
+    if (depth >= 2)
+        DEBUGF("A26 list_draw: reentered (depth %d, title '%s')\n", depth,
+               list->title ? list->title : "<null>");
+    list_draw_impl(display, list);
+    depth--;
+}
+
+static void list_draw_impl(struct screen *display, struct gui_synclist *list)
 {
     int start, end, item_offset, i;
     const int screen = display->screen_type;
