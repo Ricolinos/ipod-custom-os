@@ -67,6 +67,7 @@ enum themable_icons {
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
     Icon_Artist,
     Icon_Album,
+    Icon_Coverflow,
 #endif
     Icon_Last_Themeable,
 };

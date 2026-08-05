@@ -706,8 +706,13 @@ MENUITEM_RETURNVALUE(podcast_library, ID2P(LANG_ROOT_PODCASTS), GO_TO_PODCASTLIB
 #ifdef HAVE_TAGCACHE
 MENUITEM_RETURNVALUE(db_browser, ID2P(LANG_DB_BROWSER), GO_TO_DBBROWSER,
                         NULL, Icon_Config);
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+MENUITEM_RETURNVALUE(pictureflow_item, "Cover Flow", GO_TO_PICTUREFLOW,
+                        NULL, Icon_Coverflow);
+#else
 MENUITEM_RETURNVALUE(pictureflow_item, "Cover Flow", GO_TO_PICTUREFLOW,
                         NULL, Icon_Display_menu);
+#endif
 #endif
 MENUITEM_RETURNVALUE(rocks_browser, ID2P(LANG_PLUGINS), GO_TO_BROWSEPLUGINS,
                         NULL, Icon_Plugin);
