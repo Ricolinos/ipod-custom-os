@@ -213,11 +213,73 @@ void sim_do_exit()
 
 uintptr_t *stackbegin;
 uintptr_t *stackend;
+#if defined(SIMULATOR) && defined(__APPLE__) && defined(__aarch64__)
+/* A26 diagnostics: on a fatal signal, scan the crashed thread's raw stack
+ * and symbolize every code address via dladdr().  Recovers the recursion
+ * cycle even when frame pointers are destroyed (stack-exhaustion SIGBUS,
+ * where every unwinder shows zero frames). */
+#include <signal.h>
+#include <dlfcn.h>
+#include <sys/ucontext.h>
+
+static char a26_altstack[64 * 1024];
+
+static void a26_crash_scan(int sig, siginfo_t *info, void *ucv)
+{
+    _STRUCT_UCONTEXT *uc = (_STRUCT_UCONTEXT *)ucv;
+    uintptr_t sp = uc ? (uintptr_t)uc->uc_mcontext->__ss.__sp : 0;
+    uintptr_t pc = uc ? (uintptr_t)uc->uc_mcontext->__ss.__pc : 0;
+    Dl_info di;
+    int printed = 0;
+
+    fprintf(stderr, "\nA26 CRASH sig=%d addr=%p pc=%p sp=%p\n",
+            sig, info ? info->si_addr : NULL, (void *)pc, (void *)sp);
+    if (pc && dladdr((void *)pc, &di) && di.dli_sname)
+        fprintf(stderr, "A26 pc = %s+%ld\n", di.dli_sname,
+                (long)(pc - (uintptr_t)di.dli_saddr));
+    /* walk up to 64K words of the dying stack */
+    for (uintptr_t p = sp & ~7UL; printed < 120 && p < sp + 512 * 1024;
+         p += 8)
+    {
+        uintptr_t v = *(uintptr_t *)p;
+        if (v < 0x100000000UL || v > 0x300000000UL)
+            continue;
+        if (dladdr((void *)v, &di) && di.dli_sname && di.dli_fname &&
+            strstr(di.dli_fname, "rockboxui"))
+        {
+            fprintf(stderr, "A26 stk %s+%ld\n", di.dli_sname,
+                    (long)(v - (uintptr_t)di.dli_saddr));
+            printed++;
+        }
+    }
+    fprintf(stderr, "A26 scan done (%d hits)\n", printed);
+    fflush(stderr);
+    signal(sig, SIG_DFL);
+    raise(sig);
+}
+
+static void a26_install_crash_scan(void)
+{
+    stack_t ss = { .ss_sp = a26_altstack, .ss_size = sizeof(a26_altstack),
+                   .ss_flags = 0 };
+    struct sigaction sa;
+    sigaltstack(&ss, NULL);
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_sigaction = a26_crash_scan;
+    sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
+    sigaction(SIGSEGV, &sa, NULL);
+    sigaction(SIGBUS, &sa, NULL);
+}
+#else
+#define a26_install_crash_scan()
+#endif
+
 void system_init(void)
 {
     SDL_sem *s;
     /* fake stack, OS manages size (and growth) */
     stackbegin = stackend = (uintptr_t*)&s;
+    a26_install_crash_scan();
 
 #if defined(RG_NANO) && !defined(SIMULATOR)
     /* Set system volume to max with amixer */

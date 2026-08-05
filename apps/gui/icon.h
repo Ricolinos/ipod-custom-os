@@ -68,6 +68,9 @@ enum themable_icons {
     Icon_Artist,
     Icon_Album,
     Icon_Coverflow,
+    Icon_Photos,
+    Icon_ShuffleAll,
+    Icon_Genre,
 #endif
     Icon_Last_Themeable,
 };

@@ -40,6 +40,7 @@
 #include "viewport.h"
 #include "appevents.h"
 #include "statusbar-skinned.h"
+#include "debug.h"
 #include "skin_engine/skin_albumart_color.h"
 #include "apple2026_shell.h"
 #include "apple2026_pane.h"
@@ -52,6 +53,15 @@ void apple2026_ensure_dense_font(void)
     if (apple2026_dense_font_id < 0)
         apple2026_dense_font_id =
             font_load(FONT_DIR "/14-SFProText-Regular.fnt");
+}
+
+/* Tiny SF face for the A-Z index rail (7px, built from SF Pro). */
+int apple2026_rail_font_id = -1;
+void apple2026_ensure_rail_font(void)
+{
+    if (apple2026_rail_font_id < 0)
+        apple2026_rail_font_id =
+            font_load(FONT_DIR "/07-SFPro-Rail.fnt");
 }
 #endif
 

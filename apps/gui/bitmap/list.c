@@ -49,6 +49,8 @@
 /* Reference to the dense font loaded in apps/gui/list.c */
 extern int apple2026_dense_font_id;
 extern void apple2026_ensure_dense_font(void);
+extern int apple2026_rail_font_id;
+extern void apple2026_ensure_rail_font(void);
 #endif
 
 /* Figma 1:4008: 29px icon cell + 12px to label; 30px tile + 6+6 pad = 42px to text. */
@@ -320,12 +322,15 @@ static void a26_draw_index_rail(struct screen *display,
 {
     struct viewport vp = *parent;
     char cur = apple2026_list_current_letter(list);
-    int cell, y0, i;
+    int cell, y0, i, glyph_h;
     char s[2] = "#";
 
+    apple2026_ensure_rail_font();
     vp.x = parent->x + parent->width - A26_INDEX_RAIL_W;
     vp.width = A26_INDEX_RAIL_W;
-    vp.font = FONT_SYSFIXED;
+    vp.font = (apple2026_rail_font_id >= 0) ? apple2026_rail_font_id
+                                            : FONT_SYSFIXED;
+    glyph_h = font_get(vp.font)->height;
     vp.fg_pattern = SCREEN_COLOR_TO_NATIVE(display,
                                            LCD_RGBPACK(0x8E, 0x8E, 0x93));
     vp.bg_pattern = parent->bg_pattern;
@@ -340,7 +345,7 @@ static void a26_draw_index_rail(struct screen *display,
         if (s[0] == cur)
             display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
                                         LCD_RGBPACK(0xFF, 0x2E, 0x56)));
-        display->putsxy(3, y0 + i * cell + (cell - 8) / 2, s);
+        display->putsxy(3, y0 + i * cell + (cell - glyph_h) / 2, s);
         if (s[0] == cur)
             display->set_foreground(vp.fg_pattern);
     }

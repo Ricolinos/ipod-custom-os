@@ -34,6 +34,7 @@
 #include "pcmbuf.h"
 #include "lang.h"
 #include "keyboard.h"
+#include "apple2026_shell.h"
 #include "viewport.h"
 #include "file.h"
 #include "splash.h"
@@ -840,7 +841,14 @@ static void kbd_calc_pm_params(struct keyboard_parameters *pm,
                                 (touchscreen_get_mode() == TOUCHSCREEN_POINT));
 #endif
 
+#if ROCKPOD_APPLE2026_IPOD
+    /* Apple2026: the default picker grid should use the theme font, not
+     * the squarish system font. */
+    pm->curfont = sc->getuifont();
+    (void)pm->default_lines;
+#else
     pm->curfont = pm->default_lines ? FONT_SYSFIXED : sc->getuifont();
+#endif
     font = font_get(pm->curfont);
     pm->font_h = font->height;
 

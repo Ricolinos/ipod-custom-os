@@ -706,12 +706,14 @@ MENUITEM_FUNCTION(music_library, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_FOLDERS), music_folders_fn, NULL,
                   Icon_Folder);
 /* Apple2026 split root menu: curated media libraries */
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 MENUITEM_RETURNVALUE(video_library, ID2P(LANG_ROOT_VIDEOS), GO_TO_VIDEOLIB,
                         NULL, Icon_Display_menu);
 MENUITEM_RETURNVALUE(photo_library, ID2P(LANG_ROOT_PHOTOS), GO_TO_PHOTOLIB,
-                        NULL, Icon_Folder);
+                        NULL, Icon_Photos);
 MENUITEM_RETURNVALUE(podcast_library, ID2P(LANG_ROOT_PODCASTS), GO_TO_PODCASTLIB,
                         NULL, Icon_Voice);
+#endif
 #ifdef HAVE_TAGCACHE
 MENUITEM_RETURNVALUE(db_browser, ID2P(LANG_DB_BROWSER), GO_TO_DBBROWSER,
                         NULL, Icon_Config);
@@ -824,7 +826,7 @@ MENUITEM_FUNCTION_W_PARAM(db_albums_item, MENU_FUNC_CHECK_RETVAL,
                   NULL, Icon_Album);
 MENUITEM_FUNCTION_W_PARAM(db_genres_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_GENRES), db_view_fn, (void *)3,
-                  NULL, Icon_Bookmark);
+                  NULL, Icon_Genre);
 MENUITEM_FUNCTION_W_PARAM(db_search_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_SEARCH), db_view_fn, (void *)4,
                   NULL, Icon_Preset);
@@ -856,7 +858,7 @@ static int shuffle_songs_fn(void)
 }
 MENUITEM_FUNCTION(shuffle_songs_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_SHUFFLE_SONGS), shuffle_songs_fn, NULL,
-                  Icon_Playlist);
+                  Icon_ShuffleAll);
 
 static struct menu_table menu_table[] = {
     { "music", (const struct menu_item_ex *)&music_submenu },

@@ -51,6 +51,7 @@
 %xl(W,qs_bar_track.bmp,0,0)
 %xl(X,qs_sun_max.bmp,0,0)
 %xl(R,qs_sun_min.bmp,0,0)
+%xl(J,statusPlay.bmp,0,0,2)
 
 # â”€â”€ Shell routing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 #
@@ -80,8 +81,9 @@
 #
 # Header indicators â€” split screens use the left-bar battery variants
 %?Lo<%Vd(battery_icon_root)|%?LM<%Vd(battery_icon_root)|%Vd(battery_icon)>>
-%?if(%St(battery display), =, numeric)<%?Lo<%Vd(batterytext_root)|%?LM<%Vd(batterytext_root)|%Vd(batterytext)>>>
-%?mh<%?Lo<|%?LM<|%Vd(lock)>>|>
+%?if(%St(battery display), =, numeric)<%?Lo<|%?LM<|%Vd(batterytext)>>>
+%?mh<%?Lo<%Vd(lock_split)|%?LM<%Vd(lock_split)|%Vd(lock)>>|>
+%?mp<|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>>
 %?bs<%?Lo<|%?LM<|%Vd(sleeptimertext)>>|>
 %?lh<%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>>>|>
 #
@@ -124,12 +126,12 @@
 # â”€â”€ Split-screen titles (20px iPod-scale bar, left 160 column only) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Root: "Biblioteca"; Music submenu: the live list title (%Lt).
 # Battery shares the bar at x>=124 (see battery_*_root).
-%Vl(large_title,10,0,112,20,3)
+%Vl(large_title,10,0,84,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%al%Sx(Library)
+%s%aliPod
 
-%Vl(lm_title,10,0,112,20,3)
+%Vl(lm_title,10,0,84,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%Lt
@@ -190,10 +192,23 @@
 %Vf(FFFFFF)
 %Vb(FFFFFF)
 
-# â”€â”€ Lock icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(lock,-82,6,9,12,-)
+# â”€â”€ Lock icon (SF lock.fill; reserved slot, shown whenever hold is on) â”€â”€â”€â”€â”€â”€
+%Vl(lock,-66,4,9,12,-)
 %Vb(FFFFFF)
 %xd(Ab)
+
+%Vl(lock_split,98,4,9,12,-)
+%Vb(FFFFFF)
+%xd(Ab)
+
+# â”€â”€ Playback state (SF play/pause.fill; shown whenever audio is active) â”€â”€â”€â”€â”€
+%Vl(pp_icon,-50,4,12,12,-)
+%Vb(FFFFFF)
+%?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
+
+%Vl(pp_icon_split,112,4,12,12,-)
+%Vb(FFFFFF)
+%?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 
 # â”€â”€ Battery percentage text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Font slot 6 RB12 h=20px; VP height = 20 to prevent clipping.
