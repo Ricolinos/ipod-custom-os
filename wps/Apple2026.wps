@@ -82,7 +82,9 @@
 
 # Display volume bar while adjusting volume; otherwise show time+progress
 %Vd(pl_counter)%Vd(elapsed_time)%Vd(lossless_ind)%Vd(atmos_ind)%Vd(remain_time)
-%?mv(1.2)<%Vd(volumebar)|%?if(%mp,<,4)<%Vd(pb)|%Vd(pb_active)>>
+# Scrub mode (%Wm=1) uses the thicker active bar so the dragged
+# playhead is obvious; ff/rew (%mp>=3) does the same.
+%?mv(1.2)<%Vd(volumebar)|%?if(%Wm, =, 1)<%Vd(pb_active)|%?if(%mp,<,4)<%Vd(pb)|%Vd(pb_active)>>>
 
 # Always display the hero art. The corner trim now lives inside the same %VB
 # viewport and is drawn after %Cd, so it updates in the same pass as the art.

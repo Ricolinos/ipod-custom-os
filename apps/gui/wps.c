@@ -710,28 +710,68 @@ enum {
 };
 static int a26_wps_mode = A26_WPS_VOLUME;
 
-/* one wheel click = 5s, accelerating while the wheel keeps spinning */
+/* Scrub like the original iPod: the wheel drags a playhead along the bar
+ * (preview only, audio held), and playback resumes from that point once
+ * the wheel settles.  Step scales with track length for precision and
+ * accelerates while the wheel keeps spinning. */
+#define A26_SCRUB_SETTLE  (HZ * 3 / 4)
+static bool a26_scrubbing = false;
+static long a26_scrub_due = 0;
+
 static void a26_wps_scrub(struct mp3entry *id3, int dir)
 {
     static long last_tick = 0;
-    static int step = 5;
-    long pos;
+    static int accel = 1;
+    long step, pos;
 
     if (TIME_BEFORE(current_tick, last_tick + HZ / 3))
     {
-        if (step < 30)
-            step += 5;
+        if (accel < 12)
+            accel++;
     }
     else
-        step = 5;
+        accel = 1;
     last_tick = current_tick;
 
-    pos = (long)id3->elapsed + dir * step * 1000L;
+    if (!a26_scrubbing)
+    {
+        audio_pre_ff_rewind();      /* hold playback while dragging */
+        a26_scrubbing = true;
+        status_set_ffmode(dir > 0 ? STATUS_FASTFORWARD : STATUS_FASTBACKWARD);
+    }
+
+    /* ~1/200th of the track per click, at least a second */
+    step = (long)id3->length / 200;
+    if (step < 1000)
+        step = 1000;
+    step *= accel;
+
+    pos = (long)id3->elapsed + dir * step;
     if (pos < 0)
         pos = 0;
     if (pos > (long)id3->length)
         pos = id3->length;
-    audio_ff_rewind(pos);
+    id3->elapsed = pos;             /* the bar follows the playhead */
+    a26_scrub_due = current_tick + A26_SCRUB_SETTLE;
+}
+
+/* Commit the scrub once the wheel has been still long enough. */
+static void a26_wps_scrub_tick(struct mp3entry *id3, bool *update)
+{
+    if (!a26_scrubbing || !id3)
+        return;
+    if (TIME_BEFORE(current_tick, a26_scrub_due))
+        return;
+    a26_scrubbing = false;
+    status_set_ffmode(0);
+    audio_ff_rewind(id3->elapsed);
+    if (update)
+        *update = true;
+}
+
+bool a26_wps_is_scrubbing(void)
+{
+    return a26_scrubbing;
 }
 
 #ifdef HAVE_TAGCACHE
@@ -1035,6 +1075,10 @@ long gui_wps_show(void)
 #endif
         button = do_party_mode(button); /* block select actions in party mode */
 
+#if ROCKPOD_APPLE2026_IPOD
+        a26_wps_scrub_tick(state->id3, &update);
+#endif
+
         button = action_wpsab_single(button); /* iPods/X5/M5 */
 
         switch(button)
@@ -1103,6 +1147,12 @@ long gui_wps_show(void)
                 long next_screen;
                 /* Apple2026: MENU always leaves Now Playing, whatever the
                  * wheel mode is; the mode resets for the next visit. */
+                if (a26_scrubbing && state->id3)
+                {
+                    a26_scrubbing = false;
+                    status_set_ffmode(0);
+                    audio_ff_rewind(state->id3->elapsed);
+                }
                 a26_wps_mode = A26_WPS_VOLUME;
                 if (!wps_handle_browse_parent(&next_screen, &theme_enabled,
                                              &restore))
