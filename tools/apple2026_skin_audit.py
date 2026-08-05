@@ -120,7 +120,7 @@ REQUIRED_BMP_DIMENSIONS = {
     "wps/Apple2026/qs_bar_track.bmp": (176, 6),
     "wps/Apple2026/qs_sun_max.bmp": (14, 14),
     "wps/Apple2026/qs_sun_min.bmp": (14, 14),
-    "wps/Apple2026/playerStatusLarge.bmp": (20, 80),
+    "wps/Apple2026/playerStatusLarge.bmp": (20, 100),  # +rewind frame
     "wps/Apple2026/repeatLarge.bmp": (15, 60),   # repeat / repeat.1 x muted+pink
     "wps/Apple2026/shuffle.bmp": (16, 11),
     "wps/Apple2026/shuffleLarge.bmp": (15, 30),  # shuffle muted+pink
@@ -191,7 +191,7 @@ CLAIM_CONTRACTS = {
         "required": [
             ("%?if(%bl, =, 100)<100%%|%bl%%>", "WPS battery percentage must not contain a space before '%'"),
             ("%Fl(6,13-SFCompactText-Regular.fnt)", "WPS must load the compact status-label font"),
-            ("%xl(N,playerStatusLarge.bmp,0,0,4)", "WPS must preload the dedicated large transport strip"),
+            ("%xl(N,playerStatusLarge.bmp,0,0,5)", "transport strip carries stop/pause/play/ff/rew"),
             ("%xl(O,repeatLarge.bmp,0,0,4)", "repeat strip carries all four states"),
             ("%xl(Q,shuffleLarge.bmp,0,0,2)", "shuffle strip carries both states"),
             ("%Vl(title_line,136,44,172,22,9)", "title sits right of the hero art"),
@@ -203,7 +203,7 @@ CLAIM_CONTRACTS = {
             ("%Vl(player_status_lane,150,212,20,20,-)", "WPS transport sits centred under the time row"),
             ("%Vl(lossless_ind,14,150,66,11,-)", "WPS lossless badge sits on the metadata row"),
             ("%pv(44,5,236,4,image,I,backdrop,J)", "volume overlay shares the progress-bar art and row"),
-            ("%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Nd)|>>", "WPS status icon must use the larger iPod-style play/pause mapping"),
+            ("%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Ne)|>>", "transport must distinguish forward from rewind"),
         ],
         "forbidden": [
             ("%xl(P,playerStatus.bmp,0,0,4)", "WPS must not use the old shared small transport strip"),

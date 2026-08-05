@@ -737,8 +737,9 @@ static void a26_wps_scrub(struct mp3entry *id3, int dir)
     {
         audio_pre_ff_rewind();      /* hold playback while dragging */
         a26_scrubbing = true;
-        status_set_ffmode(dir > 0 ? STATUS_FASTFORWARD : STATUS_FASTBACKWARD);
     }
+    /* every step, so reversing direction flips the indicator too */
+    status_set_ffmode(dir > 0 ? STATUS_FASTFORWARD : STATUS_FASTBACKWARD);
 
     /* ~1/400th of the track per click (min 500ms) so single clicks are
      * precise; the acceleration above covers long jumps. */

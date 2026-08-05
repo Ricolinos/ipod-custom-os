@@ -41,7 +41,7 @@
 
 # Preload icons  -  Interpod-aligned core IDs plus dedicated Apple2026 shuffle
 # playerStatus: 16x18 per tile, 4 frames â€” Pa=stop Pb=pause-bars Pc=play-fill Pd=ff
-%xl(N,playerStatusLarge.bmp,0,0,4)
+%xl(N,playerStatusLarge.bmp,0,0,5)
 %xl(A,holdSlider.bmp,0,0,2)
 %xl(B,batteryStatus.bmp,0,4,10)
 %xl(O,repeatLarge.bmp,0,0,4)
@@ -190,7 +190,7 @@
 # than the top chrome. Branch: 0=stop 1=play 2=pause 3=ff 4=rew
 %Vl(player_status_lane,150,212,20,20,-)
 %Vb(FFFFFF)
-%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Nd)|>>
+%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Ne)|>>
 
 # -------------------------------------------------------
 # Progress bar  -  bitmap pill bars (restored from Interpod pattern)
