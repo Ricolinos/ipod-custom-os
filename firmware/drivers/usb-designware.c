@@ -941,7 +941,9 @@ static void usb_dw_control_received(struct usb_ctrlrequest* req)
         /* Skip EP0 IN flush during ISO streaming — the flush calls
          * usb_dw_wait_for_ahb_idle() which busy-waits for all DMA to
          * stop, potentially disrupting active ISO IN transfers. */
+#ifdef USB_ENABLE_AUDIO
         if (!usb_audio_source_streaming())
+#endif
             usb_dw_flush_endpoint(0, USB_DW_EPDIR_IN);
         usb_core_control_request(req, NULL);
         break;

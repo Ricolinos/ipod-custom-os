@@ -858,7 +858,11 @@ void main(void)
     lcd_update();
     sleep(HZ/40);  /* wait for lcd update */
 
-    verbose = true;
+    /* Apple2026: silent boot — only the centered apple logo is shown.
+     * printf() text still lands in the framebuffer but is never made
+     * visible unless verbose; fatal_error() forces verbose so real
+     * failures keep their diagnostics. */
+    verbose = false;
 
     backlight_init(); /* Turns on the backlight */
 

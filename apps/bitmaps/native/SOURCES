@@ -31,8 +31,13 @@ rockboxlogo.220x68x16.bmp
 rockboxlogo.240x74x16.bmp
 #elif (LCD_WIDTH >= 320) && (LCD_WIDTH < 480)  && (LCD_DEPTH >= 16)
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+#ifdef BOOTLOADER
+/* Apple2026: compact apple for the bootloader's tight flash budget */
+rockboxlogo.72x88x16.bmp
+#else
 /* Apple2026: full-screen boot splash, white apple centered on black */
 rockboxlogo.320x240x16.bmp
+#endif
 #else
 rockboxlogo.320x98x16.bmp
 #endif
