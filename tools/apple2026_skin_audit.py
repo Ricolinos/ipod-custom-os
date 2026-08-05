@@ -110,7 +110,7 @@ REQUIRED_RUNTIME_FILES = [
 
 REQUIRED_BMP_DIMENSIONS = {
     "icons/Apple2026Icons.bmp": (30, 1170),  # +Coverflow/Photos/Shuffle/Genre/MusicApp
-    "wps/Apple2026/albumPlaceholder.bmp": (150, 150),
+    "wps/Apple2026/albumPlaceholder.bmp": (110, 110),  # matches the 110px art rect
     "wps/Apple2026/art_mask.bmp": (32, 32),
     "wps/Apple2026/miniplayer_bg.bmp": (320, 50),
     "wps/Apple2026/qs_wheel.bmp": (92, 92),
@@ -121,9 +121,9 @@ REQUIRED_BMP_DIMENSIONS = {
     "wps/Apple2026/qs_sun_max.bmp": (14, 14),
     "wps/Apple2026/qs_sun_min.bmp": (14, 14),
     "wps/Apple2026/playerStatusLarge.bmp": (20, 80),
-    "wps/Apple2026/repeatLarge.bmp": (20, 15),
+    "wps/Apple2026/repeatLarge.bmp": (15, 60),   # repeat / repeat.1 x muted+pink
     "wps/Apple2026/shuffle.bmp": (16, 11),
-    "wps/Apple2026/shuffleLarge.bmp": (20, 15),
+    "wps/Apple2026/shuffleLarge.bmp": (15, 30),  # shuffle muted+pink
     "wps/Apple2026/wpsArtCorners.bmp": (150, 150),
     "wps/Apple2026/wpsBackdrop.bmp": (320, 240),
 }
@@ -192,19 +192,17 @@ CLAIM_CONTRACTS = {
             ("%?if(%bl, =, 100)<100%%|%bl%%>", "WPS battery percentage must not contain a space before '%'"),
             ("%Fl(6,13-SFCompactText-Regular.fnt)", "WPS must load the compact status-label font"),
             ("%xl(N,playerStatusLarge.bmp,0,0,4)", "WPS must preload the dedicated large transport strip"),
-            ("%xl(O,repeatLarge.bmp,0,0)", "WPS must preload the dedicated large repeat glyph"),
-            ("%xl(Q,shuffleLarge.bmp,0,0)", "WPS must preload the dedicated large shuffle glyph"),
-            ("%Vl(title_line,18,-79,258,20,9)", "WPS title lane must reserve the right-side safe area"),
-            ("%Vl(artist_line,18,-60,258,18,3)", "WPS artist/album lane must reserve the right-side safe area"),
-            ("%Vl(shuffle_state,281,103,20,15,-)", "WPS must define the larger upper-right shuffle slot"),
-            ("%?or(%if(%ps, =, s),%if(%mm, =, 3))<%xd(Q)>", "WPS shuffle lane must explicitly cover shuffle and repeat-shuffle states"),
-            ("%Vl(repeat_icon_state,281,124,20,15,-)", "WPS must define the larger repeat icon slot"),
-            ("%?mm<|%xd(O)|%xd(O)|%xd(O)|%xd(O)>", "WPS repeat icon lane must stay populated for all repeat-enabled modes"),
-            ("%Vl(repeat_label_state,264,140,54,15,6)", "WPS must define the compact repeat-label lane under the repeat icon"),
-            ("%ac%?mm<||All|One|All|A-B>", "WPS repeat label lane must use short labels and treat repeat-shuffle as All"),
-            ("%Vl(player_status_lane,280,178,20,20,-)", "WPS player status must use the larger bottom-right lane"),
-            ("%Vl(lossless_ind,127,-12,66,11,-)", "WPS lossless badge must live in the bottom pad"),
-            ("%x(M,speaker_mute.bmp,35,1)", "mute icon must match the loud speaker size and sit flush with the volume rail"),
+            ("%xl(O,repeatLarge.bmp,0,0,4)", "repeat strip carries all four states"),
+            ("%xl(Q,shuffleLarge.bmp,0,0,2)", "shuffle strip carries both states"),
+            ("%Vl(title_line,136,44,172,22,9)", "title sits right of the hero art"),
+            ("%Vl(artist_line,136,70,172,18,3)", "artist sits under the title, right of the art"),
+            ("%Vl(shuffle_state,285,212,15,15,-)", "shuffle state sits bottom-right of the transport"),
+            ("%?or(%if(%ps, =, s),%if(%mm, =, 3))<%xd(Qb)|%xd(Qa)>", "shuffle lane must render both states (pink on, muted off)"),
+            ("%Vl(repeat_icon_state,20,212,15,15,-)", "repeat state sits bottom-left of the transport"),
+            ("%?mm<%xd(Oa)|%xd(Ob)|%xd(Od)|%xd(Ob)|%xd(Ob)>", "repeat lane must render every mode (repeat.1 swaps the glyph)"),
+            ("%Vl(player_status_lane,150,212,20,20,-)", "WPS transport sits centred under the time row"),
+            ("%Vl(lossless_ind,14,150,66,11,-)", "WPS lossless badge sits on the metadata row"),
+            ("%pv(20,4,280,5,image,I,backdrop,J)", "volume overlay must match the progress-bar geometry"),
             ("%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Nd)|>>", "WPS status icon must use the larger iPod-style play/pause mapping"),
         ],
         "forbidden": [
@@ -252,7 +250,8 @@ ASSET_SAMPLE_EXPECTATIONS = {
         (0, 0): SHELL_BG,
     },
     "wps/Apple2026/albumPlaceholder.bmp": {
-        (0, 0): SHELL_BG,
+        # shared gray note tile (same art Cover Flow uses) 
+        (0, 0): (248, 248, 248),
     },
     "wps/Apple2026/Wallpaper.bmp": {
         (0, 0): SHELL_BG,
@@ -379,19 +378,19 @@ def audit_wps_hero_art_assets(read_pixel, label_prefix: str) -> list[str]:
             f"{label_prefix}wps/Apple2026/wpsArtCorners.bmp: hero trim corner must preserve backdrop/shadow pixels"
         )
 
-    trim_cutout = read_pixel("wps/Apple2026/wpsArtCorners.bmp", 90, 12)
+    trim_cutout = read_pixel("wps/Apple2026/wpsArtCorners110.bmp", 55, 55)
     if trim_cutout != TRANS_KEY:
         errors.append(
             f"{label_prefix}wps/Apple2026/wpsArtCorners.bmp: rounded interior must remain transparent via FF00FF"
         )
 
-    backdrop_corner = read_pixel("wps/Apple2026/wpsBackdrop.bmp", 85, 8)
+    backdrop_corner = read_pixel("wps/Apple2026/wpsBackdrop.bmp", 16, 30)
     if backdrop_corner == SHELL_BG:
         errors.append(
             f"{label_prefix}wps/Apple2026/wpsBackdrop.bmp: hero corner pocket must retain the curved-edge shadow"
         )
 
-    backdrop_interior = read_pixel("wps/Apple2026/wpsBackdrop.bmp", 95, 15)
+    backdrop_interior = read_pixel("wps/Apple2026/wpsBackdrop.bmp", 200, 60)
     if backdrop_interior != SHELL_BG:
         errors.append(
             f"{label_prefix}wps/Apple2026/wpsBackdrop.bmp: hero rounded interior must stay flat shell tone"

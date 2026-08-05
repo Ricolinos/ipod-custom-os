@@ -64,6 +64,7 @@
 # Rating stars: a=empty b=filled (muted) / c=empty d=filled (pink,
 # shown while the rating mode is active)
 %xl(S,wps_stars.bmp,0,0,4)
+%xl(D,atmos.bmp,0,0)
 
 
 
@@ -78,7 +79,8 @@
 %?mh<%Vd(lock)|>
 
 # Display volume bar while adjusting volume; otherwise show time+progress
-%?mv(1.2)<%Vd(volumebar)|%Vd(pl_counter)%Vd(elapsed_time)%Vd(lossless_ind)%Vd(remain_time)%?if(%mp,<,4)<%Vd(pb)|%Vd(pb_active)>>
+%Vd(pl_counter)%Vd(elapsed_time)%Vd(lossless_ind)%Vd(atmos_ind)%Vd(remain_time)
+%?mv(1.2)<%Vd(volumebar)|%?if(%mp,<,4)<%Vd(pb)|%Vd(pb_active)>>
 
 # Always display the hero art. The corner trim now lives inside the same %VB
 # viewport and is drawn after %Cd, so it updates in the same pass as the art.
@@ -214,6 +216,11 @@
 %Vb(FFFFFF)
 %?or(%if(%fc, =, 4),%if(%fc, =, 5),%if(%fc, =, 7),%if(%fc, =, 11),%if(%fc, =, 13))<%xd(L)>
 
+# Dolby badge  -  shown for AC3/E-AC3 streams (Dolby content)
+%Vl(atmos_ind,86,150,96,11,-)
+%Vb(FFFFFF)
+%?if(%fc, =, 9)<%xd(D)>
+
 # Remaining time  -  right, 14pt Regular (RB12 h=18), gray
 %Vl(remain_time,-107,192,87,18,3)
 %Vf(6E6E73)
@@ -224,12 +231,11 @@
 # Volume bar  -  shown while scroll wheel adjusts volume
 # Occupies the progress+time zone (y=-40, h=20)
 # -------------------------------------------------------
-%Vl(volumebar,0,-40,-,20,-)
+%Vl(volumebar,0,178,-,14,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%x(M,speaker_mute.bmp,35,1)
-%pv(58,8,204,4,image,I,backdrop,J)
-%xd(C)
+# Sits exactly where the progress bar lives (x=20 w=280 y=182 h=5)
+%pv(20,4,280,5,image,I,backdrop,J)
 
 # -------------------------------------------------------
 # Wheel-mode row (Apple2026): SELECT cycles Volume / Scrub / Playlist /
