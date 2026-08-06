@@ -99,6 +99,8 @@ struct list_putlineinfo_t {
     bool show_cursor;
     bool have_icons;
     int toggle;   /* Apple2026: -1 no aplica, 0 apagado, 1 encendido */
+    const char *value;   /* Apple2026: valor a la derecha, NULL si no aplica */
+    bool value_active;   /* rosa si activo, negro al 50% si apagado */
 };
 
 typedef void list_draw_item(struct list_putlineinfo_t *list_info);
@@ -160,6 +162,12 @@ struct gui_synclist
      * de sí/no, 0 apagado, 1 encendido.  Permite verlo y cambiarlo desde la
      * propia lista en vez de entrar a la pantalla de opciones. */
     int (*callback_get_item_toggle)(int selected_item, void *data);
+    /* Apple2026: valor del ajuste de la fila, para los que no son sí/no.
+     * Devuelve NULL si la fila no es un ajuste con valor mostrable, y pone
+     * *active a false cuando el valor equivale a "apagado". */
+    const char *(*callback_get_item_value)(int selected_item, void *data,
+                                           char *buf, size_t bufsz,
+                                           bool *active);
     bool keyclick;
     bool talk_menu;
     bool wraparound;

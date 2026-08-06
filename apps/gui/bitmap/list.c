@@ -186,11 +186,20 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
      * metería debajo del interruptor, y además el motor de desplazamiento
      * repinta la línea más tarde y lo borraría.  Se recorta a mano. */
     char a26_cut[192];
-    if (!is_title && list_info->toggle >= 0 && dsp_text)
+    int a26_vw = 0;
+
+    if (!is_title && list_info->value)
+    {
+        display->setfont(list_info->vp->font);
+        display->getstringsize((unsigned char *)list_info->value,
+                               &a26_vw, NULL);
+    }
+    if (!is_title && (list_info->toggle >= 0 || list_info->value) && dsp_text)
     {
         /* el hueco disponible descuenta también la columna del icono, que
          * no viene en item_indent sino que la añade el propio put_line */
-        int room = list_info->vp->width - A26_SW_W
+        int room = list_info->vp->width
+                 - (list_info->toggle >= 0 ? A26_SW_W : a26_vw)
                  - A26_LIST_CONTENT_INSET * 3 - item_indent
                  - (have_icons ? list_info->icon_width + ICON_PADDING : 0);
         int tw = 0, len;
@@ -248,6 +257,22 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
     if (!is_title && display->depth >= 16 && list_info->toggle >= 0)
         a26_draw_switch(list_info->display, list_info->vp, list_info->y,
                         linedes->height, list_info->toggle);
+    if (!is_title && display->depth >= 16 && list_info->value)
+    {
+        struct viewport *vvp = list_info->vp;
+        int vy = list_info->y
+               + (linedes->height - font_get(vvp->font)->height) / 2;
+        unsigned old_fg = display->get_foreground();
+
+        display->set_drawmode(DRMODE_FG);
+        display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                list_info->value_active ? A26_ACCENT
+                                        : LCD_RGBPACK(0x80, 0x80, 0x80)));
+        display->putsxy(vvp->width - a26_vw - A26_LIST_CONTENT_INSET, vy,
+                        (unsigned char *)list_info->value);
+        display->set_drawmode(DRMODE_SOLID);
+        display->set_foreground(old_fg);
+    }
 #endif
 #ifdef HAVE_LCD_COLOR
     if (!is_title && display->depth >= 16)
@@ -709,7 +734,7 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
     {
         .x = 0, .y = 0, .vp = list_text_vp, .list = list,
         .icon_width = icon_w, .is_title = false, .show_cursor = show_cursor,
-        .toggle = -1,
+        .toggle = -1, .value = NULL, .value_active = false,
         .have_icons = have_icons, .linedes = &linedes, .display = display
     };
 
@@ -747,8 +772,16 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
         line_indent += indent;
 
 #if ROCKPOD_APPLE2026_IPOD
+        static char a26_valbuf[32];
+
         list_info.toggle = list->callback_get_item_toggle
                          ? list->callback_get_item_toggle(i, list->data) : -1;
+        list_info.value = NULL;
+        list_info.value_active = false;
+        if (list_info.toggle < 0 && list->callback_get_item_value)
+            list_info.value = list->callback_get_item_value(i, list->data,
+                                    a26_valbuf, sizeof(a26_valbuf),
+                                    &list_info.value_active);
 #endif
         /* position the string at the correct offset place */
         int item_width,h;

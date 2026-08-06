@@ -280,6 +280,62 @@ static bool menu_toggle_row(int selected_item, void *data)
 }
 #endif
 
+#if ROCKPOD_APPLE2026_IPOD
+/* Ajuste de la fila que no es de sí/no; NULL si no aplica. */
+static const struct settings_list *a26_row_value(int selected_item, void *data)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
+    const struct settings_list *st;
+
+    if ((menu->flags & MENU_TYPE_MASK) != MT_MENU)
+        return NULL;
+    selected_item = get_menu_selection(selected_item, menu);
+    menu = menu->submenus[selected_item];
+    if ((menu->flags & MENU_TYPE_MASK) != MT_SETTING)
+        return NULL;
+    st = find_setting(menu->variable);
+    if (!st || (st->flags & F_T_MASK) == F_T_BOOL)
+        return NULL;   /* los sí/no ya llevan interruptor */
+    return st;
+}
+
+static const char *menu_get_value(int selected_item, void *data,
+                                  char *buf, size_t bufsz, bool *active)
+{
+    const struct settings_list *st = a26_row_value(selected_item, data);
+    const char *val;
+
+    if (!st)
+        return NULL;
+    val = option_get_valuestring(st, buf, bufsz, *(int *)st->setting);
+    if (!val)
+        return NULL;
+    /* "Apagado" o "No" se muestran atenuados; cualquier otro valor está
+     * activo.  Se compara con las cadenas traducidas, no con el índice,
+     * porque no todas las listas ponen la opción nula primero. */
+    *active = strcasecmp(val, str(LANG_OFF)) != 0
+           && strcasecmp(val, str(LANG_SET_BOOL_NO)) != 0;
+    return val;
+}
+
+/* Avanza a la siguiente opción sin salir de la lista.  Sólo para listas
+ * cortas: en un ajuste de decenas de valores, ciclar de uno en uno sería
+ * peor que abrir la pantalla de siempre. */
+#define A26_CYCLE_MAX 6
+static bool menu_cycle_value(int selected_item, void *data)
+{
+    const struct settings_list *st = a26_row_value(selected_item, data);
+
+    if (!st || (st->flags & F_CHOICE_SETTING) == 0)
+        return false;
+    if (!st->choice_setting || st->choice_setting->count > A26_CYCLE_MAX)
+        return false;
+    option_select_next_val(st, false, true);
+    settings_save();
+    return true;
+}
+#endif
+
 static bool menu_item_is_navigable(int selected_item, void * data)
 {
     const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
@@ -370,6 +426,7 @@ static int init_menu_lists(const struct menu_item_ex *menu,
     gui_synclist_set_icon_callback(lists, global_settings.show_icons?menu_get_icon:NULL);
 #if ROCKPOD_APPLE2026_IPOD
     lists->callback_get_item_toggle = menu_get_toggle;
+    lists->callback_get_item_value = menu_get_value;
 #endif
     gui_synclist_set_navigable_callback(lists, menu_item_is_navigable);
     if(global_settings.talk_menu)
@@ -802,7 +859,9 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
              * opciones a la que llevaría no aporta nada que la fila no
              * muestre ya con su interruptor. */
             if (!in_stringlist
-                && menu_toggle_row(gui_synclist_get_sel_pos(&lists), menu))
+                && (menu_toggle_row(gui_synclist_get_sel_pos(&lists), menu)
+                    || menu_cycle_value(gui_synclist_get_sel_pos(&lists),
+                                        menu)))
             {
                 gui_synclist_draw(&lists);
                 continue;

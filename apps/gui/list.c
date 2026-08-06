@@ -262,6 +262,7 @@ void gui_synclist_init(struct gui_synclist * gui_list,
     gui_list->callback_draw_item = NULL;
     gui_list->a26_index_rail = false;
     gui_list->callback_get_item_toggle = NULL;
+    gui_list->callback_get_item_value = NULL;
     gui_list->nb_items = 0;
     gui_list->selected_item = 0;
     gui_list->font_tier = ROCKPOD_LIST_FONT_NORMAL;
