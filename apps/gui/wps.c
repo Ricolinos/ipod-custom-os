@@ -711,6 +711,50 @@ enum {
 };
 static int a26_wps_mode = A26_WPS_VOLUME;
 
+/* Does this track have lyrics anywhere lrcplayer would look?  Same
+ * conventions as the plugin: sidecar file next to the track, or the
+ * same basename under /Lyrics. */
+bool a26_lyrics_available(const struct mp3entry *id3)
+{
+    static const char * const ext[] = { ".lrc", ".lrc8", ".snc", ".txt" };
+    static char cached_path[MAX_PATH];
+    static bool cached = false;
+    char base[MAX_PATH];
+    char probe[MAX_PATH];
+    const char *name;
+    unsigned i;
+
+    if (!id3 || !id3->path[0])
+        return false;
+    if (!strcmp(cached_path, id3->path))
+        return cached;
+    strmemccpy(cached_path, id3->path, sizeof(cached_path));
+    cached = false;
+
+    strmemccpy(base, id3->path, sizeof(base));
+    {
+        char *dot = strrchr(base, '.');
+        if (dot && dot > strrchr(base, '/'))
+            *dot = '\0';
+    }
+    name = strrchr(base, '/');
+    name = name ? name + 1 : base;
+
+    for (i = 0; i < ARRAYLEN(ext) && !cached; i++)
+    {
+        snprintf(probe, sizeof(probe), "%s%s", base, ext[i]);
+        if (file_exists(probe))
+            cached = true;
+        else
+        {
+            snprintf(probe, sizeof(probe), "/Lyrics/%s%s", name, ext[i]);
+            if (file_exists(probe))
+                cached = true;
+        }
+    }
+    return cached;
+}
+
 /* Is there anywhere to add the track to?  Cached for a few seconds so the
  * skin can ask on every refresh. */
 bool a26_playlists_available(void)
@@ -851,6 +895,8 @@ static void a26_wps_run_mode(struct mp3entry *id3)
                 PLUGIN_DIR "/lrcplayer.rock",
             };
             unsigned i;
+            if (!a26_lyrics_available(id3))
+                break;
             for (i = 0; i < ARRAYLEN(lrc); i++)
             {
                 if (file_exists(lrc[i]))
@@ -883,6 +929,8 @@ static void a26_wps_cycle_mode(struct mp3entry *id3)
      * lighter disabled tone), so the wheel never lands on a dead screen. */
     a26_wps_mode = (a26_wps_mode + 1) % A26_WPS_MODE_COUNT;
     if (a26_wps_mode == A26_WPS_PLAYLIST && !a26_playlists_available())
+        a26_wps_mode = (a26_wps_mode + 1) % A26_WPS_MODE_COUNT;
+    if (a26_wps_mode == A26_WPS_LYRICS && !a26_lyrics_available(id3))
         a26_wps_mode = (a26_wps_mode + 1) % A26_WPS_MODE_COUNT;
 #ifndef HAVE_TAGCACHE
     if (a26_wps_mode == A26_WPS_RATING)

@@ -63,6 +63,10 @@ bool a26_wps_is_scrubbing(void);
 /* Apple2026: true when the playlist catalog has something to add to */
 bool a26_playlists_available(void);
 
+/* Apple2026: true when the current track has a lyrics file */
+struct mp3entry;
+bool a26_lyrics_available(const struct mp3entry *id3);
+
 /* in milliseconds */
 #define DEFAULT_SKIP_THRESH          3000l
 
