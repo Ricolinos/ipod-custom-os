@@ -745,7 +745,7 @@ MENUITEM_FUNCTION(music_library, MENU_FUNC_CHECK_RETVAL,
 /* Apple2026 split root menu: curated media libraries */
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 MENUITEM_RETURNVALUE(video_library, ID2P(LANG_ROOT_VIDEOS), GO_TO_VIDEOLIB,
-                        NULL, Icon_Display_menu);
+                        NULL, Icon_S_Videos);
 /* Photos submenu (iPod-style): Slideshow / Folders / Settings.
  * All inline so backing out stays inside the Photos menu. */
 static int photo_folders_fn(void)

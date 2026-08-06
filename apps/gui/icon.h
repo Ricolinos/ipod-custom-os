@@ -406,6 +406,9 @@ enum themable_icons {
      * pone el propio plugin fila a fila. */
     Icon_S_Extras,
     Icon_S_Settings,
+    /* Cover Flow: sus menús son listas de cadenas, así que el icono lo
+     * pone el propio plugin fila a fila. */
+    Icon_S_Videos,
 #endif
     Icon_Last_Themeable,
 };
