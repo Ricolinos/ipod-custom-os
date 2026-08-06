@@ -401,7 +401,7 @@ MENUITEM_SETTING(dynamic_colors, &global_settings.dynamic_colors, NULL);
 #endif
 
 MAKE_MENU(theme_menu, ID2P(LANG_THEME_MENU),
-            NULL, Icon_Wps,
+            NULL, Icon_A26_Themes,
             &browse_themes,
             &browse_fonts,
             &browse_wps,

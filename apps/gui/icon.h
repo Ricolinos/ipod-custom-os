@@ -72,6 +72,23 @@ enum themable_icons {
     Icon_ShuffleAll,
     Icon_Genre,
     Icon_MusicApp,
+    /* Settings-tree symbols.  Rockbox reuses a handful of generic icons for
+     * unrelated entries (gear stood for firmware, function calls *and* the
+     * settings menu), which read as noise; these give the entries that share
+     * a glyph one of their own.  Order must match the NEW list in the
+     * iconset generator. */
+    Icon_A26_Themes,
+    Icon_A26_Tools,
+    Icon_A26_Clock,
+    Icon_A26_SoundSet,
+    Icon_A26_Power,
+    Icon_A26_Battery,
+    Icon_A26_Disk,
+    Icon_A26_Database,
+    Icon_A26_FileView,
+    Icon_A26_Playlists,
+    Icon_A26_Display,
+    Icon_A26_Resume,
 #endif
     Icon_Last_Themeable,
 };

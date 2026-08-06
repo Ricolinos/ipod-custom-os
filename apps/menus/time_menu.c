@@ -229,7 +229,7 @@ static int time_menu_callback(int action,
 MENUITEM_SETTING(sync_rds_time, &global_settings.sync_rds_time, NULL);
 #endif
 
-MAKE_MENU(time_menu, ID2P(LANG_TIME_MENU), time_menu_callback, Icon_NOICON,
+MAKE_MENU(time_menu, ID2P(LANG_TIME_MENU), time_menu_callback, Icon_A26_Clock,
           &time_set,
 #ifdef HAVE_RTC_ALARM
           &alarm_screen_call,

@@ -231,7 +231,7 @@ static int timestretch_callback(int action,
 #ifdef AUDIOHW_HAVE_EQ
 #endif /* AUDIOHW_HAVE_EQ */
 
-MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_Audio,
+MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_A26_SoundSet,
           &volume
           ,&volume_limit
 #ifdef AUDIOHW_HAVE_BASS

@@ -444,7 +444,7 @@ MENUITEM_SETTING(governor, &global_settings.governor, NULL);
 #endif
 
 MAKE_MENU(system_menu, ID2P(LANG_SYSTEM),
-          0, Icon_System_menu,
+          0, Icon_A26_Tools,
 #if (BATTERY_CAPACITY_INC > 0) || defined(HAVE_USB_CHARGING_ENABLE)
             &battery_menu,
 #endif
@@ -799,7 +799,7 @@ MENUITEM_FUNCTION_W_PARAM(browse_langs, 0, ID2P(LANG_LANGUAGE),
                           browse_folder, (void*)&langs, NULL, Icon_Language);
 
 MAKE_MENU(settings_menu_item, ID2P(LANG_GENERAL_SETTINGS), 0,
-          Icon_General_settings_menu,
+          Icon_A26_Tools,
           &wps_settings,
           &playlist_settings, &file_menu,
 #ifdef HAVE_TAGCACHE
