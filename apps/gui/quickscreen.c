@@ -456,7 +456,22 @@ static bool gui_quickscreen_do_button(struct gui_quickscreen * qs, int button)
     if (qs->items[item] == NULL)
         return false;
 
+#if ROCKPOD_APPLE2026_IPOD
+    {
+        /* Brightness runs 1..63, and the iPod keymap has no way to hold a
+         * button to accelerate here (a held MENU leaves the screen, a held
+         * PLAY confirms), so a single step per press meant about sixty
+         * presses to cross the range.  Numeric settings move four steps at
+         * a time; the boolean and choice slots (shuffle, repeat) still move
+         * one, since for them every step is a distinct option. */
+        int steps = ((qs->items[item]->flags & F_T_MASK) == F_T_INT) ? 4 : 1;
+
+        while (steps-- > 0)
+            option_select_next_val(qs->items[item], previous, true);
+    }
+#else
     option_select_next_val(qs->items[item], previous, true);
+#endif
     talk_qs_option(qs->items[item], false);
     return true;
 }
