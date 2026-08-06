@@ -2885,12 +2885,36 @@ int tagtree_get_attr(struct tree_context* c)
     return attr;
 }
 
-int tagtree_get_icon(struct tree_context* c)
+int tagtree_get_icon(struct tree_context* c, int selected_item)
 {
     int icon = Icon_Folder;
 
     if (tagtree_get_attr(c) == FILE_ATTR_AUDIO)
         icon = Icon_Audio;
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+    /* Apple2026: the database root is reached by backing out of a list, and
+     * a column of identical folders there looks nothing like the rest of the
+     * shell.  Its entries are fixed by tagnavi.config, so they can carry the
+     * same symbols the Music submenu uses for the very same destinations. */
+    else if (c->dirlevel == 0)
+    {
+        static const int root_icons[] = {
+            Icon_Audio,        /* Canciones              */
+            Icon_Artist,       /* Artistas               */
+            Icon_Album,        /* Álbumes                */
+            Icon_Genre,        /* Géneros                */
+            Icon_Preset,       /* Buscar (lupa)          */
+            Icon_Queued,       /* Agregado recientemente */
+            Icon_A26_Clock,    /* Historial              */
+        };
+
+        if (selected_item >= 0 &&
+            selected_item < (int)ARRAYLEN(root_icons))
+            icon = root_icons[selected_item];
+    }
+#else
+    (void)selected_item;
+#endif
 
     return icon;
 }

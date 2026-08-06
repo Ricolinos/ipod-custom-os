@@ -115,6 +115,10 @@ enum themable_icons {
     Icon_A26_PlaylistView,
     Icon_A26_Touch,
     Icon_A26_Plugins,
+    Icon_A26_ToneAdv,
+    Icon_A26_FileSplit,
+    Icon_A26_ScrollRem,
+    Icon_A26_SelColor,
 #endif
     Icon_Last_Themeable,
 };

@@ -158,7 +158,7 @@ MENUITEM_FUNCTION(reset_colors, 0, ID2P(LANG_RESET_COLORS),
                   reset_color, NULL, Icon_NOICON);
 
 MAKE_MENU(lss_settings, ID2P(LANG_SELECTOR_COLOR_MENU),
-            NULL, Icon_NOICON,
+            NULL, Icon_A26_SelColor,
             &set_lss_col, &set_lse_col, &set_lst_col
          );
 

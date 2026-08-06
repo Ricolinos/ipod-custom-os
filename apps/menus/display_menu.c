@@ -318,7 +318,7 @@ MENUITEM_SETTING_W_TEXT(remote_scroll_step, &global_settings.remote_scroll_step,
                         ID2P(LANG_SCROLL_STEP_EXAMPLE), NULL);
 MENUITEM_SETTING(remote_bidir_limit, &global_settings.remote_bidir_limit, NULL);
 
-MAKE_MENU(remote_scroll_sets, ID2P(LANG_REMOTE_SCROLL_SETS), 0, Icon_NOICON,
+MAKE_MENU(remote_scroll_sets, ID2P(LANG_REMOTE_SCROLL_SETS), 0, Icon_A26_ScrollRem,
           &remote_scroll_speed, &remote_scroll_delay,
           &remote_scroll_step, &remote_bidir_limit);
 #endif /* HAVE_REMOTE_LCD */

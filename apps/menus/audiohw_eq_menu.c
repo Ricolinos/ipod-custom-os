@@ -185,7 +185,7 @@ MENUITEM_FUNCTION_DYNTEXT_W_PARAM(hw_eq_band5_frequency, 0,
 
 /* Submenu for multiple "tone controls". Gain + all advanced settings. */
 MAKE_MENU(hardware_eq_tone_controls_advanced, ID2P(LANG_HW_EQ_TONE_CONTROLS_ADVANCED),
-          NULL, Icon_NOICON
+          NULL, Icon_A26_ToneAdv
           ,&hw_eq_band1_gain
 #ifdef AUDIOHW_HAVE_EQ_BAND1_FREQUENCY
           ,&hw_eq_band1_frequency

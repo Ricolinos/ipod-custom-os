@@ -249,7 +249,7 @@ static enum themable_icons tree_get_fileicon(int selected_item, void * data)
 #ifdef HAVE_TAGCACHE
     bool id3db = *(local_tc->dirfilter) == SHOW_ID3DB;
     if (id3db) {
-        return tagtree_get_icon(&tc);
+        return tagtree_get_icon(&tc, selected_item);
     }
     else
 #endif
