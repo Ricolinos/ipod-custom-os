@@ -18,10 +18,14 @@
   </a>
 </p>
 
-> **Attribution:** This project is a UI/UX research fork of
-> [Rockpod](https://github.com/nuxcodes/rockpod) by nuxcodes, which is itself
-> a fork of [Rockbox](https://www.rockbox.org). All upstream copyright notices
-> are preserved. See [NOTICE](NOTICE) for full licensing details.
+> **Attribution:** this repository is a personal fork of
+> [Rockbox-UI-UX-Overhaul](https://github.com/Poorfocus/Rockbox-UI-UX-Overhaul)
+> by **Poorfocus**, which is a UI/UX research fork of
+> [Rockpod](https://github.com/nuxcodes/rockpod) by **nuxcodes**, which is in
+> turn a fork of [Rockbox](https://www.rockbox.org). Everything below the
+> "Personal Apple2026 layer" section is upstream work by those authors; all
+> upstream copyright notices are preserved. See [NOTICE](NOTICE) for full
+> licensing details.
 >
 > **Font notice:** Bitmap fonts derived from Apple SF Pro are included for
 > **educational and research purposes only**. See [NOTICE](NOTICE).
@@ -31,6 +35,12 @@
 Rockpod is a [Rockbox](https://www.rockbox.org) fork for iPod Classic (6th/7th gen, 2007-2014) and iPod Video (5th/5.5th gen, 2005-2006). This branch combines MFi digital audio output, a rewritten Cover Flow, an Apple2026 UI layer, dynamic album art colors support, and SSD-aware power management.
 
 Rockpod supports both HDD and iFlash-modded units. Both iPod models share the same 320x240 Apple2026 foundation, but this branch should still be treated as an experimental beta rather than a drop-in stable replacement. Apple2026 intentionally ships with dynamic colors off by default to preserve the neutral shell, and some UI surfaces such as Quick Settings, WPS return routing, and hold/lock behavior are still under active validation.
+
+**This fork** adds a personal layer on top of Poorfocus's work: a Spanish
+shell, a split root menu modelled on the iPod 5G, and a set of screens
+rewritten in C rather than in the skin engine (lyrics, search, playlist
+picker). It targets a single device, an iPod Classic 6G, and is not intended
+as a general release — see [Personal Apple2026 layer](#personal-apple2026-layer).
 
 Beta Update 2 focuses on the Apple2026 release surface: rebuilt Quick Settings, refreshed WPS and mini-player presentation, Lyrics-first short-`Select` behavior on WPS, cleaner menu/navigation handling, PictureFlow return cleanup, and more reliable Apple2026 theme/package staging.
 
@@ -43,6 +53,85 @@ Beta Update 2 focuses on the Apple2026 release surface: rebuilt Quick Settings, 
 - Changed short WPS `Select` on Apple2026 iPods to use the WPS hotkey path by default, which now seeds Lyrics / LRC instead of Playlist Viewer on a clean profile.
 - Cleaned up Apple2026 navigation with restored chevrons on functional rows, a safer `Extras -> Files` return path, and PictureFlow tracklist return that restores the current song once without pinning the list there permanently.
 - Hardened release staging so Apple2026 builds/install trees consistently carry `Apple2026.cfg`, `.apple2026_version`, and the live Apple2026 WPS/SBS/assets instead of relying on stale extracted payloads.
+
+---
+
+## Personal Apple2026 layer
+
+Everything in this section is specific to this fork and is not part of
+upstream Rockpod or of Poorfocus's overhaul.
+
+### Shell and navigation
+
+- **Split root menu** — the first two levels follow the iPod 5G layout: the
+  list occupies the left half and a preview pane fills the right one. The pane
+  shows a tile per section and, under `Música`, a slideshow of album art walked
+  incrementally from `/Music` with no database dependency.
+- **Cover slideshow** — covers drift along a true 45-degree diagonal, in one of
+  four randomly chosen directions, and dissolve straight into one another
+  instead of fading through the shell white.
+- **Restructured root** — `Música`, `Videos`, `Fotos`, `Podcasts`, `Extras`,
+  `Configuración`, `Aleatorio`, `Reproduciendo`, each with its own bounded
+  browser.
+- **Spanish shell** — `español` with its ñ, Latin-American wording, and the
+  library names the original firmware used (`Canciones`, `Carpetas`).
+- **Rounded screen corners** — stamped into `lcd_update_rect()`, the one path
+  every screen reaches, so plugins and splashes get them too. The arc is
+  coverage-antialiased against whatever is underneath and the blend is
+  idempotent, so repeated stamping never darkens the curve.
+- **Status bar** — section title left, clock centred, battery right, with the
+  same face and weight on full-width, split and Quick Settings screens.
+- **Lists** — no disclosure chevrons, a scrollbar only when the list overflows,
+  marquee only on the selected row, and an A-Z index rail whose current letter
+  is magnified in the accent colour, with a letter badge while flicking.
+
+### Screens rewritten in C
+
+- **Lyrics** (`apps/apple2026_lyrics.c`) — two-panel Apple Music layout: player
+  column on the left, lyrics on a panel tinted with the album's average colour
+  (Apple pink when the track has no art). Reads LRC timestamps, marks
+  instrumental gaps with three dots, wraps by word without splitting UTF-8, and
+  repaints by region so the idle tick costs almost nothing.
+- **Search** (`apps/apple2026_kbd.c`) — the iPod's letter strip in place of the
+  character grid: a pink bar holding the entry field and a single horizontal
+  run of letters the wheel travels, with a blinking caret and the field being
+  searched named in the header.
+- **Playlist picker** (`apps/apple2026_pl_picker.c`) — a floating sheet over the
+  player with rounded corners, a drop shadow and playlist artwork.
+
+### Now Playing
+
+- **Wheel modes** — `Select` cycles volume, scrub, add-to-playlist, lyrics and
+  rating. Modes the current track cannot support are skipped, and when a track
+  change makes the active mode meaningless the screen falls back to volume.
+- **Scrub** — the wheel drags a playhead preview and playback resumes from it
+  once the wheel settles.
+- **Dynamic volume glyph** — five states (`speaker.slash` through
+  `speaker.wave.3`) drawn so the speaker body is pixel-identical across all of
+  them, shared by the player and Quick Settings.
+
+### Quick Settings
+
+Rebuilt again over the upstream surface: vertical volume and brightness
+sliders down the sides, the click wheel and its hardware legends in the
+middle, shuffle and repeat as icons that take the accent colour when active,
+and the A-B repeat mode named underneath since it has no glyph of its own.
+Numeric settings move four steps per press, because the iPod keymap has no way
+to hold a button to accelerate here.
+
+### Fixes found while building the above
+
+- The status bar skipped the static render tree for speed, but `%Vd` — the tag
+  that makes a labelled viewport visible — is itself a static token, so
+  `%Vd`-gated viewports were never drawn and the bar's contents came and went.
+- Leaving the player mid-scrub by any path other than `Menu` stranded playback
+  in the held state `audio_pre_ff_rewind()` puts it in.
+- The playlist catalog was re-scanned every few seconds while Now Playing was
+  open, spinning the disk for nothing.
+- Quick Settings and the shell status bar painted the same 20 px every pass,
+  which is what made the screen flicker while holding a button.
+- The battery strip was being sliced as 16 frames of 27x10 instead of 10 frames
+  of 27x16, so the icon was drawn across two frames.
 
 ---
 
@@ -326,6 +415,7 @@ If you use an upgraded battery or iFlash/SSD mod, check `Settings -> System -> B
 
 Built on the work of the [Rockbox](https://www.rockbox.org/) project and its contributors.
 
+- **Immediate upstream:** [Rockbox-UI-UX-Overhaul](https://github.com/Poorfocus/Rockbox-UI-UX-Overhaul) by [Poorfocus](https://github.com/Poorfocus) — the Apple2026 shell, WPS and Quick Settings this fork builds on
 - **Upstream fork:** [Rockpod](https://github.com/nuxcodes/rockpod) by nuxcodes — MFi digital audio, Cover Flow, SSD power management
 - **Themes:** adwaitapod_dark_simplified and Themify 2 by [Dook](https://github.com/D0-0K) (CC-BY-SA)
 - **MFi reference:** [ipod-gadget](https://github.com/oandrew/ipod-gadget) descriptor layout, [rockbox-mojyack](https://github.com/mojyack/rockbox) iPod 5G iAP implementation, Apple MFi Accessory Firmware Specification
