@@ -51,6 +51,7 @@
 %xl(W,qs_bar_track.bmp,0,0)
 %xl(X,qs_sun_max.bmp,0,0)
 %xl(R,qs_sun_min.bmp,0,0)
+%xl(K,speaker_loud.bmp,0,0)
 %xl(J,statusPlay.bmp,0,0,2)
 
 # â”€â”€ Shell routing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -77,10 +78,10 @@
 #
 # Header background: split screens (root %Lo / Music submenu %LM) get a
 # 160px-wide 20px bar on the left only; full screens get the full-width bar.
-%?Lo<%Vd(hdr_split)|%?LM<%Vd(hdr_split)|%Vd(hdr_full)>>
+%?if(%cs, =, 10)<|%?Lo<%Vd(hdr_split)|%?LM<%Vd(hdr_split)|%Vd(hdr_full)>>>
 #
 # Header indicators â€” split screens use the left-bar battery variants
-%?Lo<%Vd(battery_icon_root)|%?LM<%Vd(battery_icon_root)|%Vd(battery_icon)>>
+%?if(%cs, =, 10)<|%?Lo<%Vd(battery_icon_root)|%?LM<%Vd(battery_icon_root)|%Vd(battery_icon)>>>
 %?if(%St(battery display), =, numeric)<%?Lo<|%?LM<|%Vd(batterytext)>>>
 %?mh<%?Lo<%Vd(lock_split)|%?LM<%Vd(lock_split)|%Vd(lock)>>|>
 %?mp<|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>>
@@ -88,8 +89,8 @@
 #
 # Header title â€” full screens center it; split screens use the small
 # left-bar titles (large_title at root, lm_title in the Music submenu)
-%?Lo<%Vd(hdr_title_split)|%?LM<%Vd(hdr_title_split)|%Vd(hdr_title)>>
-%?Lo<%Vd(hdr_clock_split)|%?LM<%Vd(hdr_clock_split)|%?bs<%Vd(sleeptimertext)|%Vd(hdr_clock)>>>
+%?if(%cs, =, 10)<|%?Lo<%Vd(hdr_title_split)|%?LM<%Vd(hdr_title_split)|%Vd(hdr_title)>>>
+%?if(%cs, =, 10)<|%?Lo<%Vd(hdr_clock_split)|%?LM<%Vd(hdr_clock_split)|%?bs<%Vd(sleeptimertext)|%Vd(hdr_clock)>>>>
 %?if(%cs, =, 10)<|%?mv(1.2)<%?mp<|%Vd(mp_volume_bg)%Vd(mp_volume_clip)||%Vd(mp_volume_bg)%Vd(mp_volume_clip)|%Vd(mp_volume_bg)%Vd(mp_volume_clip)>>|>
 #
 # USB backdrop
@@ -114,7 +115,7 @@
 # classed as static, drawn only on a full refresh and never restored after
 # anything else repaints the bar - that is why "iPod" used to disappear.
 # Font slot 3 RB12 height = 20px; VP height must be >= 20 to avoid clipping.
-%Vl(hdr_title,6,0,98,20,3)
+%Vl(hdr_title,10,0,94,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%?Lo<iPod|%?cs<%Lt|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>>
@@ -122,7 +123,7 @@
 # -- Header title on split screens (left 160 column only) -----------------
 # Root: "iPod"; Music submenu: the live list title.  Font slot 8 (14pt) so a
 # longer section name still fits beside the clock.
-%Vl(hdr_title_split,6,0,46,20,8)
+%Vl(hdr_title_split,10,0,44,20,8)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%?Lo<iPod|%Lt>
@@ -233,7 +234,7 @@
 %ac%bs
 
 # â”€â”€ Battery icon (upper-right â€” moved up 2px from prior position) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon,-32,2,-,16,3)
+%Vl(battery_icon,-38,2,-,16,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
@@ -321,23 +322,23 @@
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%dr(0,0,320,240,FFFFFF,FFFFFF)|>
 
-# Top strip: title
-%V(80,8,160,18,8)
+# Top strip - laid out exactly like the shell status bar so the chrome does
+# not change shape when the quickscreen opens: title left, clock centred,
+# battery right.  No divider: no other screen has one.
+%V(10,0,94,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%ac%Sx(Quick Settings)|>
+%?if(%cs, =, 10)<%s%al%Sx(Quick Settings)|>
 
-# Top strip: battery
-%V(248,8,56,18,8)
+%V(120,0,80,20,8)
+%Vf(000000)
+%Vb(FFFFFF)
+%?if(%cs, =, 10)<%ac%?cf<%cH:%cM|%cl:%cM %cP>|>
+
+%V(250,0,56,20,8)
 %Vf(6E6E73)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%ar%bl%%|>
-
-# Top divider
-%V(16,29,288,1,-)
-%Vf(E5E5EA)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%dr(0,0,288,1,E5E5EA,E5E5EA)|>
 
 # Main quickscreen focus: top brightness state
 %V(153,38,14,14,-)
@@ -362,22 +363,22 @@
 %?if(%cs, =, 10)<%xd(Q)|>
 
 # Wheel side states
-%V(20,112,72,16,8)
+%V(8,112,92,16,8)
 %Vf(6E6E73)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%ar%Sx(Shuffle)|>
 
-%V(20,130,72,20,3)
+%V(8,130,92,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%ar%Ql|>
 
-%V(228,112,72,16,8)
+%V(220,112,92,16,8)
 %Vf(6E6E73)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%al%Sx(Repeat)|>
 
-%V(228,130,72,20,3)
+%V(220,130,92,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%al%Qr|>
@@ -389,10 +390,10 @@
 %?if(%cs, =, 10)<%xd(R)|>
 
 # Brightness row
-%V(46,206,30,16,8)
+%V(50,206,16,16,-)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%alBRT|>
+%?if(%cs, =, 10)<%xd(R)|>
 
 %V(84,211,176,6,-)
 %Vf(3C3C43)
@@ -400,10 +401,10 @@
 %?if(%cs, =, 10)<%St(0,0,176,6,image,V,backdrop,W,setting,brightness)|>
 
 # Volume row
-%V(46,224,30,16,8)
+%V(50,224,16,16,-)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%alVOL|>
+%?if(%cs, =, 10)<%xd(K)|>
 
 %V(84,229,176,6,-)
 %Vf(3C3C43)
