@@ -78,6 +78,12 @@
 #define LY_LOSS_H    11
 #define LY_LOSS_Y    222
 #define A26_LYRICS_MODE_ICON 3      /* lyrics slot in the mode row */
+
+/* Lyrics panel header: title + artist ride above the lyrics, which fade
+ * out as they scroll under it. */
+#define LY_HEAD_H    52
+#define LY_FADE      22
+#define LY_PANEL_PAD 14
 #define LY_MAX_LINES 260
 #define LY_TEXT_MAX  8192
 #define LY_GAP_MS    5000           /* silence long enough for the dots */
@@ -104,7 +110,8 @@ static fb_data ly_art_px[LY_ART * LY_ART];
 static int   ly_art_w, ly_art_h;
 static bool  ly_art_ok;
 static fb_data ly_bg;
-static int   ly_font_cur = -1, ly_font_sub = -1, ly_font_title = -1;
+static int   ly_font_cur = -1, ly_font_sub = -1;
+static int   ly_font_head = -1, ly_font_headsub = -1;
 static unsigned char ly_work[LY_ART * LY_ART * sizeof(fb_data) + 44 * 1024];
 
 struct ly_row {
@@ -202,6 +209,16 @@ static bool ly_load(const char *path)
 }
 
 /* ---- artwork / tone --------------------------------------------------- */
+/* Blend `c` toward `to` by a/256. */
+static fb_data ly_mix(fb_data c, fb_data to, unsigned a)
+{
+    unsigned r = (((c >> 11) & 0x1F) * (256 - a) + ((to >> 11) & 0x1F) * a);
+    unsigned g = (((c >> 5) & 0x3F) * (256 - a) + ((to >> 5) & 0x3F) * a);
+    unsigned b = ((c & 0x1F) * (256 - a) + (to & 0x1F) * a);
+
+    return (fb_data)(((r >> 8) << 11) | ((g >> 8) << 5) | (b >> 8));
+}
+
 static void ly_load_art(const struct mp3entry *id3)
 {
     char path[MAX_PATH];
@@ -258,19 +275,39 @@ static void ly_load_art(const struct mp3entry *id3)
         ly_bg = (fb_data)((r << 11) | (g << 5) | b);
     }
 
-    /* round the corners against the white player column */
+    /* Round the corners against the white player column.  The mask is
+     * coverage-based (4x4 supersampling of the corner arc) — a plain
+     * inside/outside test left visible stair steps on the curve. */
     for (y = 0; y < ly_art_h; y++)
+    {
+        bool top = y < LY_ART_RAD, bot = y >= ly_art_h - LY_ART_RAD;
+
+        if (!top && !bot)
+            continue;
         for (x = 0; x < ly_art_w; x++)
         {
-            int dx = (x < LY_ART_RAD) ? LY_ART_RAD - x
-                   : (x >= ly_art_w - LY_ART_RAD)
-                        ? x - (ly_art_w - 1 - LY_ART_RAD) : 0;
-            int dy = (y < LY_ART_RAD) ? LY_ART_RAD - y
-                   : (y >= ly_art_h - LY_ART_RAD)
-                        ? y - (ly_art_h - 1 - LY_ART_RAD) : 0;
-            if (dx * dx + dy * dy > LY_ART_RAD * LY_ART_RAD)
-                ly_art_px[y * ly_art_w + x] = A26_SHELL_BG;
+            bool left = x < LY_ART_RAD, right = x >= ly_art_w - LY_ART_RAD;
+            int cx8, cy8, r8 = LY_ART_RAD * 8, cov = 0, sx, sy;
+
+            if (!left && !right)
+                continue;
+            cx8 = (left ? LY_ART_RAD : ly_art_w - LY_ART_RAD) * 8;
+            cy8 = (top ? LY_ART_RAD : ly_art_h - LY_ART_RAD) * 8;
+            for (sy = 0; sy < 4; sy++)
+                for (sx = 0; sx < 4; sx++)
+                {
+                    int dx = (x * 8 + sx * 2 + 1) - cx8;
+                    int dy = (y * 8 + sy * 2 + 1) - cy8;
+
+                    if (dx * dx + dy * dy <= r8 * r8)
+                        cov++;
+                }
+            if (cov < 16)
+                ly_art_px[y * ly_art_w + x] =
+                    ly_mix(A26_SHELL_BG, ly_art_px[y * ly_art_w + x],
+                           cov * 16);
         }
+    }
 }
 
 static void ly_fonts(void)
@@ -279,8 +316,10 @@ static void ly_fonts(void)
         ly_font_cur = font_load(FONT_DIR "/16-SFProText-Semibold.fnt");
     if (ly_font_sub < 0)
         ly_font_sub = font_load(FONT_DIR "/14-SFProText-Regular.fnt");
-    if (ly_font_title < 0)
-        ly_font_title = font_load(FONT_DIR "/15-SFProText-Semibold.fnt");
+    if (ly_font_head < 0)
+        ly_font_head = font_load(FONT_DIR "/19-SFProText-Semibold.fnt");
+    if (ly_font_headsub < 0)
+        ly_font_headsub = font_load(FONT_DIR "/16-SFProText-Regular.fnt");
 }
 
 static int ly_f(int f)
@@ -382,16 +421,6 @@ static void ly_art_shadow(struct screen *display)
         ly_round_rect(display, LY_ART_X - i, LY_ART_Y - i + 2,
                       LY_ART + 2 * i, LY_ART + 2 * i, LY_ART_RAD + i,
                       shade[LY_SHADOW - i]);
-}
-
-/* Blend `c` toward `to` by a/256. */
-static fb_data ly_mix(fb_data c, fb_data to, unsigned a)
-{
-    unsigned r = (((c >> 11) & 0x1F) * (256 - a) + ((to >> 11) & 0x1F) * a);
-    unsigned g = (((c >> 5) & 0x3F) * (256 - a) + ((to >> 5) & 0x3F) * a);
-    unsigned b = ((c & 0x1F) * (256 - a) + (to & 0x1F) * a);
-
-    return (fb_data)(((r >> 8) << 11) | ((g >> 8) << 5) | (b >> 8));
 }
 
 /* The white column sits above the lyrics panel: darken the first few
@@ -543,27 +572,67 @@ static void ly_dots(struct screen *display, int x, int y)
                     display->drawpixel(x + i * step + dx, y + dy);
 }
 
-static void ly_draw(struct screen *display, const struct mp3entry *id3,
-                    int cur, int scroll, bool gap)
+/* Centred header text, truncated with an ellipsis when it overflows. */
+static void ly_head_text(struct screen *display, int vw, int font, int y,
+                         const char *text, unsigned colour)
 {
-    struct viewport vp;
-    int i, y, cy;
+    char buf[192];
+    int w = 0, len;
 
-    viewport_set_defaults(&vp, display->screen_type);
-    vp.x = 0; vp.y = 0;
-    vp.width = display->lcdwidth;
-    vp.height = display->lcdheight;
-    vp.drawmode = DRMODE_SOLID;
+    if (!text || !*text)
+        return;
+    display->setfont(font);
+    strmemccpy(buf, text, sizeof(buf));
+    display->getstringsize((unsigned char *)buf, &w, NULL);
+    len = strlen(buf);
+    while (w > vw && len > 1)
+    {
+        do {
+            len--;
+        } while (len > 1 && (buf[len] & 0xC0) == 0x80);
+        strmemccpy(buf + len, "...", sizeof(buf) - len);
+        display->getstringsize((unsigned char *)buf, &w, NULL);
+    }
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, colour));
+    display->putsxy(w < vw ? (vw - w) / 2 : 0, y, (unsigned char *)buf);
+}
 
-    /* ---- left: player column on the shell tone ---- */
-    vp.fg_pattern = A26_TEXT_PRIMARY;
-    vp.bg_pattern = A26_SHELL_BG;
-    display->set_viewport(&vp);
+/* ---- painting ---------------------------------------------------------
+ * Repainted in independent regions: the column chrome is static, the
+ * progress row only moves once per elapsed pixel and the lyrics panel only
+ * when the current line changes.  On device that turns the 4 Hz tick from
+ * a full-screen repaint into a handful of small blits.
+ */
+enum {
+    LY_RGN_COLUMN = 1,
+    LY_RGN_BAR    = 2,
+    LY_RGN_PP     = 4,
+    LY_RGN_PANEL  = 8,
+};
+#define LY_RGN_ALL (LY_RGN_COLUMN | LY_RGN_BAR | LY_RGN_PP | LY_RGN_PANEL)
+
+static void ly_vp_full(struct screen *display, struct viewport *vp)
+{
+    viewport_set_defaults(vp, display->screen_type);
+    vp->x = 0;
+    vp->y = 0;
+    vp->width = display->lcdwidth;
+    vp->height = display->lcdheight;
+    vp->drawmode = DRMODE_SOLID;
+    vp->fg_pattern = A26_TEXT_PRIMARY;
+    vp->bg_pattern = A26_SHELL_BG;
+    display->set_viewport(vp);
+}
+
+/* Static half of the player column: art with its drop shadow, the wheel
+ * mode row and the lossless badge. */
+static void ly_paint_column(struct screen *display, const struct mp3entry *id3,
+                            int height)
+{
+    int i;
+
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_BG));
-    display->fillrect(0, 0, LY_LEFT_W, vp.height);
-
-    ly_fonts();
-    ly_load_chrome();
+    display->fillrect(0, 0, LY_LEFT_W, height);
 
     ly_art_shadow(display);
     if (ly_art_ok)
@@ -591,44 +660,6 @@ static void ly_draw(struct screen *display, const struct mp3entry *id3,
         }
     }
 
-    /* progress bar with the playhead dot */
-    if (id3 && id3->length > 0)
-    {
-        int fill = (int)((long long)LY_BAR_W * id3->elapsed / id3->length);
-        int hx;
-
-        if (fill < 0)
-            fill = 0;
-        if (fill > LY_BAR_W)
-            fill = LY_BAR_W;
-        hx = LY_BAR_X + fill;
-
-        display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                                        A26_PROGRESS_TRACK));
-        display->fillrect(LY_BAR_X, LY_BAR_Y, LY_BAR_W, 3);
-        display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                                        A26_PROGRESS_FILL));
-        display->fillrect(LY_BAR_X, LY_BAR_Y, fill, 3);
-        {
-            int dx, dy;
-            for (dy = -3; dy <= 3; dy++)
-                for (dx = -3; dx <= 3; dx++)
-                    if (dx * dx + dy * dy <= 9)
-                        display->drawpixel(hx + dx, LY_BAR_Y + 1 + dy);
-        }
-    }
-
-    /* play / pause glyph, exactly the frames the skin uses for %mp */
-    if (ly_pp_ok)
-    {
-        unsigned st = audio_status();
-        int frame = (st & AUDIO_STATUS_PAUSE) ? 1 : 2;
-
-        if (st & AUDIO_STATUS_PLAY)
-            ly_frame(display, ly_pp_px, LY_PP, LY_PP, 5, frame,
-                     (LY_LEFT_W - LY_PP) / 2, LY_PP_Y);
-    }
-
     /* Lossless badge — same codec set as the player screen */
     if (ly_loss_ok && id3
         && (id3->codectype == AFMT_AIFF || id3->codectype == AFMT_PCM_WAV
@@ -641,55 +672,149 @@ static void ly_draw(struct screen *display, const struct mp3entry *id3,
                              (LY_LEFT_W - LY_LOSS_W) / 2, LY_LOSS_Y,
                              LY_LOSS_W, LY_LOSS_H);
     }
+}
 
-    /* ---- right: lyrics on the album tone ---- */
+static void ly_paint_bar(struct screen *display, int fill)
+{
+    int hx = LY_BAR_X + fill, dx, dy;
+
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_BG));
+    display->fillrect(LY_BAR_X - 4, LY_BAR_Y - 4, LY_BAR_W + 9, 12);
+    if (fill < 0)
+        return;
+
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                    A26_PROGRESS_TRACK));
+    display->fillrect(LY_BAR_X, LY_BAR_Y, LY_BAR_W, 3);
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                    A26_PROGRESS_FILL));
+    display->fillrect(LY_BAR_X, LY_BAR_Y, fill, 3);
+    for (dy = -3; dy <= 3; dy++)
+        for (dx = -3; dx <= 3; dx++)
+            if (dx * dx + dy * dy <= 9)
+                display->drawpixel(hx + dx, LY_BAR_Y + 1 + dy);
+}
+
+/* Play / pause glyph — the very frames the skin picks for %mp. */
+static void ly_paint_pp(struct screen *display, unsigned status)
+{
+    int x = (LY_LEFT_W - LY_PP) / 2;
+
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_BG));
+    display->fillrect(x, LY_PP_Y, LY_PP, LY_PP);
+    if (ly_pp_ok && (status & AUDIO_STATUS_PLAY))
+        ly_frame(display, ly_pp_px, LY_PP, LY_PP, 5,
+                 (status & AUDIO_STATUS_PAUSE) ? 1 : 2, x, LY_PP_Y);
+}
+
+static void ly_paint_panel(struct screen *display, struct viewport *vp,
+                           const struct mp3entry *id3, int cur, int scroll,
+                           bool gap)
+{
+    struct viewport lyr = *vp;
+    int i, y, cy, pw = vp->width - LY_LEFT_W;
+
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, ly_bg));
-    display->fillrect(LY_LEFT_W, 0, vp.width - LY_LEFT_W, vp.height);
-    ly_divider_shadow(display, vp.height);
+    display->fillrect(LY_LEFT_W, 0, pw, vp->height);
 
+    lyr.x = LY_LEFT_W + LY_PANEL_PAD;
+    lyr.width = pw - LY_PANEL_PAD - 8;
+    lyr.bg_pattern = ly_bg;
+    lyr.fg_pattern = LCD_WHITE;
+    display->set_viewport(&lyr);
+
+    /* the lyrics sit in what is left below the header */
+    cy = LY_HEAD_H + (lyr.height - LY_HEAD_H) / 2 - LY_ROW_H / 2;
+
+    if (gap)
     {
-        struct viewport lyr = vp;
-        lyr.x = LY_LEFT_W + 14;
-        lyr.width = vp.width - LY_LEFT_W - 22;
-        lyr.bg_pattern = ly_bg;
-        lyr.fg_pattern = LCD_WHITE;
-        display->set_viewport(&lyr);
+        /* instrumental passage: Music's three dots */
+        ly_dots(display, 8, cy + LY_ROW_H / 2);
+    }
+    else
+    {
+        int base;
 
-        cy = lyr.height / 2 - LY_ROW_H / 2;
-
-        if (gap)
+        ly_layout(display, lyr.width, cur, scroll);
+        base = cy - ly_row_anchor;
+        for (i = 0; i < ly_row_count; i++)
         {
-            /* instrumental passage: Music's three dots */
-            ly_dots(display, 8, lyr.height / 2);
-        }
-        else
-        {
-            int base;
+            struct ly_row *r = &ly_rows[i];
+            unsigned colour = r->active ? LCD_WHITE
+                                        : LCD_RGBPACK(0xB8, 0xB8, 0xBE);
 
-            ly_layout(display, lyr.width, cur, scroll);
-            base = cy - ly_row_anchor;
-            for (i = 0; i < ly_row_count; i++)
+            y = base + r->y;
+            if (y + LY_ROW_H < LY_HEAD_H || y > lyr.height)
+                continue;
+            /* dissolve into the panel as lines slide under the header */
+            if (y < LY_HEAD_H + LY_FADE)
             {
-                struct ly_row *r = &ly_rows[i];
+                unsigned a = (LY_HEAD_H + LY_FADE - y) * 256 / LY_FADE;
 
-                y = base + r->y;
-                if (y < -LY_ROW_H || y > lyr.height)
-                    continue;
-                display->setfont(r->active ? ly_f(ly_font_cur)
-                                           : ly_f(ly_font_sub));
-                display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                                            r->active
-                                                ? LCD_WHITE
-                                                : LCD_RGBPACK(0xB8, 0xB8,
-                                                              0xBE)));
-                display->putsxy(0, y, (unsigned char *)r->text);
+                colour = ly_mix((fb_data)colour, ly_bg, MIN(a, 256u));
             }
+            display->setfont(r->active ? ly_f(ly_font_cur)
+                                       : ly_f(ly_font_sub));
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, colour));
+            display->putsxy(0, y, (unsigned char *)r->text);
         }
-        display->setfont(FONT_UI);
-        display->set_viewport(&vp);
     }
 
-    display->update();
+    /* header band last, so any line that scrolled into it is clipped */
+    display->set_viewport(vp);
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, ly_bg));
+    display->fillrect(LY_LEFT_W, 0, pw, LY_HEAD_H);
+    ly_divider_shadow(display, vp->height);
+
+    display->set_viewport(&lyr);
+    ly_head_text(display, lyr.width, ly_f(ly_font_head), 6,
+                 id3 ? id3->title : NULL, LCD_WHITE);
+    ly_head_text(display, lyr.width, ly_f(ly_font_headsub), 29,
+                 id3 ? id3->artist : NULL, LCD_RGBPACK(0xDA, 0xDA, 0xDE));
+    display->setfont(FONT_UI);
+    display->set_viewport(vp);
+}
+
+static void ly_draw(struct screen *display, const struct mp3entry *id3,
+                    int cur, int scroll, bool gap, int fill, unsigned status,
+                    unsigned regions)
+{
+    struct viewport vp;
+
+    if (!regions)
+        return;
+    if (regions & LY_RGN_COLUMN)            /* the fill wipes both of these */
+        regions |= LY_RGN_BAR | LY_RGN_PP;
+
+    ly_fonts();
+    ly_load_chrome();
+    ly_vp_full(display, &vp);
+
+    if (regions & LY_RGN_COLUMN)
+        ly_paint_column(display, id3, vp.height);
+    if (regions & LY_RGN_BAR)
+        ly_paint_bar(display, fill);
+    if (regions & LY_RGN_PP)
+        ly_paint_pp(display, status);
+    if (regions & LY_RGN_PANEL)
+        ly_paint_panel(display, &vp, id3, cur, scroll, gap);
+
+    if (regions == LY_RGN_ALL)
+        display->update();
+    else if (regions & LY_RGN_COLUMN)
+        display->update_rect(0, 0, LY_LEFT_W, vp.height);
+    else
+    {
+        if (regions & LY_RGN_BAR)
+            display->update_rect(LY_BAR_X - 4, LY_BAR_Y - 4,
+                                 LY_BAR_W + 9, 12);
+        if (regions & LY_RGN_PP)
+            display->update_rect((LY_LEFT_W - LY_PP) / 2, LY_PP_Y,
+                                 LY_PP, LY_PP);
+        if (regions & LY_RGN_PANEL)
+            display->update_rect(LY_LEFT_W, 0, vp.width - LY_LEFT_W,
+                                 vp.height);
+    }
     display->set_viewport(NULL);
 }
 
@@ -699,6 +824,11 @@ int apple2026_lyrics_screen(struct mp3entry *id3)
     char path[MAX_PATH];
     char loaded[MAX_PATH];
     int scroll = 0;
+    /* last painted state, so the tick only repaints what actually moved */
+    int last_key = -1, last_fill = -2;
+    unsigned last_status = ~0u;
+    bool last_gap = false;
+    unsigned regions = LY_RGN_ALL;
 
     if (!id3 || !a26_lyrics_find(id3, path, sizeof(path)) || !ly_load(path))
         return A26_LYRICS_BACK;
@@ -709,12 +839,13 @@ int apple2026_lyrics_screen(struct mp3entry *id3)
     while (1)
     {
         struct mp3entry *now = audio_current_track();
+        unsigned status;
         long elapsed;
-        int cur, action;
+        int cur, action, key, fill = -1;
         bool gap;
 
-        /* follow the playlist: reload when the track changes, leave when
-         * the new track has no lyrics to show */
+        /* Follow the playlist.  A track without lyrics can't keep this
+         * screen up: hand back so the player falls to the default mode. */
         if (now && strcmp(now->path, loaded) != 0)
         {
             if (!a26_lyrics_find(now, path, sizeof(path)) || !ly_load(path))
@@ -722,15 +853,36 @@ int apple2026_lyrics_screen(struct mp3entry *id3)
             strmemccpy(loaded, now->path, sizeof(loaded));
             ly_load_art(now);
             scroll = 0;
+            regions = LY_RGN_ALL;
         }
         if (now)
             id3 = now;
 
+        status = audio_status() & (AUDIO_STATUS_PLAY | AUDIO_STATUS_PAUSE);
         elapsed = id3 ? (long)id3->elapsed : 0;
         cur = ly_current(elapsed);
         gap = ly_in_gap(cur, elapsed);
+        key = ly_timed ? cur : scroll;
+        if (id3 && id3->length > 0)
+        {
+            fill = (int)((long long)LY_BAR_W * elapsed / id3->length);
+            fill = MAX(0, MIN(fill, LY_BAR_W));
+        }
 
-        ly_draw(display, id3, cur, scroll, gap);
+        if (fill != last_fill)
+            regions |= LY_RGN_BAR;
+        if (status != last_status)
+            regions |= LY_RGN_PP;
+        if (key != last_key || gap != last_gap)
+            regions |= LY_RGN_PANEL;
+
+        ly_draw(display, id3, cur, scroll, gap, fill, status, regions);
+        last_key = key;
+        last_fill = fill;
+        last_status = status;
+        last_gap = gap;
+        regions = 0;
+
         /* This screen *is* the player while it is up, so it reads the WPS
          * keymap: the wheel, PLAY, SELECT and MENU all keep their meaning. */
         action = get_action(CONTEXT_WPS, HZ / 4);
@@ -772,6 +924,8 @@ int apple2026_lyrics_screen(struct mp3entry *id3)
             default:
                 if (default_event_handler(action) == SYS_USB_CONNECTED)
                     return A26_LYRICS_BACK;
+                /* a splash or USB screen may have scribbled over us */
+                regions = LY_RGN_ALL;
                 break;
         }
     }

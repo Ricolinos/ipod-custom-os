@@ -528,8 +528,18 @@ static void wps_lcd_activation_hook(unsigned short id, void *param)
 }
 #endif
 
+#if ROCKPOD_APPLE2026_IPOD
+/* Defined with the scrub machinery below.  Any path out of the player has
+ * to settle an in-flight scrub: audio_pre_ff_rewind() holds playback, and
+ * leaving without the matching audio_ff_rewind() strands it there. */
+static void a26_scrub_settle(void);
+#endif
+
 static void gwps_leave_wps(bool theme_enabled)
 {
+#if ROCKPOD_APPLE2026_IPOD
+    a26_scrub_settle();
+#endif
     FOR_NB_SCREENS(i)
     {
         struct gui_wps *gwps = skin_get_gwps(WPS, i);
@@ -760,24 +770,31 @@ bool a26_lyrics_available(const struct mp3entry *id3)
     return cached;
 }
 
-/* Is there anywhere to add the track to?  Cached for a few seconds so the
- * skin can ask on every refresh. */
+/* Is there anywhere to add the track to?  The skin asks on every refresh,
+ * so the answer is cached until something can plausibly have changed —
+ * re-scanning on a timer meant spinning the disk every few seconds for the
+ * whole time Now Playing was open. */
+static int a26_pl_cache = -1;       /* -1 unknown, 0 none, 1 some */
+
+void a26_playlists_invalidate(void)
+{
+    a26_pl_cache = -1;
+}
+
 bool a26_playlists_available(void)
 {
-    static long checked_tick = 0;
-    static bool cached = false;
+    bool cached;
     char dir[MAX_PATH];
     DIR *d;
     struct dirent *entry;
 
-    if (checked_tick && TIME_BEFORE(current_tick, checked_tick + HZ * 5))
-        return cached;
-    checked_tick = current_tick;
+    if (a26_pl_cache >= 0)
+        return a26_pl_cache > 0;
     cached = false;
     catalog_get_directory(dir, sizeof(dir));
     d = opendir(dir);
     if (!d)
-        return cached;
+        return false;           /* no catalog yet: ask again next time */
     while ((entry = readdir(d)))
     {
         size_t l = strlen(entry->d_name);
@@ -789,6 +806,7 @@ bool a26_playlists_available(void)
         }
     }
     closedir(d);
+    a26_pl_cache = cached ? 1 : 0;
     return cached;
 }
 
@@ -858,6 +876,20 @@ bool a26_wps_is_scrubbing(void)
     return a26_scrubbing;
 }
 
+/* Commit a pending scrub right now (leaving the screen, or any other
+ * moment where the preview can no longer be trusted to settle). */
+static void a26_scrub_settle(void)
+{
+    struct mp3entry *id3 = audio_current_track();
+
+    if (!a26_scrubbing)
+        return;
+    a26_scrubbing = false;
+    status_set_ffmode(0);
+    if (id3)
+        audio_ff_rewind(id3->elapsed);
+}
+
 #ifdef HAVE_TAGCACHE
 /* Rating is edited in place with the wheel while the rating mode is
  * active; the star row lives in the skin (%rr + %Wm), so no overlay
@@ -879,6 +911,34 @@ static void a26_wps_rate(struct mp3entry *id3, int dir)
     tagcache_update_numeric(id3->tagcache_idx - 1, tag_rating, rating);
 }
 #endif
+
+/* Wheel modes hang off what the track actually offers.  When the next
+ * track can't support the active one — no lyrics, no database entry — fall
+ * back to mode 1 (volume) so the row never points at a dead screen.  Modes
+ * the new track shares are kept, which is what makes skipping feel stable. */
+static void a26_wps_validate_mode(struct mp3entry *id3)
+{
+    bool ok = true;
+
+    switch (a26_wps_mode)
+    {
+        case A26_WPS_PLAYLIST:
+            ok = id3 && id3->path[0] && a26_playlists_available();
+            break;
+        case A26_WPS_LYRICS:
+            ok = a26_lyrics_available(id3);
+            break;
+#ifdef HAVE_TAGCACHE
+        case A26_WPS_RATING:
+            ok = id3 && id3->tagcache_idx;
+            break;
+#endif
+        default:
+            break;
+    }
+    if (!ok)
+        a26_wps_mode = A26_WPS_VOLUME;
+}
 
 /* Opens whatever the freshly-selected mode has to show.  Returns true when
  * that screen asked to leave Now Playing altogether (lyrics + MENU). */
@@ -907,6 +967,9 @@ static bool a26_wps_run_mode(struct mp3entry *id3)
                     a26_wps_mode = A26_WPS_RATING;
                 else if (exit_code == A26_LYRICS_LEAVE)
                     return true;
+                /* the screen may have been left by skipping onto a track
+                 * with no lyrics — settle on a mode that still applies */
+                a26_wps_validate_mode(audio_current_track());
             }
             break;
 
@@ -1087,10 +1150,33 @@ long gui_wps_show(void)
     ab_reset_markers();
 
     wps_state_init();
+#if ROCKPOD_APPLE2026_IPOD
+    /* One catalog scan per visit to Now Playing, instead of one every few
+     * seconds while it is open. */
+    a26_playlists_invalidate();
+#endif
+#if ROCKPOD_APPLE2026_IPOD
+    /* Apple2026: keep the wheel mode meaningful across track changes. */
+    static char a26_last_track[MAX_PATH];
+    a26_last_track[0] = '\0';
+#endif
+
     while ( 1 )
     {
         bool hotkey = false;
         bool audio_paused = (audio_status() & AUDIO_STATUS_PAUSE)?true:false;
+
+#if ROCKPOD_APPLE2026_IPOD
+        if (state->id3 && strcmp(state->id3->path, a26_last_track) != 0)
+        {
+            strmemccpy(a26_last_track, state->id3->path,
+                       sizeof(a26_last_track));
+            /* a skip mid-drag would otherwise leave the ff indicator on
+             * and seek the new track to the old preview position */
+            a26_scrub_settle();
+            a26_wps_validate_mode(state->id3);
+        }
+#endif
         /* did someone else (i.e power thread) change audio pause mode? */
         if (state->paused != audio_paused) {
             state->paused = audio_paused;

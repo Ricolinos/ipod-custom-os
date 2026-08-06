@@ -62,6 +62,8 @@ bool a26_wps_is_scrubbing(void);
 
 /* Apple2026: true when the playlist catalog has something to add to */
 bool a26_playlists_available(void);
+/* Forget the cached catalog answer (call after adding/creating a list). */
+void a26_playlists_invalidate(void);
 
 /* Apple2026: true when the current track has a lyrics file */
 struct mp3entry;
