@@ -51,6 +51,11 @@ extern int apple2026_dense_font_id;
 extern void apple2026_ensure_dense_font(void);
 extern int apple2026_rail_font_id;
 extern void apple2026_ensure_rail_font(void);
+extern int apple2026_rail_big_font_id;
+extern void apple2026_ensure_rail_big_font(void);
+extern int apple2026_letter_badge_font_id;
+extern void apple2026_ensure_letter_badge_font(void);
+extern long apple2026_letter_flash_tick;
 #endif
 
 /* Figma 1:4008: 29px icon cell + 12px to label; 30px tile + 6+6 pad = 42px to text. */
@@ -129,15 +134,8 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
     bool is_title = list_info->is_title;
     bool show_cursor = list_info->show_cursor;
     bool have_icons = list_info->have_icons;
-    bool show_chevron = false;
     struct line_desc *linedes = list_info->linedes;
     const char *dsp_text = list_info->dsp_text;
-
-    if (!is_title && list_info->list->callback_is_navigable)
-    {
-        show_chevron = list_info->list->callback_is_navigable(
-            list_info->line, list_info->list->data);
-    }
 
     if (is_title)
     {
@@ -196,41 +194,6 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
         }
 #endif
 
-        /* Apple2026 disclosure chevron: anti-aliased ">" at right margin.
-         * 6x12px drawn with per-pixel AA against white background.
-         * Main stroke: C7C7CC. AA edges: E3E3E5 (50% blend towards white). */
-        if (show_chevron)
-        {
-            int cw = 6, ch = 12;
-            int cx = vp_w - cw - 10;
-            int cy = y + (line_h - ch) / 2;
-            unsigned c_main = LCD_RGBPACK(0xC7, 0xC7, 0xCC);
-            unsigned c_aa   = LCD_RGBPACK(0xE3, 0xE3, 0xE5);
-
-            static const signed char chev[][3] = {
-                /* {dx, dy, is_aa} — top arm descending to apex */
-                {0,0,1},{1,0,0},     /* row 0 */
-                {1,1,1},{2,1,0},     /* row 1 */
-                {2,2,1},{3,2,0},     /* row 2 */
-                {3,3,1},{4,3,0},     /* row 3 */
-                {4,4,1},{5,4,0},     /* row 4 */
-                {5,5,0},             /* row 5 — apex top */
-                {5,6,0},             /* row 6 — apex bottom */
-                /* bottom arm ascending from apex */
-                {4,7,0},{5,7,1},     /* row 7 */
-                {3,8,0},{4,8,1},     /* row 8 */
-                {2,9,0},{3,9,1},     /* row 9 */
-                {1,10,0},{2,10,1},   /* row 10 */
-                {0,11,0},{1,11,1},   /* row 11 */
-            };
-
-            display->set_drawmode(DRMODE_FG);
-            for (int i = 0; i < (int)(sizeof(chev)/sizeof(chev[0])); i++)
-            {
-                display->set_foreground(chev[i][2] ? c_aa : c_main);
-                display->drawpixel(cx + chev[i][0], cy + chev[i][1]);
-            }
-        }
         display->set_foreground(old_fg);
     }
 #endif
@@ -313,42 +276,154 @@ void list_draw(struct screen *display, struct gui_synclist *list)
 }
 
 #if ROCKPOD_APPLE2026_IPOD
-#define A26_INDEX_RAIL_W 14
-/* iPod-style A-Z index rail on the right edge: '#' + 26 letters in the
- * tiny system font, current letter in the accent red. */
+#define A26_INDEX_RAIL_W 16
+#define A26_RAIL_NEAR LCD_RGBPACK(0x33, 0x33, 0x33)   /* black @ 80% */
+#define A26_RAIL_FAR  LCD_RGBPACK(0x66, 0x66, 0x66)   /* black @ 60% */
+
+/* Filled rounded rectangle, used by the letter badge. */
+static void a26_round_rect(struct screen *display, int x, int y, int w, int h,
+                           int r, unsigned colour)
+{
+    int i;
+
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, colour));
+    for (i = 0; i < h; i++)
+    {
+        int dy = 0, inset = 0, k = 0;
+
+        if (i < r)
+            dy = r - i;
+        else if (i >= h - r)
+            dy = i - (h - 1 - r);
+        if (dy > 0)
+        {
+            while ((k + 1) * (k + 1) <= r * r - dy * dy)
+                k++;
+            inset = r - k;
+        }
+        display->hline(x + inset, x + w - 1 - inset, y + i);
+    }
+}
+
+/* iPod-style A-Z index: a white strip on the right of the list (never over
+ * it) carrying '#' plus the 26 letters.  The letter the list is sitting on
+ * is drawn larger and in the Apple accent; its neighbours are darker than
+ * the rest, so the eye can find the current position at a glance.
+ *
+ * `right_margin` keeps the strip clear of the scrollbar when one is shown. */
 static void a26_draw_index_rail(struct screen *display,
                                 struct viewport *parent,
-                                struct gui_synclist *list)
+                                struct gui_synclist *list,
+                                int right_margin)
 {
     struct viewport vp = *parent;
     char cur = apple2026_list_current_letter(list);
-    int cell, y0, i, glyph_h;
+    int i, cell, y, extra, cur_i = -1;
+    int f_small, f_big, h_small, h_big;
     char s[2] = "#";
 
     apple2026_ensure_rail_font();
-    vp.x = parent->x + parent->width - A26_INDEX_RAIL_W;
-    vp.width = A26_INDEX_RAIL_W;
-    vp.font = (apple2026_rail_font_id >= 0) ? apple2026_rail_font_id
+    apple2026_ensure_rail_big_font();
+    f_small = (apple2026_rail_font_id >= 0) ? apple2026_rail_font_id
                                             : FONT_SYSFIXED;
-    glyph_h = font_get(vp.font)->height;
-    vp.fg_pattern = SCREEN_COLOR_TO_NATIVE(display,
-                                           LCD_RGBPACK(0x8E, 0x8E, 0x93));
-    vp.bg_pattern = parent->bg_pattern;
+    f_big = (apple2026_rail_big_font_id >= 0) ? apple2026_rail_big_font_id
+                                              : f_small;
+    h_small = font_get(f_small)->height;
+    h_big = font_get(f_big)->height;
+    extra = h_big - h_small;
+    if (extra < 0)
+        extra = 0;
+
+    vp.x = parent->x + parent->width - right_margin - A26_INDEX_RAIL_W;
+    vp.width = A26_INDEX_RAIL_W;
+    vp.font = f_small;
+    vp.drawmode = DRMODE_SOLID;
+    vp.fg_pattern = SCREEN_COLOR_TO_NATIVE(display, A26_RAIL_FAR);
+    vp.bg_pattern = SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_BG);
     display->set_viewport(&vp);
     display->clear_viewport();
 
-    cell = vp.height / 27;
-    y0 = (vp.height - cell * 27) / 2;
     for (i = 0; i < 27; i++)
     {
-        s[0] = (i == 0) ? '#' : (char)('A' + i - 1);
-        if (s[0] == cur)
-            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                                        LCD_RGBPACK(0xFF, 0x2E, 0x56)));
-        display->putsxy(3, y0 + i * cell + (cell - glyph_h) / 2, s);
-        if (s[0] == cur)
-            display->set_foreground(vp.fg_pattern);
+        if (((i == 0) ? '#' : (char)('A' + i - 1)) == cur)
+        {
+            cur_i = i;
+            break;
+        }
     }
+
+    /* the magnified letter borrows its extra height from the whole strip */
+    cell = (vp.height - extra) / 27;
+    if (cell < h_small)
+    {
+        cell = h_small;
+        extra = 0;
+    }
+    y = (vp.height - (cell * 27 + extra)) / 2;
+
+    for (i = 0; i < 27; i++)
+    {
+        bool active = (i == cur_i);
+        bool near = !active && cur_i >= 0
+                    && (i == cur_i - 1 || i == cur_i + 1);
+        int font = active ? f_big : f_small;
+        int fh = active ? h_big : h_small;
+        int rowh = active ? cell + extra : cell;
+        int w = 0;
+
+        s[0] = (i == 0) ? '#' : (char)('A' + i - 1);
+        display->setfont(font);
+        display->getstringsize((unsigned char *)s, &w, NULL);
+        display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                    active ? A26_ACCENT
+                                           : (near ? A26_RAIL_NEAR
+                                                   : A26_RAIL_FAR)));
+        display->putsxy((vp.width - w) / 2, y + (rowh - fh) / 2,
+                        (unsigned char *)s);
+        y += rowh;
+    }
+    display->setfont(FONT_UI);
+    display->set_viewport(parent);
+}
+
+/* While the wheel is flicking through letter groups, show the letter being
+ * landed on as a badge in the middle of the list — the rail alone is too
+ * small to read at speed. */
+#define A26_BADGE 64
+static void a26_draw_letter_badge(struct screen *display,
+                                  struct viewport *parent,
+                                  struct gui_synclist *list)
+{
+    struct viewport vp = *parent;
+    char letter = apple2026_list_current_letter(list);
+    char s[2];
+    int font, w = 0, h = 0;
+    int bx, by;
+
+    if (!apple2026_letter_flash_tick
+        || TIME_AFTER(current_tick, apple2026_letter_flash_tick + HZ))
+        return;
+
+    apple2026_ensure_letter_badge_font();
+    font = (apple2026_letter_badge_font_id >= 0)
+         ? apple2026_letter_badge_font_id : FONT_UI;
+
+    display->set_viewport(&vp);
+    bx = (vp.width - A26_BADGE) / 2;
+    by = (vp.height - A26_BADGE) / 2;
+    a26_round_rect(display, bx, by, A26_BADGE, A26_BADGE, 14,
+                   LCD_RGBPACK(0x2C, 0x2C, 0x2E));
+
+    s[0] = letter;
+    s[1] = '\0';
+    display->setfont(font);
+    display->getstringsize((unsigned char *)s, &w, &h);
+    display->set_drawmode(DRMODE_FG);
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, LCD_WHITE));
+    display->putsxy(bx + (A26_BADGE - w) / 2, by + (A26_BADGE - h) / 2,
+                    (unsigned char *)s);
+    display->set_drawmode(DRMODE_SOLID);
+    display->setfont(FONT_UI);
     display->set_viewport(parent);
 }
 #endif
@@ -378,10 +453,12 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
 
     struct viewport * last_vp = display->set_viewport(parent);
 #if ROCKPOD_APPLE2026_IPOD
-    /* Index rail: temporarily narrow the text viewport; restored at the
-     * end of the draw (list_text is a persistent static). */
+    /* Index rail width.  The subtraction has to happen *after* the text
+     * viewport is copied from the parent and after the scrollbar has taken
+     * its slice, otherwise it is silently overwritten and the rail ends up
+     * painted on top of the list. */
     int a26_rail_w = list->a26_index_rail ? A26_INDEX_RAIL_W : 0;
-    list_text_vp->width -= a26_rail_w;
+    int a26_scrollbar_w = 0;
 #endif
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
     /* Apple2026: switch to dense 16pt font for track/song lists.
@@ -520,6 +597,9 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
                     (scrollbar_in_left? 0: 1), 0, SCROLLBAR_WIDTH-1, vp.height,
                     scrollbar_items, scrollbar_min, scrollbar_max, VERTICAL);
             display->set_viewport(last);
+#if ROCKPOD_APPLE2026_IPOD
+            a26_scrollbar_w = SCROLLBAR_WIDTH;
+#endif
         }
         /* shift everything a bit in relation to the title */
         else if (!VP_IS_RTL(list_text_vp) && scrollbar_in_left)
@@ -529,6 +609,9 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
     }
 
 #if ROCKPOD_APPLE2026_IPOD
+    /* Reserve the index strip so rows stop short of it instead of running
+     * underneath. */
+    list_text_vp->width -= a26_rail_w;
     /* SBS list viewport is full LCD width so selector + dividers are edge-to-edge;
      * keep icons/text aligned with the large-title margin. */
     indent += A26_LIST_CONTENT_INSET;
@@ -674,7 +757,10 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
 #endif
 #if ROCKPOD_APPLE2026_IPOD
     if (a26_rail_w)
-        a26_draw_index_rail(display, parent, list);
+    {
+        a26_draw_index_rail(display, parent, list, a26_scrollbar_w);
+        a26_draw_letter_badge(display, parent, list);
+    }
     list_text_vp->width += a26_rail_w;
 #endif
     /* Apple2026 split root menu: paint the right-half preview pane in the

@@ -63,6 +63,28 @@ void apple2026_ensure_rail_font(void)
         apple2026_rail_font_id =
             font_load(FONT_DIR "/07-SFPro-Rail.fnt");
 }
+
+/* Magnified face for the rail letter the list is currently sitting on. */
+int apple2026_rail_big_font_id = -1;
+void apple2026_ensure_rail_big_font(void)
+{
+    if (apple2026_rail_big_font_id < 0)
+        apple2026_rail_big_font_id =
+            font_load(FONT_DIR "/13-SFCompactText-Regular.fnt");
+}
+
+/* Face for the letter badge that flashes mid-screen while flicking. */
+int apple2026_letter_badge_font_id = -1;
+void apple2026_ensure_letter_badge_font(void)
+{
+    if (apple2026_letter_badge_font_id < 0)
+        apple2026_letter_badge_font_id =
+            font_load(FONT_DIR "/28-SFProDisplay-Bold.fnt");
+}
+
+/* Stamped every time the wheel jumps a letter group.  The list draw shows
+ * the badge for a moment afterwards so you can see where you are landing. */
+long apple2026_letter_flash_tick = 0;
 #endif
 
 /* The minimum number of pending button events in queue before starting
@@ -799,6 +821,7 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
             while (i > 0 && a26_item_letter(lists, i - 1) == cur)
                 i--;
         }
+        apple2026_letter_flash_tick = current_tick;
         gui_synclist_select_item(lists, i);
         gui_synclist_draw(lists);
         gui_synclist_speak_item(lists);
