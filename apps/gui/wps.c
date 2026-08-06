@@ -67,6 +67,7 @@
 #include "apple2026_shell.h"
 #include "playlist_catalog.h"
 #include "apple2026_pl_picker.h"
+#include "apple2026_lyrics.h"
 #include "filetypes.h"
 #ifdef HAVE_TAGCACHE
 #include "tagcache.h"
@@ -714,23 +715,15 @@ static int a26_wps_mode = A26_WPS_VOLUME;
 /* Does this track have lyrics anywhere lrcplayer would look?  Same
  * conventions as the plugin: sidecar file next to the track, or the
  * same basename under /Lyrics. */
-bool a26_lyrics_available(const struct mp3entry *id3)
+bool a26_lyrics_find(const struct mp3entry *id3, char *buf, size_t bufsz)
 {
     static const char * const ext[] = { ".lrc", ".lrc8", ".snc", ".txt" };
-    static char cached_path[MAX_PATH];
-    static bool cached = false;
     char base[MAX_PATH];
-    char probe[MAX_PATH];
     const char *name;
     unsigned i;
 
     if (!id3 || !id3->path[0])
         return false;
-    if (!strcmp(cached_path, id3->path))
-        return cached;
-    strmemccpy(cached_path, id3->path, sizeof(cached_path));
-    cached = false;
-
     strmemccpy(base, id3->path, sizeof(base));
     {
         char *dot = strrchr(base, '.');
@@ -740,18 +733,30 @@ bool a26_lyrics_available(const struct mp3entry *id3)
     name = strrchr(base, '/');
     name = name ? name + 1 : base;
 
-    for (i = 0; i < ARRAYLEN(ext) && !cached; i++)
+    for (i = 0; i < ARRAYLEN(ext); i++)
     {
-        snprintf(probe, sizeof(probe), "%s%s", base, ext[i]);
-        if (file_exists(probe))
-            cached = true;
-        else
-        {
-            snprintf(probe, sizeof(probe), "/Lyrics/%s%s", name, ext[i]);
-            if (file_exists(probe))
-                cached = true;
-        }
+        snprintf(buf, bufsz, "%s%s", base, ext[i]);
+        if (file_exists(buf))
+            return true;
+        snprintf(buf, bufsz, "/Lyrics/%s%s", name, ext[i]);
+        if (file_exists(buf))
+            return true;
     }
+    return false;
+}
+
+bool a26_lyrics_available(const struct mp3entry *id3)
+{
+    static char cached_path[MAX_PATH];
+    static bool cached = false;
+    char probe[MAX_PATH];
+
+    if (!id3 || !id3->path[0])
+        return false;
+    if (!strcmp(cached_path, id3->path))
+        return cached;
+    strmemccpy(cached_path, id3->path, sizeof(cached_path));
+    cached = a26_lyrics_find(id3, probe, sizeof(probe));
     return cached;
 }
 
@@ -889,26 +894,13 @@ static void a26_wps_run_mode(struct mp3entry *id3)
             break;
 
         case A26_WPS_LYRICS:
-        {
-            static const char * const lrc[] = {
-                PLUGIN_APPS_DIR "/lrcplayer.rock",
-                PLUGIN_DIR "/lrcplayer.rock",
-            };
-            unsigned i;
-            if (!a26_lyrics_available(id3))
-                break;
-            for (i = 0; i < ARRAYLEN(lrc); i++)
+            if (a26_lyrics_available(id3))
             {
-                if (file_exists(lrc[i]))
-                {
-                    gwps_leave_wps(true);
-                    plugin_load(lrc[i], NULL);
-                    return;   /* the wps loop re-enters through `restore` */
-                }
+                gwps_leave_wps(true);
+                apple2026_lyrics_screen(id3);
+                /* the wps loop re-enters through `restore` */
             }
-            splash(HZ, ID2P(LANG_ID3_NO_INFO));
             break;
-        }
 
 #ifdef HAVE_TAGCACHE
         case A26_WPS_RATING:
