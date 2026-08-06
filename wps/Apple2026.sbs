@@ -57,7 +57,7 @@
 # Quickscreen side sliders + the speaker that follows the volume
 %xl(U,qs_slider_fill.bmp,0,0)
 %xl(G,qs_slider_track.bmp,0,0)
-%xl(C,volIcons.bmp,0,0,3)
+%xl(C,volIcons.bmp,0,0,5)
 %xl(D,shuffleLarge.bmp,0,0,2)
 %xl(E,repeatLarge.bmp,0,0,4)
 %xl(J,statusPlay.bmp,0,0,2)
@@ -391,10 +391,10 @@
 %Vb(C7C7CC)
 %?if(%cs, =, 10)<%pv(0,0,20,132,image,U,backdrop,G,vertical)|>
 
-%V(15,196,14,14,-)
+%V(12,196,20,14,-)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%?pv<%xd(Ca)|%xd(Cb)|%xd(Cc)>|>
+%?if(%cs, =, 10)<%?pv<%xd(Ca)|%xd(Cb)|%xd(Cc)|%xd(Cd)|%xd(Ce)>|>
 
 # Brightness: vertical slider on the right
 %V(288,52,20,132,-)
@@ -408,8 +408,3 @@
 %?if(%cs, =, 10)<%xd(X)|>
 
 
-# Numeric volume, under its own slider rather than loose in the corner
-%V(6,212,32,18,8)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%ac%pv|>

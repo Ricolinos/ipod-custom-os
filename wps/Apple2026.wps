@@ -68,7 +68,7 @@
 %xl(S,wps_stars.bmp,0,0,4)
 %xl(D,dolby.bmp,0,0)
 # Volume row speakers (SF): a=mute b=low c=high
-%xl(V,volIcons.bmp,20,0,3)
+%xl(V,volIcons.bmp,20,0,5)
 
 
 
@@ -250,7 +250,7 @@
 %Vb(C7C7CC)
 # Sits on the progress row: speaker icon at the left, then the bar with
 # the same pill art as the progress bar so the swap is seamless.
-%xd(Vc)
+%?pv<%xd(Va)|%xd(Vb)|%xd(Vc)|%xd(Vd)|%xd(Ve)>
 %pv(44,5,236,4,image,I,backdrop,J)
 
 # -------------------------------------------------------
