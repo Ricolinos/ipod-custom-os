@@ -881,6 +881,9 @@ static const struct plugin_api rockbox_api = {
 #if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
     dynamic_colors_resolve,
 #endif
+#if ROCKPOD_APPLE2026_IPOD
+    apple2026_menu_rows,
+#endif
 };
 
 static int plugin_buffer_handle;

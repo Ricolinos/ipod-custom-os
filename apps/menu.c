@@ -188,6 +188,44 @@ static const char* get_menu_item_name(int selected_item,
     return P2STR(menu->callback_and_desc->desc);
 }
 
+#if ROCKPOD_APPLE2026_IPOD
+/* Decoración de las filas del menú que se está mostrando.  Se guarda en una
+ * pila implícita —cada do_menu() salva la del menú que lo abrió y la repone al
+ * salir— porque los menús se anidan. */
+struct a26_deco {
+    void (*describe)(int row, struct a26_menu_row *out);
+    bool (*flip)(int row);
+};
+static struct a26_deco a26_pending;
+static const struct a26_deco *a26_cur;
+
+void apple2026_menu_rows(void (*describe)(int row, struct a26_menu_row *out),
+                         bool (*flip)(int row))
+{
+    a26_pending.describe = describe;
+    a26_pending.flip = flip;
+}
+
+/* Describe la fila si el menú actual es de lista de cadenas y trae
+ * decoración; si no, deja la estructura en blanco. */
+static bool a26_deco_row(int selected_item, void *data,
+                         struct a26_menu_row *out)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
+
+    out->icon = Icon_NOICON;
+    out->value = NULL;
+    out->value_active = false;
+    out->toggle = -1;
+    if (!a26_cur || !a26_cur->describe || !menu)
+        return false;
+    if ((menu->flags & MENU_TYPE_MASK) != MT_RETURN_ID)
+        return false;
+    a26_cur->describe(get_menu_selection(selected_item, menu), out);
+    return true;
+}
+#endif
+
 static enum themable_icons  menu_get_icon(int selected_item, void * data)
 {
     const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
@@ -197,6 +235,12 @@ static enum themable_icons  menu_get_icon(int selected_item, void * data)
 
     if (type == MT_RETURN_ID)
     {
+#if ROCKPOD_APPLE2026_IPOD
+        struct a26_menu_row row;
+
+        if (a26_deco_row(selected_item, data, &row) && row.icon != Icon_NOICON)
+            return row.icon;
+#endif
         return Icon_Menu_functioncall;
     }
     if (type == MT_MENU)
@@ -255,8 +299,12 @@ static const struct settings_list *a26_row_bool(int selected_item, void *data)
 
 static int menu_get_toggle(int selected_item, void *data)
 {
-    const struct settings_list *st = a26_row_bool(selected_item, data);
+    const struct settings_list *st;
+    struct a26_menu_row row;
 
+    if (a26_deco_row(selected_item, data, &row))
+        return row.toggle;
+    st = a26_row_bool(selected_item, data);
     if (!st)
         return -1;
     return *(bool *)st->setting ? 1 : 0;
@@ -303,9 +351,16 @@ static const struct settings_list *a26_row_value(int selected_item, void *data)
 static const char *menu_get_value(int selected_item, void *data,
                                   char *buf, size_t bufsz, bool *active)
 {
-    const struct settings_list *st = a26_row_value(selected_item, data);
+    const struct settings_list *st;
     const char *val;
+    struct a26_menu_row row;
 
+    if (a26_deco_row(selected_item, data, &row))
+    {
+        *active = row.value_active;
+        return row.value;
+    }
+    st = a26_row_value(selected_item, data);
     if (!st)
         return NULL;
     val = option_get_valuestring(st, buf, bufsz, *(int *)st->setting);
@@ -580,6 +635,18 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
     bool redraw_lists;
 
     int old_audio_status = audio_status();
+
+#if ROCKPOD_APPLE2026_IPOD
+    /* La decoración que dejó quien nos llama es para ESTE menú.  Se toma y se
+     * borra la pendiente, para que un submenú no herede filas que no son
+     * suyas, y al salir se repone la del menú que nos abrió. */
+    const struct a26_deco *a26_prev = a26_cur;
+    struct a26_deco a26_here = a26_pending;
+
+    a26_pending.describe = NULL;
+    a26_pending.flip = NULL;
+    a26_cur = &a26_here;
+#endif
 
     /* Plugins run as ACTIVITY_PLUGIN, but SBS themes typically exclude
      * that activity from sub-menu styling (%Lb, header viewports).
@@ -882,6 +949,15 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                 gui_synclist_draw(&lists);
                 continue;
             }
+            /* Lo mismo en una lista de cadenas decorada: quien la abrió sabe
+             * invertir la fila sin salir de ella. */
+            if (in_stringlist && a26_here.flip
+                && a26_here.flip(get_menu_selection(
+                        gui_synclist_get_sel_pos(&lists), menu)))
+            {
+                gui_synclist_draw(&lists);
+                continue;
+            }
 #endif
             /* entering an item that may not be a list, so stop scrolling */
             gui_synclist_scroll_stop(&lists);
@@ -1056,6 +1132,9 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
     if(!(global_settings.touch_mode != (int)old_global_mode &&
          tsm == old_global_mode))
         touchscreen_set_mode(tsm);
+#endif
+#if ROCKPOD_APPLE2026_IPOD
+    a26_cur = a26_prev;
 #endif
     return ret;
 }

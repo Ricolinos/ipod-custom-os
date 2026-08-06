@@ -186,15 +186,41 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
      * metería debajo del interruptor, y además el motor de desplazamiento
      * repinta la línea más tarde y lo borraría.  Se recorta a mano. */
     char a26_cut[192];
+    char a26_valcut[64];
+    const char *a26_val = list_info->value;
     int a26_vw = 0;
 
-    if (!is_title && list_info->value)
+    if (!is_title && a26_val)
     {
+        /* El valor se lleva como mucho poco más de la mitad de la fila: al
+         * nombre le tiene que quedar sitio para decir de qué ajuste es. */
+        int cap = (list_info->vp->width
+                   - A26_LIST_CONTENT_INSET * 3 - item_indent
+                   - (have_icons ? list_info->icon_width + ICON_PADDING : 0))
+                  * 11 / 20;
+
         display->setfont(list_info->vp->font);
-        display->getstringsize((unsigned char *)list_info->value,
-                               &a26_vw, NULL);
+        display->getstringsize((unsigned char *)a26_val, &a26_vw, NULL);
+        if (a26_vw > cap && cap > 0)
+        {
+            int len;
+
+            strmemccpy(a26_valcut, a26_val, sizeof(a26_valcut));
+            len = strlen(a26_valcut);
+            while (a26_vw > cap && len > 1)
+            {
+                do {
+                    len--;
+                } while (len > 1 && (a26_valcut[len] & 0xC0) == 0x80);
+                strmemccpy(a26_valcut + len, "...",
+                           sizeof(a26_valcut) - len);
+                display->getstringsize((unsigned char *)a26_valcut,
+                                       &a26_vw, NULL);
+            }
+            a26_val = a26_valcut;
+        }
     }
-    if (!is_title && (list_info->toggle >= 0 || list_info->value) && dsp_text)
+    if (!is_title && (list_info->toggle >= 0 || a26_val) && dsp_text)
     {
         /* el hueco disponible descuenta también la columna del icono, que
          * no viene en item_indent sino que la añade el propio put_line */
@@ -257,7 +283,7 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
     if (!is_title && display->depth >= 16 && list_info->toggle >= 0)
         a26_draw_switch(list_info->display, list_info->vp, list_info->y,
                         linedes->height, list_info->toggle);
-    if (!is_title && display->depth >= 16 && list_info->value)
+    if (!is_title && display->depth >= 16 && a26_val)
     {
         struct viewport *vvp = list_info->vp;
         int vy = list_info->y
@@ -269,7 +295,7 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
                 list_info->value_active ? A26_ACCENT
                                         : LCD_RGBPACK(0x80, 0x80, 0x80)));
         display->putsxy(vvp->width - a26_vw - A26_LIST_CONTENT_INSET, vy,
-                        (unsigned char *)list_info->value);
+                        (unsigned char *)a26_val);
         display->set_drawmode(DRMODE_SOLID);
         display->set_foreground(old_fg);
     }

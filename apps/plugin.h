@@ -103,6 +103,7 @@ int plugin_open(const char *plugin, const char *parameter);
 #include "recording.h"
 #endif
 #include "settings.h"
+#include "apple2026_shell.h"
 #include "timer.h"
 #include "playlist.h"
 #include "screendump.h"
@@ -178,7 +179,7 @@ int plugin_open(const char *plugin, const char *parameter);
  * when this happens please take the opportunity to sort in
  * any new functions "waiting" at the end of the list.
  */
-#define PLUGIN_API_VERSION 280
+#define PLUGIN_API_VERSION 281
 
 /* 239 Marks the removal of ARCHOS HWCODEC and CHARCELL */
 
@@ -1034,6 +1035,13 @@ struct plugin_api {
        the API gets incompatible */
 #if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
     unsigned int (*dynamic_colors_resolve)(unsigned int original);
+#endif
+#if ROCKPOD_APPLE2026_IPOD
+    /* Apple2026: iconos, valores e interruptores por fila en los menús de
+     * lista de cadenas, que es como los construyen los plugins. */
+    void (*apple2026_menu_rows)(
+            void (*describe)(int row, struct a26_menu_row *out),
+            bool (*flip)(int row));
 #endif
 };
 

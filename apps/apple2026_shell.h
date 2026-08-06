@@ -42,6 +42,22 @@
 
 bool apple2026_theme_selected(void);
 
+/* Decoración de una fila de un menú de lista de cadenas.  Esos menús no
+ * tienen ajuste detrás del que deducir nada, así que lo dice quien los abre. */
+struct a26_menu_row {
+    int icon;            /* Icon_NOICON si la fila no lleva icono propio */
+    const char *value;   /* texto a la derecha; NULL si no lleva */
+    bool value_active;   /* rosa si está activo, atenuado si equivale a "no" */
+    int toggle;          /* -1 si no es de sí/no; 0 apagado, 1 encendido */
+};
+
+/* Describe las filas del PRÓXIMO do_menu().  Se consume al entrar, para que
+ * un submenú no herede la decoración del menú que lo abrió; el que llama
+ * vuelve a fijarla en cada vuelta de su bucle.  `flip` cambia el ajuste de
+ * sí/no de una fila y devuelve true si lo hizo. */
+void apple2026_menu_rows(void (*describe)(int row, struct a26_menu_row *out),
+                         bool (*flip)(int row));
+
 struct screen;
 /* Franja de estado para pantallas que se dibujan solas (búsqueda, USB):
  * título a la izquierda, reloj al centro, batería a la derecha. */

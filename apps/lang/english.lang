@@ -11294,10 +11294,10 @@
     *: "PictureFlow"
   </source>
   <dest>
-    *: "PictureFlow"
+    *: "Cover Flow"
   </dest>
   <voice>
-    *: "open picture flow"
+    *: "open cover flow"
   </voice>
 </phrase>
 <phrase>
@@ -17529,5 +17529,61 @@
   </dest>
   <voice>
     *: "Frequency"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_STATUSBAR
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Show status bar"
+  </source>
+  <dest>
+    *: "Show status bar"
+  </dest>
+  <voice>
+    *: "Show status bar"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_SCROLL_SPEED
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Scroll speed"
+  </source>
+  <dest>
+    *: "Scroll speed"
+  </dest>
+  <voice>
+    *: "Scroll speed"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_TRANS_SPEED
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Transition speed"
+  </source>
+  <dest>
+    *: "Transition speed"
+  </dest>
+  <voice>
+    *: "Transition speed"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_TEXT_FADE
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Text crossfade"
+  </source>
+  <dest>
+    *: "Text crossfade"
+  </dest>
+  <voice>
+    *: "Text crossfade"
   </voice>
 </phrase>

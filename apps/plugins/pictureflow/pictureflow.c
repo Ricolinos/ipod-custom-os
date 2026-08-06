@@ -3885,6 +3885,66 @@ static void adjust_album_display_for_setting(int old_val, int new_val)
         skip_animation_to_show_tracks();
 }
 
+#if ROCKPOD_APPLE2026_IPOD
+/* Los tres menús son listas de cadenas, donde el núcleo no tiene un ajuste
+ * del que deducir icono ni valor: los describe el propio plugin. */
+enum {
+    PF_D_FPS, PF_D_MARGIN, PF_D_SLIDES, PF_D_ZOOM, PF_D_SPACING,
+    PF_D_RESIZE, PF_D_STATUSBAR, PF_D_SCROLL, PF_D_TRANSITION, PF_D_TEXTFADE,
+};
+
+static char pf_val[16];
+
+static void pf_int(struct a26_menu_row *out, int v, const char *unit)
+{
+    rb->snprintf(pf_val, sizeof(pf_val), "%d%s", v, unit);
+    out->value = pf_val;
+    out->value_active = (v != 0);
+}
+
+static void pf_display_row(int row, struct a26_menu_row *out)
+{
+    static const int icons[] = {
+        Icon_S_PfFps, Icon_S_PfMargin, Icon_S_PfSlides, Icon_S_PfZoom,
+        Icon_S_PfSpacing, Icon_S_PfResize, Icon_S_PfStatusbar,
+        Icon_S_PfScrollSpd, Icon_S_PfTransSpd, Icon_S_PfTextFade,
+    };
+
+    if (row >= 0 && row < (int)(sizeof(icons) / sizeof(*icons)))
+        out->icon = icons[row];
+    switch (row)
+    {
+        case PF_D_FPS:        out->toggle = pf_cfg.show_fps; break;
+        case PF_D_RESIZE:     out->toggle = pf_cfg.resize; break;
+        case PF_D_STATUSBAR:  out->toggle = pf_cfg.show_statusbar; break;
+        case PF_D_TEXTFADE:   out->toggle = pf_cfg.text_crossfade; break;
+        case PF_D_MARGIN:     pf_int(out, pf_cfg.center_margin, " px"); break;
+        case PF_D_SLIDES:     pf_int(out, pf_cfg.num_slides, ""); break;
+        case PF_D_ZOOM:       pf_int(out, pf_cfg.zoom, " %"); break;
+        case PF_D_SPACING:    pf_int(out, pf_cfg.slide_spacing, " px"); break;
+        case PF_D_SCROLL:     pf_int(out, pf_cfg.scroll_speed, " %"); break;
+        case PF_D_TRANSITION: pf_int(out, pf_cfg.transition_speed, " %"); break;
+    }
+}
+
+static bool pf_display_flip(int row)
+{
+    switch (row)
+    {
+        case PF_D_FPS:       pf_cfg.show_fps = !pf_cfg.show_fps;
+                             reset_track_list();
+                             return true;
+        case PF_D_RESIZE:    pf_cfg.resize = !pf_cfg.resize;
+                             return true;
+        case PF_D_STATUSBAR: pf_cfg.show_statusbar = !pf_cfg.show_statusbar;
+                             return true;
+        case PF_D_TEXTFADE:  pf_cfg.text_crossfade = !pf_cfg.text_crossfade;
+                             return true;
+    }
+    return false;
+}
+#endif
+
 static int display_settings_menu(void)
 {
     int selection = 0;
@@ -3897,12 +3957,15 @@ static int display_settings_menu(void)
                         ID2P(LANG_ZOOM),
                         ID2P(LANG_SPACING),
                         ID2P(LANG_RESIZE_COVERS),
-                        "Show Statusbar",
-                        "Scroll Speed %",
-                        "Transition Speed %",
-                        "Text Crossfade");
+                        ID2P(LANG_A26_PF_STATUSBAR),
+                        ID2P(LANG_A26_PF_SCROLL_SPEED),
+                        ID2P(LANG_A26_PF_TRANS_SPEED),
+                        ID2P(LANG_A26_PF_TEXT_FADE));
 
     do {
+#if ROCKPOD_APPLE2026_IPOD
+        rb->apple2026_menu_rows(pf_display_row, pf_display_flip);
+#endif
         selection=rb->do_menu(&display_menu, &selection, NULL, false);
         switch(selection) {
             case 0:
@@ -3956,7 +4019,7 @@ static int display_settings_menu(void)
                 return -3; /* re-init */
             case 6:
                 old_val = pf_cfg.show_statusbar;
-                rb->set_bool("Show Statusbar", &pf_cfg.show_statusbar);
+                rb->set_bool(ID2P(LANG_A26_PF_STATUSBAR), &pf_cfg.show_statusbar);
                 if (old_val != pf_cfg.show_statusbar)
                 {
                     configfile_save(CONFIG_FILE, config,
@@ -3965,17 +4028,17 @@ static int display_settings_menu(void)
                 }
                 break;
             case 7:
-                rb->set_int("Scroll Speed %", "", 1,
+                rb->set_int(ID2P(LANG_A26_PF_SCROLL_SPEED), "", 1,
                             &pf_cfg.scroll_speed,
                             NULL, 25, 100, 400, NULL );
                 break;
             case 8:
-                rb->set_int("Transition Speed %", "", 1,
+                rb->set_int(ID2P(LANG_A26_PF_TRANS_SPEED), "", 1,
                             &pf_cfg.transition_speed,
                             NULL, 25, 100, 400, NULL );
                 break;
             case 9:
-                rb->set_bool("Text Crossfade", &pf_cfg.text_crossfade);
+                rb->set_bool(ID2P(LANG_A26_PF_TEXT_FADE), &pf_cfg.text_crossfade);
                 break;
             case MENU_ATTACHED_USB:
                 return PLUGIN_USB_CONNECTED;
@@ -3988,12 +4051,64 @@ static int display_settings_menu(void)
 /**
   Shows the settings menu
  */
+#if ROCKPOD_APPLE2026_IPOD
+static void pf_settings_row(int row, struct a26_menu_row *out)
+{
+    static const int icons[] = {
+        Icon_S_PfAlbumName, Icon_S_PfYear, Icon_S_PfYearOrder,
+        Icon_S_PfWpsInt, Icon_S_PfDisplay,
+    };
+
+    static const int album_names[] = {
+        LANG_HIDE_ALBUM_TITLE_NEW, LANG_SHOW_AT_THE_BOTTOM_NEW,
+        LANG_SHOW_AT_THE_TOP_NEW, LANG_SHOW_ALL_AT_THE_TOP,
+        LANG_SHOW_ALL_AT_THE_BOTTOM,
+    };
+    static const int year_names[] = { LANG_ASCENDING, LANG_DESCENDING };
+    static const int wps_names[] = {
+        LANG_OFF, LANG_DIRECT, LANG_VIA_TRACK_LIST,
+    };
+    const int *names = NULL;
+    int val = 0, count = 0;
+
+    if (row >= 0 && row < (int)(sizeof(icons) / sizeof(*icons)))
+        out->icon = icons[row];
+    switch (row)
+    {
+        case 0: names = album_names; val = pf_cfg.show_album_name;
+                count = sizeof(album_names) / sizeof(*album_names); break;
+        case 1: out->toggle = pf_cfg.show_year; return;
+        case 2: names = year_names; val = pf_cfg.year_sort_order;
+                count = sizeof(year_names) / sizeof(*year_names); break;
+        case 3: names = wps_names; val = pf_cfg.auto_wps;
+                count = sizeof(wps_names) / sizeof(*wps_names); break;
+        default: return;
+    }
+    if (val >= 0 && val < count)
+    {
+        out->value = rb->str(names[val]);
+        /* "Apagado" y "Ocultar" no están haciendo nada: se atenúan igual que
+         * en el resto de Ajustes. */
+        out->value_active = !(names == wps_names && val == 0)
+                         && !(names == album_names && val == 0);
+    }
+}
+
+static bool pf_settings_flip(int row)
+{
+    if (row != 1)
+        return false;
+    pf_cfg.show_year = !pf_cfg.show_year;
+    return true;
+}
+#endif
+
 static int settings_menu(void)
 {
     int selection = 0;
     int old_val, result;
 
-    MENUITEM_STRINGLIST(settings_menu, "PictureFlow Settings", NULL,
+    MENUITEM_STRINGLIST(settings_menu, ID2P(LANG_SETTINGS), NULL,
                         ID2P(LANG_SHOW_ALBUM_TITLE),
                         ID2P(LANG_SHOW_YEAR_IN_ALBUM_TITLE),
                         ID2P(LANG_YEAR_SORT_ORDER),
@@ -4018,6 +4133,9 @@ static int settings_menu(void)
     };
 
     do {
+#if ROCKPOD_APPLE2026_IPOD
+        rb->apple2026_menu_rows(pf_settings_row, pf_settings_flip);
+#endif
         selection=rb->do_menu(&settings_menu,&selection, NULL, false);
         switch(selection) {
             case 0:
@@ -4070,6 +4188,34 @@ enum {
     PF_MENU_QUIT,
 };
 
+#if ROCKPOD_APPLE2026_IPOD
+static void pf_main_row(int row, struct a26_menu_row *out)
+{
+    static const int icons[] = {
+        Icon_S_PfSort, Icon_S_PfTracks, Icon_S_PfLast, Icon_S_PfWps,
+#if PF_PLAYBACK_CAPABLE
+        Icon_S_PfPlayback,
+#endif
+        Icon_S_PfRebuild, Icon_S_PfUpdate, Icon_S_PfSettings, Icon_S_PfQuit,
+    };
+
+    static const int sort_names[] = {
+        LANG_ARTIST_PLUS_NAME, LANG_ARTIST_PLUS_YEAR, LANG_ID3_YEAR, LANG_NAME,
+    };
+
+    if (row >= 0 && row < (int)(sizeof(icons) / sizeof(*icons)))
+        out->icon = icons[row];
+    if (row == PF_SORT_ALBUMS_BY
+        && pf_cfg.sort_albums_by >= 0
+        && pf_cfg.sort_albums_by < (int)(sizeof(sort_names)
+                                         / sizeof(*sort_names)))
+    {
+        out->value = rb->str(sort_names[pf_cfg.sort_albums_by]);
+        out->value_active = true;
+    }
+}
+#endif
+
 static int main_menu(void)
 {
     int selection = 0;
@@ -4083,7 +4229,7 @@ static int main_menu(void)
 #endif
 #endif
 
-    MENUITEM_STRINGLIST(main_menu, "PictureFlow", NULL,
+    MENUITEM_STRINGLIST(main_menu, "Cover Flow", NULL,
                         ID2P(LANG_SORT_ALBUMS_BY),
                         ID2P(LANG_SHOW_TRACKS_WHILE_BROWSING),
                         ID2P(LANG_GOTO_LAST_ALBUM),
@@ -4103,6 +4249,9 @@ static int main_menu(void)
         { STR(LANG_NAME) }};
 
     while (1)  {
+#if ROCKPOD_APPLE2026_IPOD
+        rb->apple2026_menu_rows(pf_main_row, NULL);
+#endif
         switch (rb->do_menu(&main_menu,&selection, NULL, false)) {
             case PF_SORT_ALBUMS_BY:
                 old_val = pf_cfg.sort_albums_by;
