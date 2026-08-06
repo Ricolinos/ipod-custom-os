@@ -60,8 +60,8 @@ static const char kb_chars[] =
  * the shell's (title left, clock centre, battery right). */
 #define KB_BAR_H      20
 #define KB_BATT_W     27
-#define KB_BATT_H     10
-#define KB_BATT_N     16
+#define KB_BATT_H     16
+#define KB_BATT_N     10            /* a..e discharging, f..j charging */
 
 /* Header */
 #define KB_HEAD_Y     26
@@ -74,15 +74,15 @@ static const char kb_chars[] =
 /* Search bar — a rounded rectangle, centred on the screen.  Its x is worked
  * out from the viewport at draw time so it stays centred whatever width the
  * panel happens to be. */
-#define KB_PILL_Y     186
-#define KB_PILL_W     268
-#define KB_PILL_H     32
-#define KB_PILL_R     10
+#define KB_PILL_Y     182
+#define KB_PILL_W     286
+#define KB_PILL_H     36
+#define KB_PILL_R     11
 #define KB_FIELD_DX   7             /* inset of the entry field in the bar */
 #define KB_FIELD_Y    (KB_PILL_Y + 5)
-#define KB_FIELD_W    72
-#define KB_FIELD_H    22
-#define KB_FIELD_R    7
+#define KB_FIELD_W    88
+#define KB_FIELD_H    26
+#define KB_FIELD_R    8
 #define KB_STRIP_DX   (KB_FIELD_DX + KB_FIELD_W + 8)
 #define KB_STRIP_PAD  9             /* keep glyphs off the rounded end */
 #define KB_LEAD       2             /* characters shown behind the cursor */
@@ -235,15 +235,15 @@ static void kb_battery(struct screen *display, int x, int y)
     if (!kb_batt_ok)
         return;
 
-    /* the strip runs empty..full over its first half (discharging) */
+    /* first half of the strip is the discharging ramp, empty to full */
     level = battery_level();
     if (level < 0)
         level = 0;
     if (level > 100)
         level = 100;
-    frame = level * 5 / 100;          /* 0..5 within the discharging half */
-    if (frame > 5)
-        frame = 5;
+    frame = level * 5 / 100;
+    if (frame > 4)
+        frame = 4;
     display->bitmap_part(kb_batt_px, 0, frame * KB_BATT_H,
                          STRIDE(display->screen_type, KB_BATT_W,
                                 KB_BATT_H * KB_BATT_N),
@@ -277,9 +277,11 @@ static void kb_status_bar(struct screen *display, int width)
         display->putsxy((width - w) / 2, 1, (unsigned char *)clock);
     }
     display->set_drawmode(DRMODE_SOLID);
-    kb_battery(display, width - KB_BATT_W - 5, 4);
+    kb_battery(display, width - KB_BATT_W - 5, 2);
     display->setfont(FONT_UI);
 }
+
+#define KB_BLINK (HZ / 2)
 
 static void kb_draw(struct screen *display, const char *text, int sel,
                     const char *field)
@@ -334,27 +336,40 @@ static void kb_draw(struct screen *display, const char *text, int sel,
     kb_round_rect(display, field_x, KB_FIELD_Y, KB_FIELD_W, KB_FIELD_H,
                   KB_FIELD_R, A26_SHELL_BG);
 
-    /* entered text, tail-anchored so the caret end stays visible */
-    if (text[0])
+    /* Entered text, tail-anchored so the insertion point stays visible, with
+     * a blinking caret after it — without one there is no feedback at all
+     * when the wheel is only moving along the strip. */
     {
         const char *shown = text;
-        int avail = KB_FIELD_W - 12;
+        int avail = KB_FIELD_W - 16;   /* leave room for the caret */
+        int ty = KB_FIELD_Y + (KB_FIELD_H - 18) / 2;
 
         display->setfont(kb_f(kb_f_sub));
-        display->getstringsize((unsigned char *)shown, &w, NULL);
-        while (w > avail && *shown)
+        w = 0;
+        if (*shown)
         {
-            do {
-                shown++;
-            } while ((*shown & 0xC0) == 0x80);
             display->getstringsize((unsigned char *)shown, &w, NULL);
+            while (w > avail && *shown)
+            {
+                do {
+                    shown++;
+                } while ((*shown & 0xC0) == 0x80);
+                display->getstringsize((unsigned char *)shown, &w, NULL);
+            }
+            display->set_drawmode(DRMODE_FG);
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                        A26_TEXT_PRIMARY));
+            display->putsxy(field_x + 7, ty, (unsigned char *)shown);
+            display->set_drawmode(DRMODE_SOLID);
         }
-        display->set_drawmode(DRMODE_FG);
-        display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                                    A26_TEXT_PRIMARY));
-        display->putsxy(field_x + 6, KB_FIELD_Y + 3,
-                        (unsigned char *)shown);
-        display->set_drawmode(DRMODE_SOLID);
+        if (((current_tick / KB_BLINK) & 1) == 0)
+        {
+            int cx = field_x + 7 + w + 1;
+
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                        A26_TEXT_PRIMARY));
+            display->fillrect(cx, ty + 15, 7, 2);
+        }
     }
 
     /* ---- letter strip ---- */
@@ -428,7 +443,7 @@ int apple2026_kbd_input(char *text, int buflen)
 
         kb_draw(display, text, sel, field);
 
-        action = get_action(CONTEXT_KEYBOARD, HZ);
+        action = get_action(CONTEXT_KEYBOARD, KB_BLINK);
         len = strlen(text);
 
         switch (action)
