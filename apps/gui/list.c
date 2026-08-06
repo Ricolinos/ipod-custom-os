@@ -1172,6 +1172,8 @@ bool simplelist_show_list(struct simplelist_info *info)
 
     gui_synclist_set_icon_callback(&lists, info->get_icon);
     gui_synclist_set_voice_callback(&lists, info->get_talk);
+    /* después de gui_synclist_init, que deja el callback en NULL */
+    lists.callback_get_item_value = info->get_value;
 #ifdef HAVE_LCD_COLOR
     gui_synclist_set_color_callback(&lists, info->get_color);
     if (info->selection_color)
@@ -1273,6 +1275,7 @@ void simplelist_info_init(struct simplelist_info *info, char* title,
     info->title_icon = Icon_NOICON;
     info->get_icon = NULL;
     info->get_name = NULL;
+    info->get_value = NULL;
     info->get_talk = NULL;
 #ifdef HAVE_LCD_COLOR
     info->get_color = NULL;

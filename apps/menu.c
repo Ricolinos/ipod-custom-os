@@ -39,6 +39,7 @@
 #include "usb.h"
 #include "panic.h"
 #include "settings.h"
+#include "sound.h"
 #include "settings_list.h"
 #include "option_select.h"
 #include "screens.h"
@@ -315,6 +316,21 @@ static const char *menu_get_value(int selected_item, void *data,
      * porque no todas las listas ponen la opción nula primero. */
     *active = strcasecmp(val, str(LANG_OFF)) != 0
            && strcasecmp(val, str(LANG_SET_BOOL_NO)) != 0;
+    /* Un ajuste numérico en cero tampoco hace nada —un precorte de 0.0 dB,
+     * unos graves de 0.0 dB, un balance de 0—, así que se atenúa igual.  Sin
+     * esto, el precorte del ecualizador salía en rosa mientras la ganancia de
+     * sus bandas, que es el mismo "0.0 dB", salía atenuada dos pantallas más
+     * adentro.
+     *
+     * La excepción es cuando el cero es el máximo del ajuste: el volumen va de
+     * -74 a 0 dB, y ahí 0 es a todo volumen, no "sin efecto". */
+    if (*active && *(int *)st->setting == 0)
+    {
+        if (st->flags & F_INT_SETTING)
+            *active = st->int_setting->max == 0;
+        else if (st->flags & F_T_SOUND)
+            *active = sound_max(st->sound_setting->setting) == 0;
+    }
     return val;
 }
 

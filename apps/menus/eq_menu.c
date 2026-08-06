@@ -112,13 +112,52 @@ static int eq_setting_callback(int action,
 MENUITEM_SETTING(eq_enable, &global_settings.eq_enabled, eq_setting_callback);
 MENUITEM_SETTING(eq_precut, &global_settings.eq_precut, eq_setting_callback);
 
+#if ROCKPOD_APPLE2026_IPOD
+static const struct int_setting gain_int_setting;
+static const struct int_setting q_int_setting;
+static const struct int_setting cutoff_int_setting;
+
+/* El icono de la banda es el mismo en la lista simple y en la avanzada: son
+ * las mismas diez bandas vistas de dos maneras. */
+static enum themable_icons eq_band_icon(int band)
+{
+    if (band == 0)
+        return Icon_S_EqBandLow;
+    if (band == EQ_NUM_BANDS - 1)
+        return Icon_S_EqBandHigh;
+    return Icon_S_EqBand1 + (band - 1);
+}
+
+/* Pide el texto del valor a la misma función que usa la pantalla de opciones,
+ * en vez de formatearlo aparte: así la fila y la pantalla nunca discrepan. */
+static const char *eq_value_text(const struct int_setting *is, int value,
+                                 char *buf, size_t bufsz)
+{
+    struct settings_list fake;
+
+    memset(&fake, 0, sizeof(fake));
+    fake.flags = F_INT_SETTING | F_T_INT;
+    fake.int_setting = is;
+    return option_get_valuestring(&fake, buf, bufsz, value);
+}
+#endif
+
 static char* gainitem_get_name(int selected_item, void *data, char *buffer, size_t len)
 {
     (void)data;
+#if ROCKPOD_APPLE2026_IPOD
+    /* "32 Hz ganancia de banda" repetía diez veces lo que ya dice el título
+     * de la pantalla, y con la ganancia a la derecha no cabía.  Queda la
+     * banda; la locución sigue diciendo la frase entera. */
+    return (char *)eq_value_text(&cutoff_int_setting,
+                global_settings.eq_band_settings[selected_item].cutoff,
+                buffer, len);
+#else
     snprintf(buffer, len, str(LANG_EQUALIZER_GAIN_ITEM),
             global_settings.eq_band_settings[selected_item].cutoff);
 
     return buffer;
+#endif
 }
 
 static int gainitem_speak_item(int selected_item, void *data)
@@ -134,8 +173,24 @@ static enum themable_icons gainitem_get_icon(int selected_item, void * data)
     (void)selected_item;
     (void)data;
 
+#if ROCKPOD_APPLE2026_IPOD
+    return eq_band_icon(selected_item);
+#else
     return Icon_Menu_functioncall;
+#endif
 }
+
+#if ROCKPOD_APPLE2026_IPOD
+static const char *gainitem_get_value(int selected_item, void *data,
+                                      char *buf, size_t bufsz, bool *active)
+{
+    int gain = global_settings.eq_band_settings[selected_item].gain;
+
+    (void)data;
+    *active = gain != 0;   /* a 0.0 dB la banda no hace nada */
+    return eq_value_text(&gain_int_setting, gain, buf, bufsz);
+}
+#endif
 
 static const char* db_format(char* buffer, size_t buffer_size, int value,
                       const char* unit)
@@ -202,9 +257,12 @@ static int eq_do_simple_menu(void * param)
     if(global_settings.talk_menu)
         info.get_talk = gainitem_speak_item;
     info.get_icon = gainitem_get_icon;
+#if ROCKPOD_APPLE2026_IPOD
+    info.get_value = gainitem_get_value;
+#endif
     info.action_callback = simplelist_action_callback;
     info.selection = -1;
-    info.title_icon = Icon_Submenu;
+    info.title_icon = Icon_S_EqSimple;
     setting.flags = F_BANFROMQS|F_INT_SETTING|F_T_INT|F_NO_WRAP;
     setting.lang_id = LANG_GAIN;
     setting.default_val.int_ = 0;
@@ -337,6 +395,33 @@ static int advancedmenu_speak_item(int selected_item, void *data)
     return -1;
 }
 
+#if ROCKPOD_APPLE2026_IPOD
+static const char *advancedmenu_get_value(int selected_item, void *data,
+                                          char *buf, size_t bufsz,
+                                          bool *active)
+{
+    struct eq_band_setting *b;
+    int band, item;
+
+    selection_to_banditem(selected_item, *(intptr_t*)data, &band, &item);
+    if (item == 0)
+        return NULL;       /* la banda es un contenedor, no un ajuste */
+
+    b = &global_settings.eq_band_settings[band];
+    /* Los tres parámetros siguen a la ganancia de su banda: con 0.0 dB la
+     * banda no filtra nada, y atenuar su frecuencia y su Q dice de un
+     * vistazo qué bandas están en juego. */
+    *active = b->gain != 0;
+    switch (item)
+    {
+        case 1:  return eq_value_text(&cutoff_int_setting, b->cutoff,
+                                      buf, bufsz);
+        case 2:  return eq_value_text(&q_int_setting, b->q, buf, bufsz);
+        default: return eq_value_text(&gain_int_setting, b->gain, buf, bufsz);
+    }
+}
+#endif
+
 static enum themable_icons advancedmenu_get_icon(int selected_item, void * data)
 {
     (void)data;
@@ -352,13 +437,7 @@ static enum themable_icons advancedmenu_get_icon(int selected_item, void * data)
      * cada banda sí llevan símbolo propio, que antes era el mismo para los
      * tres. */
     if (item == 0)
-    {
-        if (band == 0)
-            return Icon_S_EqBandLow;
-        if (band == EQ_NUM_BANDS - 1)
-            return Icon_S_EqBandHigh;
-        return Icon_S_EqBand1 + (band - 1);
-    }
+        return eq_band_icon(band);
     switch (item)
     {
         case 1:  return Icon_S_EqCutoff;   /* frecuencia central o de corte */
@@ -389,6 +468,9 @@ static int eq_do_advanced_menu(void * param)
     if(global_settings.talk_menu)
         info.get_talk = advancedmenu_speak_item;
     info.get_icon = advancedmenu_get_icon;
+#if ROCKPOD_APPLE2026_IPOD
+    info.get_value = advancedmenu_get_value;
+#endif
     info.action_callback = simplelist_action_callback;
     info.selection = -1;
     info.title_icon = Icon_EQ;

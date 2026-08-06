@@ -127,6 +127,11 @@ typedef enum {
  *          selected item, negative value for default coloring.
  */
 typedef int list_get_color(int selected_item, void * data);
+/* Apple2026: valor del ajuste de la fila, con la misma forma que el callback
+ * de gui_synclist.  Lo necesitan las listas que no son menús —el ecualizador
+ * las usa— para mostrar el valor a la derecha como el resto de Configuración. */
+typedef const char *list_get_value(int selected_item, void *data,
+                                   char *buf, size_t bufsz, bool *active);
 
 struct list_selection_color
 {
@@ -321,6 +326,7 @@ struct simplelist_info {
     enum themable_icons title_icon;
     list_get_icon *get_icon; /* can be NULL */
     list_get_name *get_name; /* NULL if you're using simplelist_addline() */
+    list_get_value *get_value; /* Apple2026: puede ser NULL */
     list_speak_item *get_talk; /* can be NULL to not speak */
 #ifdef HAVE_LCD_COLOR
     list_get_color *get_color;
