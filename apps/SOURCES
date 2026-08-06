@@ -7,6 +7,7 @@ alarm_menu.c
 #endif
 abrepeat.c
 apple2026_pane.c
+apple2026_eq_graph.c
 apple2026_kbd.c
 apple2026_lyrics.c
 apple2026_pl_picker.c

@@ -17498,3 +17498,17 @@
     *: "Guardar como..."
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_EQ_FREQ
+  desc: Apple2026 graphical equaliser, short label for the band frequency
+  user: core
+  <source>
+    *: "Frequency"
+  </source>
+  <dest>
+    *: "Frecuencia"
+  </dest>
+  <voice>
+    *: "Frecuencia"
+  </voice>
+</phrase>

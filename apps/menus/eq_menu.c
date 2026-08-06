@@ -51,6 +51,7 @@
 #include "option_select.h"
 #include "string-extra.h"
 #include "apple2026_shell.h"
+#include "apple2026_eq_graph.h"
 
 static void eq_apply(void);
 
@@ -698,11 +699,22 @@ int eq_menu_graphical(void)
     int current_band, x, y, step, fast_step, min, max;
     enum eq_slider_mode mode;
     int h, height, start_item, nb_eq_sliders[NB_SCREENS];
+#if ROCKPOD_APPLE2026_IPOD
+    /* La capa dibuja la curva de respuesta en vez de diez filas de texto, así
+     * que no hay deslizadores que medir ni fuente de sistema que poner. */
+    const bool a26 = apple2026_theme_selected();
+#else
+    const bool a26 = false;
+#endif
+
     FOR_NB_SCREENS(i)
         viewportmanager_theme_enable(i, false, NULL);
 
-
+    h = 0;
     FOR_NB_SCREENS(i) {
+        nb_eq_sliders[i] = EQ_NUM_BANDS;
+        if (a26)
+            continue;
         screens[i].set_viewport(NULL);
         screens[i].setfont(FONT_SYSFIXED);
         screens[i].clear_display();
@@ -732,7 +744,8 @@ int eq_menu_graphical(void)
     while (!exit_request) {
         FOR_NB_SCREENS(i)
         {
-            screens[i].clear_display();
+            if (!a26)
+                screens[i].clear_display();
 
             /* Set pointer to the band data currently editable */
             if (mode == GAIN) {
@@ -744,7 +757,9 @@ int eq_menu_graphical(void)
                 min = EQ_GAIN_MIN;
                 max = EQ_GAIN_MAX;
 
-                screens[i].putsxyf(0, 0, str(LANG_SYSFONT_EQUALIZER_EDIT_MODE),
+                if (!a26)
+                    screens[i].putsxyf(0, 0,
+                         str(LANG_SYSFONT_EQUALIZER_EDIT_MODE),
                          str(LANG_GAIN), "(dB)");
             } else if (mode == CUTOFF) {
                 /* cutoff */
@@ -755,7 +770,9 @@ int eq_menu_graphical(void)
                 min = EQ_CUTOFF_MIN;
                 max = EQ_CUTOFF_MAX;
 
-                screens[i].putsxyf(0, 0, str(LANG_SYSFONT_EQUALIZER_EDIT_MODE),
+                if (!a26)
+                    screens[i].putsxyf(0, 0,
+                         str(LANG_SYSFONT_EQUALIZER_EDIT_MODE),
                          str(LANG_SYSFONT_EQUALIZER_BAND_CUTOFF), "(Hz)");
             } else {
                 /* Q */
@@ -766,10 +783,26 @@ int eq_menu_graphical(void)
                 min = EQ_Q_MIN;
                 max = EQ_Q_MAX;
 
-                screens[i].putsxyf(0, 0, str(LANG_SYSFONT_EQUALIZER_EDIT_MODE),
+                if (!a26)
+                    screens[i].putsxyf(0, 0,
+                         str(LANG_SYSFONT_EQUALIZER_EDIT_MODE),
                          str(LANG_EQUALIZER_BAND_Q), "");
             }
 
+#if ROCKPOD_APPLE2026_IPOD
+            if (a26)
+            {
+                const struct eq_band_setting *b =
+                    &global_settings.eq_band_settings[current_band];
+                char cb[24], qb[24], gb[24];
+
+                apple2026_eq_graph_draw(&screens[i], current_band, (int)mode,
+                    eq_value_text(&cutoff_int_setting, b->cutoff, cb, sizeof(cb)),
+                    eq_value_text(&q_int_setting, b->q, qb, sizeof(qb)),
+                    eq_value_text(&gain_int_setting, b->gain, gb, sizeof(gb)));
+                continue;
+            }
+#endif
             /* Draw scrollbar if needed */
             if (nb_eq_sliders[i] != EQ_NUM_BANDS)
             {
@@ -867,8 +900,8 @@ int eq_menu_graphical(void)
     FOR_NB_SCREENS(i)
     {
         screens[i].setfont(FONT_UI);
-        screens[i].clear_display();
         screens[i].set_viewport(NULL);
+        screens[i].clear_display();
         viewportmanager_theme_undo(i, false);
     }
     return (result) ? 1 : 0;

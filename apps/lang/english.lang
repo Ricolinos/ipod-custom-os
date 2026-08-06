@@ -17517,3 +17517,17 @@
     *: "Save as"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_EQ_FREQ
+  desc: Apple2026 graphical equaliser, short label for the band frequency
+  user: core
+  <source>
+    *: "Frequency"
+  </source>
+  <dest>
+    *: "Frequency"
+  </dest>
+  <voice>
+    *: "Frequency"
+  </voice>
+</phrase>
