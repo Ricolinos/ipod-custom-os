@@ -17657,3 +17657,31 @@
     *: "Can't set the time: the clock is not responding"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_THEME_LIGHT
+  desc: Apple2026 theme name shown in the theme browser
+  user: core
+  <source>
+    *: "Theme Light"
+  </source>
+  <dest>
+    *: "Theme Light"
+  </dest>
+  <voice>
+    *: "Theme Light"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_THEME_DARK
+  desc: Apple2026 theme name shown in the theme browser
+  user: core
+  <source>
+    *: "Theme Dark"
+  </source>
+  <dest>
+    *: "Theme Dark"
+  </dest>
+  <voice>
+    *: "Theme Dark"
+  </voice>
+</phrase>

@@ -17638,3 +17638,31 @@
     *: "No se pudo poner la hora: el reloj no responde"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_THEME_LIGHT
+  desc: Apple2026 theme name shown in the theme browser
+  user: core
+  <source>
+    *: "Theme Light"
+  </source>
+  <dest>
+    *: "Tema Claro"
+  </dest>
+  <voice>
+    *: "Tema Claro"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_THEME_DARK
+  desc: Apple2026 theme name shown in the theme browser
+  user: core
+  <source>
+    *: "Theme Dark"
+  </source>
+  <dest>
+    *: "Tema Oscuro"
+  </dest>
+  <voice>
+    *: "Tema Oscuro"
+  </voice>
+</phrase>

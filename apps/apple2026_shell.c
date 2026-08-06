@@ -22,9 +22,42 @@
 /* TEXT_SETTING strips the WPS_DIR prefix and extension when loading, so
  * wps_file/sbs_file normally hold just "Apple2026"; tolerate full paths
  * too (settings set programmatically or from older configs). */
-static bool theme_file_is_apple2026(const char *s, const char *fullpath)
+static bool name_matches(const char *s, const char *stem)
 {
-    return s && (!strcmp(s, "Apple2026") || !strcmp(s, fullpath));
+    char full[MAX_PATH];
+
+    if (!s)
+        return false;
+    if (!strcmp(s, stem))
+        return true;
+    /* TEXT_SETTING recorta el directorio y la extensión al cargar, así que
+     * normalmente llega sólo el nombre; se tolera la ruta entera por si el
+     * ajuste se puso a mano o viene de una configuración antigua. */
+    snprintf(full, sizeof(full), "%s/%s.wps", WPS_DIR, stem);
+    if (!strcmp(s, full))
+        return true;
+    snprintf(full, sizeof(full), "%s/%s.sbs", WPS_DIR, stem);
+    return !strcmp(s, full);
+}
+
+/* Qué variante de la capa está puesta, si es que hay alguna. */
+static bool theme_variant(enum a26_theme_mode *mode)
+{
+    if (name_matches(global_settings.wps_file, A26_THEME_DARK_STEM)
+        || name_matches(global_settings.sbs_file, A26_THEME_DARK_STEM))
+    {
+        if (mode)
+            *mode = A26_THEME_DARK;
+        return true;
+    }
+    if (name_matches(global_settings.wps_file, A26_THEME_LIGHT_STEM)
+        || name_matches(global_settings.sbs_file, A26_THEME_LIGHT_STEM))
+    {
+        if (mode)
+            *mode = A26_THEME_LIGHT;
+        return true;
+    }
+    return false;
 }
 
 /* Claro: la paleta de siempre, con los valores que tenían los macros. */
@@ -74,10 +107,16 @@ enum a26_theme_mode apple2026_theme_mode(void)
 
 bool apple2026_theme_selected(void)
 {
-    return theme_file_is_apple2026(global_settings.wps_file,
-                                   ROCKBOX_DIR "/wps/Apple2026.wps")
-        || theme_file_is_apple2026(global_settings.sbs_file,
-                                   ROCKBOX_DIR "/wps/Apple2026.sbs");
+    enum a26_theme_mode mode;
+
+    if (!theme_variant(&mode))
+        return false;
+    /* La paleta se fija aquí y no en la carga del tema: esta función la
+     * llama todo lo que dibuja, así que un cambio de tema queda aplicado
+     * antes del primer trazo, sin depender de que alguien avise. */
+    if (mode != apple2026_theme_mode())
+        apple2026_set_theme_mode(mode);
+    return true;
 }
 
 bool apple2026_quicksettings_enabled(void)

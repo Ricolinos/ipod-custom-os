@@ -39,6 +39,11 @@ enum a26_color {
     A26_C_COUNT
 };
 
+/* Nombre de archivo de cada variante: lo comparte la puerta del tema, el
+ * empaquetado (wps/WPSLIST) y el rótulo traducido del explorador. */
+#define A26_THEME_LIGHT_STEM "Apple2026"
+#define A26_THEME_DARK_STEM  "Apple2026Dark"
+
 enum a26_theme_mode {
     A26_THEME_LIGHT = 0,
     A26_THEME_DARK,

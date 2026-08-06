@@ -77,6 +77,7 @@
 #include "appevents.h"
 
 #include "root_menu.h"
+#include "apple2026_shell.h"
 
 static struct gui_synclist tree_lists;
 
@@ -203,6 +204,25 @@ static const char* tree_get_filename(int selected_item, void *data,
     const char *display = name;
     char strip_buf[AVERAGE_FILENAME_LENGTH];
 
+    /* Los dos temas de la capa se enseñan con su nombre traducido.  El
+     * archivo no se puede renombrar: la puerta de la capa compara ese nombre
+     * y las configuraciones guardadas lo llevan dentro. */
+    if (!(attr & ATTR_DIRECTORY))
+    {
+        /* strmemccpy devuelve un puntero pasado el terminador, no el
+         * destino: devolverlo daba una cadena vacía. */
+        if (!strcasecmp(name, A26_THEME_LIGHT_STEM ".cfg"))
+        {
+            strmemccpy(buffer, str(LANG_A26_THEME_LIGHT), buffer_len);
+            return buffer;
+        }
+        if (!strcasecmp(name, A26_THEME_DARK_STEM ".cfg"))
+        {
+            strmemccpy(buffer, str(LANG_A26_THEME_DARK), buffer_len);
+            return buffer;
+        }
+    }
+
     if (!(attr & ATTR_DIRECTORY)
         && (attr & FILE_ATTR_MASK) == FILE_ATTR_AUDIO)
     {
@@ -226,7 +246,11 @@ static const char* tree_get_filename(int selected_item, void *data,
     }
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
     if (display != name)
-        return strmemccpy(buffer, display, buffer_len);
+    {
+        /* mismo motivo: el nombre es `buffer`, no lo que devuelve la copia */
+        strmemccpy(buffer, display, buffer_len);
+        return buffer;
+    }
 #endif
     return display;
 }

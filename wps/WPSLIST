@@ -75,4 +75,59 @@ ui viewport: -
 
 </theme>
 
+<theme>
+Name: Apple2026Dark
+Authors: RockPod Apple2026 implementation wave
+WPS: yes
+RWPS: no
+SBS: yes
+RSBS: no
+FMS: no
+RFMS: no
+
+<main>
+wps.320x240x(16|24|32): Apple2026Dark.wps
+sbs.320x240x(16|24|32): Apple2026Dark.sbs
+
+# Apple2026: 18px SF Pro Text Regular (FONT_UI); list row floor 30px; list UI viewport
+# full width (selector/dividers edge-to-edge); 16px content inset in bitmap/list.c.
+# SBS: 28px SF Pro Display Bold (Library large title, slot 2); 32px title viewport
+# band at y=4; list content starts at y=38 for root (_lt variants).
+# Icon strip: 30x30 tiles (34 icons incl. Artist + Album), scale 0.88 within tile.
+Font.320x240x(16|24|32): 18-SFProText-Regular.fnt
+
+foreground color: ffffff
+background color: 1c1c1e
+line selector start color: 2C2C2E
+line selector end color: 2C2C2E
+line selector text color: FFFFFF
+selector type..+x(16|24|32): bar (color)
+
+iconset.320x240x(16|24|32): icons/Apple2026IconsDark.bmp
+viewers iconset..+x(16|24|32): -
+show icons: on
+statusbar: top
+ui viewport: -
+scrollbar: right
+scrollbar width: 2
+list separator height: 1
+list separator color: 3A3A3C
+disable main menu scrolling: on
+dynamic colors: off
+backlight on button hold: normal
+qs top: brightness
+qs left: shuffle
+qs right: repeat
+qs bottom: brightness
+</main>
+
+<remote>
+iconset: -
+viewers iconset: -
+statusbar: top
+ui viewport: -
+</remote>
+
+</theme>
+
 
