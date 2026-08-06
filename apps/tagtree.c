@@ -39,6 +39,7 @@
 #include "settings.h"
 #include "tagcache.h"
 #include "tagtree.h"
+#include "apple2026_kbd.h"
 #include "lang.h"
 #include "logf.h"
 #include "talk.h"
@@ -2269,6 +2270,29 @@ int tagtree_enter(struct tree_context* c, bool is_visible)
                         }
                         else
                         {
+#if ROCKPOD_APPLE2026_IPOD
+                            /* Name the field so the search screen can show
+                             * "Buscar por / Artista" instead of repeating
+                             * the menu entry back at you. */
+                            {
+                                int tg = csi->clause[i][j]->tag;
+                                int lid = -1;
+
+                                switch (tg)
+                                {
+                                    case tag_title:       lid = LANG_ID3_TITLE; break;
+                                    case tag_artist:      lid = LANG_ID3_ARTIST; break;
+                                    case tag_albumartist: lid = LANG_ID3_ALBUMARTIST; break;
+                                    case tag_album:       lid = LANG_ID3_ALBUM; break;
+                                    case tag_genre:       lid = LANG_ID3_GENRE; break;
+                                    case tag_composer:    lid = LANG_ID3_COMPOSER; break;
+                                    case tag_filename:    lid = LANG_ID3_PATH; break;
+                                    default: break;
+                                }
+                                apple2026_kbd_set_field(lid >= 0
+                                        ? (const char *)str(lid) : NULL);
+                            }
+#endif
                             rc = kbd_input(searchstring, SEARCHSTR_SIZE, NULL);
                             if (rc < 0 || !searchstring[0])
                             {

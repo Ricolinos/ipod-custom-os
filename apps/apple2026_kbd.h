@@ -10,6 +10,10 @@
 /* Returns 0 when the text was accepted, -1 when the user backed out.
  * `text` is edited in place and must hold at least `buflen` bytes. */
 int apple2026_kbd_input(char *text, int buflen);
+
+/* Names the field the next text entry is searching ("Artista", "Álbum"...).
+ * Consumed and cleared by the next apple2026_kbd_input(). */
+void apple2026_kbd_set_field(const char *name);
 #endif
 
 #endif /* APPLE2026_KBD_H */
