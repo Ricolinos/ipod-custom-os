@@ -60,6 +60,9 @@ int a26_wps_get_mode(void);
 /* Apple2026: true while the wheel is dragging the playhead (scrub mode) */
 bool a26_wps_is_scrubbing(void);
 
+/* Apple2026: true when the playlist catalog has something to add to */
+bool a26_playlists_available(void);
+
 /* in milliseconds */
 #define DEFAULT_SKIP_THRESH          3000l
 

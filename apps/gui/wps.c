@@ -710,6 +710,38 @@ enum {
 };
 static int a26_wps_mode = A26_WPS_VOLUME;
 
+/* Is there anywhere to add the track to?  Cached for a few seconds so the
+ * skin can ask on every refresh. */
+bool a26_playlists_available(void)
+{
+    static long checked_tick = 0;
+    static bool cached = false;
+    char dir[MAX_PATH];
+    DIR *d;
+    struct dirent *entry;
+
+    if (checked_tick && TIME_BEFORE(current_tick, checked_tick + HZ * 5))
+        return cached;
+    checked_tick = current_tick;
+    cached = false;
+    catalog_get_directory(dir, sizeof(dir));
+    d = opendir(dir);
+    if (!d)
+        return cached;
+    while ((entry = readdir(d)))
+    {
+        size_t l = strlen(entry->d_name);
+        if ((l > 5 && !strcasecmp(entry->d_name + l - 5, ".m3u8")) ||
+            (l > 4 && !strcasecmp(entry->d_name + l - 4, ".m3u")))
+        {
+            cached = true;
+            break;
+        }
+    }
+    closedir(d);
+    return cached;
+}
+
 /* Scrub like the original iPod: the wheel drags a playhead along the bar
  * (preview only, audio held), and playback resumes from that point once
  * the wheel settles.  Step scales with track length for precision and
@@ -803,7 +835,7 @@ static void a26_wps_run_mode(struct mp3entry *id3)
     switch (a26_wps_mode)
     {
         case A26_WPS_PLAYLIST:
-            if (id3 && id3->path[0])
+            if (id3 && id3->path[0] && a26_playlists_available())
             {
                 gwps_leave_wps(true);
                 catalog_add_to_a_playlist(id3->path, FILE_ATTR_AUDIO,
@@ -846,8 +878,12 @@ static void a26_wps_run_mode(struct mp3entry *id3)
 
 static void a26_wps_cycle_mode(struct mp3entry *id3)
 {
-    /* No splash: the mode row in the skin (%Wm) shows the active mode. */
+    /* No splash: the mode row in the skin (%Wm) shows the active mode.
+     * Modes with nothing to offer are skipped (their icon is drawn in the
+     * lighter disabled tone), so the wheel never lands on a dead screen. */
     a26_wps_mode = (a26_wps_mode + 1) % A26_WPS_MODE_COUNT;
+    if (a26_wps_mode == A26_WPS_PLAYLIST && !a26_playlists_available())
+        a26_wps_mode = (a26_wps_mode + 1) % A26_WPS_MODE_COUNT;
 #ifndef HAVE_TAGCACHE
     if (a26_wps_mode == A26_WPS_RATING)
         a26_wps_mode = A26_WPS_VOLUME;

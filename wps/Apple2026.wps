@@ -60,7 +60,7 @@
 # Preload album art framing assets (Apple Music-style rounded corners + soft shadow)
 %xl(K,wpsArtCorners110.bmp,0,0)
 # Wheel-mode row: 5 icons x (inactive a-e / active f-j)
-%xl(W,wps_modes.bmp,0,0,10)
+%xl(W,wps_modes.bmp,0,0,11)
 # Rating stars: a=empty b=filled (muted) / c=empty d=filled (pink,
 # shown while the rating mode is active)
 %xl(S,wps_stars.bmp,0,0,4)
@@ -257,7 +257,7 @@
 
 %Vl(mode_pl,240,150,14,14,-)
 %Vb(FFFFFF)
-%?if(%Wm, =, 2)<%xd(Wh)|%xd(Wc)>
+%?Wp<%?if(%Wm, =, 2)<%xd(Wh)|%xd(Wc)>|%xd(Wk)>
 
 %Vl(mode_lyr,262,150,14,14,-)
 %Vb(FFFFFF)

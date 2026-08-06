@@ -1128,6 +1128,8 @@ const char *get_token_value(struct gui_wps *gwps,
                 return NULL;
             return !strcmp(t, root) ? "s" : NULL;
         }
+        case SKIN_TOKEN_A26_PLAYLISTS_AVAIL:
+            return a26_playlists_available() ? "s" : NULL;
         case SKIN_TOKEN_A26_WPS_MODE:
             /* Apple2026: Now Playing wheel mode (0..4) */
             numeric_ret = a26_wps_get_mode();
