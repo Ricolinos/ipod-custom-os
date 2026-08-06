@@ -358,17 +358,6 @@
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%xd(Q)|>
 
-%V(114,88,92,14,8)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%acMENU|>
-
-# Transport legend under the wheel.  The angle brackets and the pipe of the
-# hardware legend are skin syntax, so the play/pause glyph stands in for them.
-%V(153,152,15,16,-)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%xd(Pc)|>
 
 # Shuffle and repeat as icons: accent when on, muted when off
 %V(56,126,15,15,-)
@@ -379,7 +368,7 @@
 %V(249,126,15,15,-)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%?mm<%xd(Ea)|%xd(Eb)|%xd(Ec)|%xd(Ed)|%xd(Eb)>|>
+%?if(%cs, =, 10)<%?mm<%xd(Ea)|%xd(Eb)|%xd(Ed)|%xd(Eb)|%xd(Eb)>|>
 
 # Brightness cue below the wheel (down on the wheel lowers it)
 %V(153,190,14,14,-)
