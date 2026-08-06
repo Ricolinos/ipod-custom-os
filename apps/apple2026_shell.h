@@ -19,26 +19,49 @@
  * every icon 8px from the screen, which is the margin the design calls for,
  * while keeping the glyphs centred on a common axis. */
 #define A26_LIST_CONTENT_INSET 2
-/* Shell background (FFFFFF) */
-#define A26_SHELL_BG LCD_RGBPACK(255, 255, 255)
-/* Primary body/header text (000000) */
-#define A26_TEXT_PRIMARY LCD_RGBPACK(0, 0, 0)
-/* Secondary metadata / support text (6E6E73) */
-#define A26_TEXT_SECONDARY LCD_RGBPACK(110, 110, 115)
-/* Tertiary emphasis / progress fill (3C3C43) */
-#define A26_TEXT_TERTIARY LCD_RGBPACK(60, 60, 67)
-/* Accent red (FF2D55) */
-#define A26_ACCENT LCD_RGBPACK(255, 45, 85)
-/* List separator / thin rail (C6C6C8 — Apple opaqueSeparator) */
-#define A26_SHELL_RAIL LCD_RGBPACK(198, 198, 200)
-/* Active progress segment — tertiary family, not pure black */
-#define A26_PROGRESS_FILL LCD_RGBPACK(60, 60, 67)
-/* Unfilled progress track — matches WPS `%Vb(E5E5EA)` rail */
-#define A26_PROGRESS_TRACK LCD_RGBPACK(229, 229, 234)
-/* Statusbar battery “remainder” — calm neutral vs stock LCD_DARKGRAY */
-#define A26_BATTERY_REMAIN LCD_RGBPACK(199, 199, 204)
-/* Splash “broken theme” panel fill — calm grouped secondary, not stock gray */
-#define A26_SPLASH_BROKEN_FILL LCD_RGBPACK(242, 242, 246)
+/* ---------------------------------------------------------------------
+ * Colores de la capa.  Eran constantes de compilación, y por eso el tema
+ * oscuro no podía existir: los mismos ochenta sitios de uso tenían que dar
+ * un valor u otro según el tema.  Los nombres no cambian; ahora resuelven
+ * contra la paleta activa.
+ * ------------------------------------------------------------------- */
+enum a26_color {
+    A26_C_SHELL_BG,              /* Fondo de la carcasa */
+    A26_C_TEXT_PRIMARY,          /* Texto principal */
+    A26_C_TEXT_SECONDARY,        /* Texto secundario / metadatos */
+    A26_C_TEXT_TERTIARY,         /* Énfasis terciario */
+    A26_C_ACCENT,                /* Acento */
+    A26_C_SHELL_RAIL,            /* Separador de lista / raya fina */
+    A26_C_PROGRESS_FILL,         /* Progreso recorrido */
+    A26_C_PROGRESS_TRACK,        /* Progreso pendiente */
+    A26_C_BATTERY_REMAIN,        /* Resto de la batería */
+    A26_C_SPLASH_BROKEN_FILL,    /* Panel de "tema roto" */
+    A26_C_COUNT
+};
+
+enum a26_theme_mode {
+    A26_THEME_LIGHT = 0,
+    A26_THEME_DARK,
+};
+
+/* Apunta a la paleta del tema activo.  Nunca es NULL: arranca en la clara. */
+extern const unsigned *a26_palette;
+
+#define A26_SHELL_BG             (a26_palette[A26_C_SHELL_BG])
+#define A26_TEXT_PRIMARY         (a26_palette[A26_C_TEXT_PRIMARY])
+#define A26_TEXT_SECONDARY       (a26_palette[A26_C_TEXT_SECONDARY])
+#define A26_TEXT_TERTIARY        (a26_palette[A26_C_TEXT_TERTIARY])
+#define A26_ACCENT               (a26_palette[A26_C_ACCENT])
+#define A26_SHELL_RAIL           (a26_palette[A26_C_SHELL_RAIL])
+#define A26_PROGRESS_FILL        (a26_palette[A26_C_PROGRESS_FILL])
+#define A26_PROGRESS_TRACK       (a26_palette[A26_C_PROGRESS_TRACK])
+#define A26_BATTERY_REMAIN       (a26_palette[A26_C_BATTERY_REMAIN])
+#define A26_SPLASH_BROKEN_FILL   (a26_palette[A26_C_SPLASH_BROKEN_FILL])
+
+/* Cambia la paleta.  La llama la carga del tema; el resto de la capa no
+ * necesita enterarse porque lee siempre a través de los tokens. */
+void apple2026_set_theme_mode(enum a26_theme_mode mode);
+enum a26_theme_mode apple2026_theme_mode(void);
 
 bool apple2026_theme_selected(void);
 

@@ -27,6 +27,51 @@ static bool theme_file_is_apple2026(const char *s, const char *fullpath)
     return s && (!strcmp(s, "Apple2026") || !strcmp(s, fullpath));
 }
 
+/* Claro: la paleta de siempre, con los valores que tenían los macros. */
+static const unsigned a26_pal_light[A26_C_COUNT] = {
+    [A26_C_SHELL_BG]           = LCD_RGBPACK(255, 255, 255),
+    [A26_C_TEXT_PRIMARY]       = LCD_RGBPACK(0, 0, 0),
+    [A26_C_TEXT_SECONDARY]     = LCD_RGBPACK(110, 110, 115),
+    [A26_C_TEXT_TERTIARY]      = LCD_RGBPACK(60, 60, 67),
+    [A26_C_ACCENT]             = LCD_RGBPACK(255, 45, 85),
+    [A26_C_SHELL_RAIL]         = LCD_RGBPACK(198, 198, 200),
+    [A26_C_PROGRESS_FILL]      = LCD_RGBPACK(60, 60, 67),
+    [A26_C_PROGRESS_TRACK]     = LCD_RGBPACK(229, 229, 234),
+    [A26_C_BATTERY_REMAIN]     = LCD_RGBPACK(199, 199, 204),
+    [A26_C_SPLASH_BROKEN_FILL] = LCD_RGBPACK(242, 242, 246),
+};
+
+/* Oscuro: no es la clara invertida.  El fondo es el gris muy oscuro de
+ * Apple, no negro puro, para que las esquinas redondeadas y las sombras
+ * sigan leyéndose; el acento sube de luminosidad porque el mismo rosa sobre
+ * negro pierde contraste. */
+static const unsigned a26_pal_dark[A26_C_COUNT] = {
+    [A26_C_SHELL_BG]           = LCD_RGBPACK(28, 28, 30),
+    [A26_C_TEXT_PRIMARY]       = LCD_RGBPACK(255, 255, 255),
+    [A26_C_TEXT_SECONDARY]     = LCD_RGBPACK(152, 152, 157),
+    [A26_C_TEXT_TERTIARY]      = LCD_RGBPACK(199, 199, 204),
+    [A26_C_ACCENT]             = LCD_RGBPACK(255, 69, 108),
+    [A26_C_SHELL_RAIL]         = LCD_RGBPACK(58, 58, 60),
+    [A26_C_PROGRESS_FILL]      = LCD_RGBPACK(229, 229, 234),
+    [A26_C_PROGRESS_TRACK]     = LCD_RGBPACK(72, 72, 74),
+    [A26_C_BATTERY_REMAIN]     = LCD_RGBPACK(99, 99, 102),
+    [A26_C_SPLASH_BROKEN_FILL] = LCD_RGBPACK(44, 44, 46),
+};
+
+const unsigned *a26_palette = a26_pal_light;
+static enum a26_theme_mode a26_mode = A26_THEME_LIGHT;
+
+void apple2026_set_theme_mode(enum a26_theme_mode mode)
+{
+    a26_mode = mode;
+    a26_palette = (mode == A26_THEME_DARK) ? a26_pal_dark : a26_pal_light;
+}
+
+enum a26_theme_mode apple2026_theme_mode(void)
+{
+    return a26_mode;
+}
+
 bool apple2026_theme_selected(void)
 {
     return theme_file_is_apple2026(global_settings.wps_file,
