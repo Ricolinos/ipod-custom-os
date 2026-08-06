@@ -690,3 +690,103 @@ static void ICODE_ATTR lcd_alpha_bitmap_part_mix(
     BLEND_FINISH;
 }
 #endif /* !DISABLE_ALPHA_BITMAP */
+
+#if A26_LCD_CORNERS
+/* ---------------------------------------------------------------------
+ * Apple2026: rounded screen corners.
+ *
+ * The corner arc is supersampled 4x4 so the curve blends into whatever is
+ * underneath instead of stepping.  Blending has to be idempotent — the
+ * same corner is stamped on every update — so the pre-stamp value of each
+ * antialiased pixel is remembered: if the framebuffer still holds what we
+ * wrote last time, nothing redrew it and the original value is reused.
+ * ------------------------------------------------------------------- */
+#define A26_CR      9                       /* corner radius */
+#define A26_CR_N    (A26_CR * A26_CR)
+
+static unsigned char a26_cov[A26_CR_N];     /* 0..16 coverage per pixel */
+static fb_data a26_src[4][A26_CR_N];        /* value before we stamped */
+static fb_data a26_out[4][A26_CR_N];        /* value we stamped */
+static bool a26_corners_ready = false;
+
+static void a26_corners_build(void)
+{
+    const int r8 = A26_CR * 8;
+    int x, y, sx, sy;
+
+    for (y = 0; y < A26_CR; y++)
+        for (x = 0; x < A26_CR; x++)
+        {
+            int cov = 0;
+
+            for (sy = 0; sy < 4; sy++)
+                for (sx = 0; sx < 4; sx++)
+                {
+                    int dx = (x * 8 + sx * 2 + 1) - r8;
+                    int dy = (y * 8 + sy * 2 + 1) - r8;
+
+                    if (dx * dx + dy * dy <= r8 * r8)
+                        cov++;
+                }
+            a26_cov[y * A26_CR + x] = cov;
+        }
+    memset(a26_out, 0xFF, sizeof(a26_out));   /* nothing stamped yet */
+    a26_corners_ready = true;
+}
+
+static void a26_corner_pixel(int corner, int idx, int px, int py,
+                             int rx, int ry, int rw, int rh)
+{
+    unsigned cov = a26_cov[idx];
+    fb_data *p, cur, val;
+    unsigned r, g, b;
+
+    if (cov >= 16)
+        return;                             /* wholly inside the shape */
+    if (px < rx || px >= rx + rw || py < ry || py >= ry + rh)
+        return;                             /* outside the updated area */
+
+    p = FBADDR(px, py);
+    if (cov == 0)
+    {
+        *p = 0;                             /* wholly outside: black */
+        return;
+    }
+
+    cur = *p;
+    if (cur == a26_out[corner][idx])
+        cur = a26_src[corner][idx];         /* untouched since last stamp */
+    a26_src[corner][idx] = cur;
+
+    r = ((cur >> 11) & 0x1F) * cov / 16;
+    g = ((cur >> 5) & 0x3F) * cov / 16;
+    b = (cur & 0x1F) * cov / 16;
+    val = (fb_data)((r << 11) | (g << 5) | b);
+    a26_out[corner][idx] = val;
+    *p = val;
+}
+
+void a26_lcd_stamp_corners(int x, int y, int width, int height)
+{
+    int i, j;
+
+    if (!a26_corners_ready)
+        a26_corners_build();
+
+    for (j = 0; j < A26_CR; j++)
+        for (i = 0; i < A26_CR; i++)
+        {
+            int idx = j * A26_CR + i;
+
+            if (a26_cov[idx] >= 16)
+                continue;
+            a26_corner_pixel(0, idx, i, j, x, y, width, height);
+            a26_corner_pixel(1, idx, LCD_WIDTH - 1 - i, j,
+                             x, y, width, height);
+            a26_corner_pixel(2, idx, i, LCD_HEIGHT - 1 - j,
+                             x, y, width, height);
+            a26_corner_pixel(3, idx, LCD_WIDTH - 1 - i, LCD_HEIGHT - 1 - j,
+                             x, y, width, height);
+        }
+}
+#endif /* A26_LCD_CORNERS */

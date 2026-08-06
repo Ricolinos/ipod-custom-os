@@ -89,8 +89,7 @@
 #
 # Header title â€” full screens center it; split screens use the small
 # left-bar titles (large_title at root, lm_title in the Music submenu)
-%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(title)|%Vd(titlewide)>>>
-%?Lo<%Vd(large_title)|%?LM<%Vd(lm_title)|>>
+%?Lo<%Vd(hdr_title_split)%Vd(hdr_clock_split)|%?LM<%Vd(hdr_title_split)%Vd(hdr_clock_split)|%Vd(hdr_title)%Vd(hdr_clock)>>
 %?if(%cs, =, 10)<|%?mv(1.2)<%?mp<|%Vd(mp_volume_bg)%Vd(mp_volume_clip)||%Vd(mp_volume_bg)%Vd(mp_volume_clip)|%Vd(mp_volume_bg)%Vd(mp_volume_clip)>>|>
 #
 # USB backdrop
@@ -110,31 +109,35 @@
 %Vb(FFFFFF)
 %dr(0,0,160,20,FFFFFF,FFFFFF)
 
-# â”€â”€ Header title (when battery % shown â€” shorter to leave room for numbers) â”€â”€
+# -- Header title: left aligned everywhere; the root band reads "iPod" ----
+# The line has to carry a dynamic tag (%Lo/%Lt).  A purely literal line is
+# classed as static, drawn only on a full refresh and never restored after
+# anything else repaints the bar - that is why "iPod" used to disappear.
 # Font slot 3 RB12 height = 20px; VP height must be >= 20 to avoid clipping.
-%Vl(title,74,0,-74,20,3)
+%Vl(hdr_title,6,0,134,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%ac%?cs<%Lt|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
+%s%al%?Lo<iPod|%?cs<%Lt|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>>
 
-# â”€â”€ Header title (when battery % not shown â€” wide) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(titlewide,56,0,-56,20,3)
+# -- Header title on split screens (left 160 column only) -----------------
+# Root: "iPod"; Music submenu: the live list title.  Font slot 8 (14pt) so a
+# longer section name still fits beside the clock.
+%Vl(hdr_title_split,6,0,46,20,8)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%ac%?cs<%Lt|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP> - %?if(%bl, =, 100)<100%%|%bl%%>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
+%s%al%?Lo<iPod|%Lt>
 
-# â”€â”€ Split-screen titles (20px iPod-scale bar, left 160 column only) â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# Root: "Biblioteca"; Music submenu: the live list title (%Lt).
-# Battery shares the bar at x>=124 (see battery_*_root).
-%Vl(large_title,10,0,84,20,3)
+# -- Clock: centred on the screen (full) or on the left panel (split) -----
+# Follows the 12/24h setting, like every other clock in the shell.
+%Vl(hdr_clock,110,0,100,20,8)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%aliPod
+%ac%?cf<%cH:%cM|%cl:%cM %cP>
 
-%Vl(lm_title,10,0,84,20,3)
+%Vl(hdr_clock_split,56,0,48,20,8)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%al%Lt
+%ac%?cf<%cH:%cM|%cl:%cM %cP>
 
 # â”€â”€ Content viewports (selector + list dividers edge-to-edge; 16px row
 #    inset is applied in apps/gui/bitmap/list.c for Apple2026 iPod targets)
@@ -197,7 +200,7 @@
 %Vb(FFFFFF)
 %xd(Ab)
 
-%Vl(lock_split,98,4,9,12,-)
+%Vl(lock_split,104,4,9,12,-)
 %Vb(FFFFFF)
 %xd(Ab)
 
@@ -206,7 +209,7 @@
 %Vb(FFFFFF)
 %?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 
-%Vl(pp_icon_split,112,4,12,12,-)
+%Vl(pp_icon_split,116,4,12,12,-)
 %Vb(FFFFFF)
 %?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 
@@ -236,7 +239,7 @@
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
 
 # â”€â”€ Battery icon aligned within large-title band (root only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon_root,128,2,28,16,3)
+%Vl(battery_icon_root,130,2,28,16,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>

@@ -256,6 +256,17 @@ extern bool lcd_putsxy_scroll_func(int x, int y, const unsigned char *string,
 /* update a fraction of the screen */
 extern void lcd_update_rect(int x, int y, int width, int height);
 
+#if ((MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)) && (LCD_DEPTH == 16)
+/* Apple2026 shell: the panel is presented with rounded corners.  Every
+ * screen in the firmware — core, plugins, splashes, the WPS — reaches the
+ * display through lcd_update_rect(), so stamping the corners there is the
+ * single place that catches all of them without touching any of them. */
+#define A26_LCD_CORNERS 1
+void a26_lcd_stamp_corners(int x, int y, int width, int height);
+#else
+#define A26_LCD_CORNERS 0
+#endif
+
 #ifdef HAVE_REMOTE_LCD
     extern void lcd_remote_update(void);
     /* update a fraction of the screen */
