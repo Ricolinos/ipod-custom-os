@@ -451,8 +451,15 @@ static void pane_edge_shadow(struct screen *display, const fb_data *src,
  * column colors are constant per x, so compute one row and replicate. */
 static void pane_edge_shadow_solid(struct screen *display, int h);
 
-/* Slow diagonal drift: travels whatever spare width and height the cover
- * has over the whole fade+hold period, along the randomly chosen diagonal. */
+/* Slow diagonal drift.
+ *
+ * Both axes travel the *same* number of pixels.  Giving each axis its own
+ * range made them advance at different rates — with 128px of horizontal
+ * slack against 86px of vertical, x steps about 1.5 times as often as y, so
+ * most redraws moved one axis only and the path read as a staircase rather
+ * than a diagonal.  Equal travel means both axes step together on the same
+ * frame, which is a true 45-degree line.  Whatever slack is left over on the
+ * longer axis is split evenly, so the pan stays centred. */
 static void pan_pos_now(const struct bitmap *bm, int vp_w, int vp_h,
                         int *out_x, int *out_y)
 {
@@ -460,31 +467,44 @@ static void pan_pos_now(const struct bitmap *bm, int vp_w, int vp_h,
     int ry = bm->height - vp_h;
     long total = PANE_FADE_TICKS + PANE_HOLD_TICKS;
     long elapsed = current_tick - fade_start_tick;
-    int x, y;
+    int run, d;
 
+    if (rx < 0)
+        rx = 0;
+    if (ry < 0)
+        ry = 0;
     if (elapsed < 0)
         elapsed = 0;
     if (elapsed > total)
         elapsed = total;
 
-    if (rx <= 0)
-        x = 0;
-    else
+    run = MIN(rx, ry);
+    if (run == 0)
+        run = MAX(rx, ry);      /* one axis has no slack: slide on the other */
+
+    d = (int)((long long)run * elapsed / total);
+
+    if (rx > 0)
     {
-        x = (int)((long long)rx * elapsed / total);
-        if (pan_dx < 0)
-            x = rx - x;
+        int span = MIN(run, rx);
+        int base = (rx - span) / 2;
+        int step = MIN(d, span);
+
+        *out_x = base + (pan_dx > 0 ? step : span - step);
     }
-    if (ry <= 0)
-        y = 0;
     else
+        *out_x = 0;
+
+    if (ry > 0)
     {
-        y = (int)((long long)ry * elapsed / total);
-        if (pan_dy < 0)
-            y = ry - y;
+        int span = MIN(run, ry);
+        int base = (ry - span) / 2;
+        int step = MIN(d, span);
+
+        *out_y = base + (pan_dy > 0 ? step : span - step);
     }
-    *out_x = x;
-    *out_y = y;
+    else
+        *out_y = 0;
 }
 
 /* Pick one of the four diagonals for the cover that is coming in. */
