@@ -110,6 +110,9 @@ static fb_data ly_art_px[LY_ART * LY_ART];
 static int   ly_art_w, ly_art_h;
 static bool  ly_art_ok;
 static fb_data ly_bg;
+/* Secondary tones are white laid over the panel, not a fixed gray: a
+ * neutral gray washes out on a saturated background (the pink fallback). */
+static fb_data ly_dim, ly_dim_head;
 static int   ly_font_cur = -1, ly_font_sub = -1;
 static int   ly_font_head = -1, ly_font_headsub = -1;
 static unsigned char ly_work[LY_ART * LY_ART * sizeof(fb_data) + 44 * 1024];
@@ -229,7 +232,10 @@ static void ly_load_art(const struct mp3entry *id3)
     bool have_cover;
 
     ly_art_ok = false;
-    ly_bg = LCD_RGBPACK(0xFF, 0x2E, 0x56);   /* no art: Apple pink */
+    /* No art: a deepened Apple pink.  The accent itself (FF2D55) is too
+     * light to carry white lyrics — this is the same colour dimmed enough
+     * to keep the type legible. */
+    ly_bg = LCD_RGBPACK(0xB8, 0x20, 0x3D);
 
     have_cover = id3 && find_albumart(id3, path, sizeof(path), &d);
     if (!have_cover)
@@ -274,6 +280,11 @@ static void ly_load_art(const struct mp3entry *id3)
         b = (b / n) * 2 / 5;
         ly_bg = (fb_data)((r << 11) | (g << 5) | b);
     }
+
+    /* Secondary type: white at reduced opacity over whatever tone we
+     * ended up with, so contrast holds on dark covers and on the pink. */
+    ly_dim = ly_mix(LCD_WHITE, ly_bg, 72);
+    ly_dim_head = ly_mix(LCD_WHITE, ly_bg, 40);
 
     /* Round the corners against the white player column.  The mask is
      * coverage-based (4x4 supersampling of the corner arc) — a plain
@@ -741,7 +752,7 @@ static void ly_paint_panel(struct screen *display, struct viewport *vp,
         {
             struct ly_row *r = &ly_rows[i];
             unsigned colour = r->active ? LCD_WHITE
-                                        : LCD_RGBPACK(0xB8, 0xB8, 0xBE);
+                                                    : ly_dim;
 
             y = base + r->y;
             if (y + LY_ROW_H < LY_HEAD_H || y > lyr.height)
@@ -770,7 +781,7 @@ static void ly_paint_panel(struct screen *display, struct viewport *vp,
     ly_head_text(display, lyr.width, ly_f(ly_font_head), 6,
                  id3 ? id3->title : NULL, LCD_WHITE);
     ly_head_text(display, lyr.width, ly_f(ly_font_headsub), 29,
-                 id3 ? id3->artist : NULL, LCD_RGBPACK(0xDA, 0xDA, 0xDE));
+                 id3 ? id3->artist : NULL, ly_dim_head);
     display->setfont(FONT_UI);
     display->set_viewport(vp);
 }
