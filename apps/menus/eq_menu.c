@@ -224,7 +224,7 @@ static int eq_do_simple_menu(void * param)
     return 0;
 }
 MENUITEM_FUNCTION(gain_menu, 0, ID2P(LANG_EQUALIZER_GAIN),
-	              eq_do_simple_menu, NULL, Icon_S_EqGraph);
+	              eq_do_simple_menu, NULL, Icon_S_EqSimple);
 
 static void selection_to_banditem(int selection, int expanded_band, int *band, int *item)
 {
@@ -428,7 +428,7 @@ static int eq_do_advanced_menu(void * param)
     return 0;
 }
 MENUITEM_FUNCTION(advanced_menu, 0, ID2P(LANG_EQUALIZER_ADVANCED),
-                  eq_do_advanced_menu, NULL, Icon_EQ);
+                  eq_do_advanced_menu, NULL, Icon_S_EqAdv);
 
 enum eq_slider_mode {
     GAIN,
@@ -795,14 +795,14 @@ static void eq_reset_defaults(void)
 }
 
 MENUITEM_FUNCTION(eq_graphical, 0, ID2P(LANG_EQUALIZER_GRAPHICAL),
-                  eq_menu_graphical, lowlatency_callback, Icon_EQ);
+                  eq_menu_graphical, lowlatency_callback, Icon_S_EqGraph);
 MENUITEM_FUNCTION(eq_save, 0, ID2P(LANG_EQUALIZER_SAVE),
-                  eq_save_preset, NULL, Icon_NOICON);
+                  eq_save_preset, NULL, Icon_S_EqSave);
 MENUITEM_FUNCTION(eq_reset, 0, ID2P(LANG_RESET_EQUALIZER),
-                  eq_reset_defaults, NULL, Icon_NOICON);
+                  eq_reset_defaults, NULL, Icon_S_EqReset);
 MENUITEM_FUNCTION_W_PARAM(eq_browse, 0, ID2P(LANG_EQUALIZER_BROWSE),
                           browse_folder, (void*)&eqs,
-                          lowlatency_callback, Icon_NOICON);
+                          lowlatency_callback, Icon_S_EqPresets);
 
 /* Browse presets high for import-heavy workflows (Apple2026). */
 MAKE_MENU(equalizer_menu, ID2P(LANG_EQUALIZER), NULL, Icon_EQ,

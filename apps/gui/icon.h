@@ -153,6 +153,8 @@ enum themable_icons {
     Icon_S_EqGraph,
     Icon_S_EqAdv,
     Icon_S_EqSave,
+    Icon_S_EqReset,
+    Icon_S_EqSimple,
     Icon_C00,
     Icon_C01,
     Icon_C02,
