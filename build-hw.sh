@@ -204,6 +204,7 @@ line selector text color: 000000
 list separator height: 1
 list separator color: C6C6C8
 font: /.rockbox/fonts/18-SFProText-Regular.fnt
+lang: /.rockbox/langs/español.lng
 statusbar: top
 iconset: /.rockbox/icons/Apple2026Icons.bmp
 viewers iconset: -
