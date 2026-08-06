@@ -34,6 +34,8 @@
 %Fl(8,14-SFProText-Regular.fnt)
 # Slot 4: tiny badge face (A-B repeat tag) - 7pt SF Pro
 %Fl(4,07-SFPro-Rail.fnt)
+# Slot 9: compact clock for the 160px split bar
+%Fl(9,13-SFCompactText-Regular.fnt)
 
 # â”€â”€ Asset preloads â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # playerStatus: 16x18 per tile, 4 frames â€” Pa=stop Pb=pause-bars Pc=play-fill Pd=ff
@@ -92,7 +94,7 @@
 %?if(%cs, =, 10)<|%?Lo<%Vd(battery_icon_root)|%?LM<%Vd(battery_icon_root)|%Vd(battery_icon)>>>
 %?if(%St(battery display), =, numeric)<%?Lo<|%?LM<|%Vd(batterytext)>>>
 %?mh<%?Lo<%Vd(lock_split)|%?LM<%Vd(lock_split)|%Vd(lock)>>|>
-%?mp<|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>>
+%?mp<|%?Lo<|%?LM<|%Vd(pp_icon)>>|%?Lo<|%?LM<|%Vd(pp_icon)>>|%?Lo<|%?LM<|%Vd(pp_icon)>>|%?Lo<|%?LM<|%Vd(pp_icon)>>>
 %?lh<%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>>>|>
 #
 # Header title â€” full screens center it; split screens use the small
@@ -131,7 +133,7 @@
 # -- Header title on split screens (left 160 column only) -----------------
 # Root: "iPod"; Music submenu: the live list title.  Font slot 8 (14pt) so a
 # longer section name still fits beside the clock.
-%Vl(hdr_title_split,10,0,54,20,3)
+%Vl(hdr_title_split,10,0,64,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%?Lo<iPod|%Lt>
@@ -143,10 +145,10 @@
 %Vb(FFFFFF)
 %ac%?cf<%cH:%cM|%cl:%cM %cP>
 
-%Vl(hdr_clock_split,66,0,42,20,8)
-%Vf(000000)
+%Vl(hdr_clock_split,76,0,42,20,9)
+%Vf(6E6E73)
 %Vb(FFFFFF)
-%ac%?cf<%cH:%cM|%cl:%cM>
+%ar%?cf<%cH:%cM|%cl:%cM>
 
 # â”€â”€ Content viewports (selector + list dividers edge-to-edge; 16px row
 #    inset is applied in apps/gui/bitmap/list.c for Apple2026 iPod targets)
@@ -209,7 +211,7 @@
 %Vb(FFFFFF)
 %xd(Ab)
 
-%Vl(lock_split,110,4,9,12,-)
+%Vl(lock_split,121,4,9,12,-)
 %Vb(FFFFFF)
 %xd(Ab)
 
@@ -248,7 +250,7 @@
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
 
 # â”€â”€ Battery icon aligned within large-title band (root only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon_root,134,2,26,16,3)
+%Vl(battery_icon_root,133,2,26,16,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>

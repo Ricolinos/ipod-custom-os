@@ -60,7 +60,11 @@
 
 /* Slideshow geometry / timing: covers decode into a box wider than the
  * 160px pane so a slow horizontal pan (iPod-style) has room to travel. */
-#define COVER_SIZE          240
+/* The pane is 160x202, so a 240px cover only had 38px of vertical slack —
+ * the diagonal drift was almost pure horizontal.  At 288 there are 128px of
+ * horizontal and 86px of vertical travel, enough for the movement to read
+ * as diagonal in all four directions. */
+#define COVER_SIZE          288
 #define COVER_AREA          (COVER_SIZE * COVER_SIZE)
 #define COVER_POOL_MAX      96
 #define SCAN_QUEUE_MAX      96
