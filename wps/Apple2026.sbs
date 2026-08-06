@@ -52,6 +52,12 @@
 %xl(X,qs_sun_max.bmp,0,0)
 %xl(R,qs_sun_min.bmp,0,0)
 %xl(K,speaker_loud.bmp,0,0)
+# Quickscreen side sliders + the speaker that follows the volume
+%xl(U,qs_slider_fill.bmp,0,0)
+%xl(G,qs_slider_track.bmp,0,0)
+%xl(C,volIcons.bmp,0,0,3)
+%xl(D,shuffleLarge.bmp,0,0,2)
+%xl(E,repeatLarge.bmp,0,0,4)
 %xl(J,statusPlay.bmp,0,0,2)
 
 # â”€â”€ Shell routing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -340,78 +346,73 @@
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%ar%bl%%|>
 
-# Main quickscreen focus: top brightness state
-%V(153,38,14,14,-)
+# Brightness cue above the wheel (up on the wheel raises it)
+%V(153,50,14,14,-)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%xd(X)|>
 
-%V(104,52,112,16,8)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%ac%Sx(Brightness)|>
-
-%V(112,66,96,20,3)
-%Vf(000000)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%ac%Qt|>
-
-# Center wheel surface
+# Click wheel with its legends, the way the hardware is labelled
 %V(114,84,92,92,-)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%xd(Q)|>
 
-# Wheel side states
-%V(8,112,92,16,8)
+%V(114,88,92,14,8)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%ar%Sx(Shuffle)|>
+%?if(%cs, =, 10)<%acMENU|>
 
-%V(8,130,92,20,3)
-%Vf(000000)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%ar%Ql|>
-
-%V(220,112,92,16,8)
+# Transport legend under the wheel.  The angle brackets and the pipe of the
+# hardware legend are skin syntax, so the play/pause glyph stands in for them.
+%V(153,152,15,16,-)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%al%Sx(Repeat)|>
+%?if(%cs, =, 10)<%xd(Pc)|>
 
-%V(220,130,92,20,3)
+# Shuffle and repeat as icons: accent when on, muted when off
+%V(56,126,15,15,-)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%al%Qr|>
+%?if(%cs, =, 10)<%?ps<%xd(Db)|%xd(Da)>|>
 
-# Bottom brightness-down cue
-%V(153,186,14,14,-)
+%V(249,126,15,15,-)
+%Vf(000000)
+%Vb(FFFFFF)
+%?if(%cs, =, 10)<%?mm<%xd(Ea)|%xd(Eb)|%xd(Ec)|%xd(Ed)|%xd(Eb)>|>
+
+# Brightness cue below the wheel (down on the wheel lowers it)
+%V(153,190,14,14,-)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%xd(R)|>
 
-# Brightness row
-%V(50,206,16,16,-)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%xd(R)|>
-
-%V(84,211,176,6,-)
+# Volume: vertical slider on the left, with a speaker that gains waves as
+# it fills and shows the mute slash at the bottom of its travel
+%V(12,52,20,132,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%?if(%cs, =, 10)<%St(0,0,176,6,image,V,backdrop,W,setting,brightness)|>
+%?if(%cs, =, 10)<%pv(0,0,20,132,image,U,backdrop,G,vertical)|>
 
-# Volume row
-%V(50,224,16,16,-)
+%V(15,196,14,14,-)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%xd(K)|>
+%?if(%cs, =, 10)<%?pv<%xd(Ca)|%xd(Cb)|%xd(Cc)>|>
 
-%V(84,229,176,6,-)
+# Brightness: vertical slider on the right
+%V(288,52,20,132,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%?if(%cs, =, 10)<%pv(0,0,176,6,image,V,backdrop,W)|>
+%?if(%cs, =, 10)<%St(0,0,20,132,image,U,backdrop,G,vertical,setting,brightness)|>
 
-%V(266,220,38,18,8)
-%Vf(000000)
+%V(291,196,14,14,-)
+%Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%ar%pv|>
+%?if(%cs, =, 10)<%xd(X)|>
+
+
+# Numeric volume, under its own slider rather than loose in the corner
+%V(6,212,32,18,8)
+%Vf(6E6E73)
+%Vb(FFFFFF)
+%?if(%cs, =, 10)<%ac%pv|>
