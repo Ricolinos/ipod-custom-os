@@ -55,6 +55,13 @@
 #include "icon.h"
 #include "apple2026_shell.h"
 
+/* Floating sheet over the player: rounded corners, drop shadow, and it
+ * runs off the right/bottom edges like an iOS action sheet. */
+#define PL_PANEL_X      8
+#define PL_PANEL_Y      56
+#define PL_PANEL_R      12
+#define PL_SHADOW       3
+
 #define PL_MAX          48
 #define PL_NAME_MAX     64
 #define PL_ROW_H        40
@@ -214,10 +221,40 @@ static const fb_data *pl_thumb(int idx, bool *ok)
     return thumb_px[slot];
 }
 
+static int pl_isqrt(int v)
+{
+    int r = 0;
+    while ((r + 1) * (r + 1) <= v)
+        r++;
+    return r;
+}
+
+/* Filled rectangle with rounded top corners (the bottom runs off-screen). */
+static void pl_fill_round(struct screen *display, int x, int y, int w, int h,
+                          int r, unsigned colour)
+{
+    int i;
+
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, colour));
+    for (i = 0; i < h; i++)
+    {
+        int inset = 0;
+        if (i < r)
+        {
+            int dy = r - i;
+            inset = r - pl_isqrt(r * r - dy * dy);
+        }
+        display->hline(x + inset, x + w - 1 - inset, y + i);
+    }
+}
+
 static void pl_draw(struct screen *display, int sel, int top, int rows)
 {
     struct viewport vp;
     int i, y;
+
+    int sx = PL_PANEL_X, sy = PL_PANEL_Y;
+    int sw = display->lcdwidth - sx, sh = display->lcdheight - sy;
 
     viewport_set_defaults(&vp, display->screen_type);
     vp.x = 0;
@@ -227,12 +264,22 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
     vp.fg_pattern = A26_TEXT_PRIMARY;
     vp.bg_pattern = A26_SHELL_BG;
     display->set_viewport(&vp);
-    display->clear_viewport();
 
-    /* Title */
+    /* Shadow, then the sheet — the player stays visible above it, so we
+     * never clear the whole screen. */
+    pl_fill_round(display, sx - PL_SHADOW, sy - PL_SHADOW + 2,
+                  sw + PL_SHADOW, sh, PL_PANEL_R + PL_SHADOW,
+                  LCD_RGBPACK(0xEC, 0xEC, 0xEF));
+    pl_fill_round(display, sx - 1, sy + 1, sw + 1, sh,
+                  PL_PANEL_R + 1, LCD_RGBPACK(0xDA, 0xDA, 0xDE));
+    pl_fill_round(display, sx, sy, sw, sh, PL_PANEL_R, A26_SHELL_BG);
+
     display->setfont(FONT_UI);
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
-    display->putsxy(PL_MARGIN, 6, str(LANG_A26_ADD_TO_PLAYLIST));
+    display->putsxy(sx + PL_MARGIN, sy + 5, str(LANG_A26_ADD_TO_PLAYLIST));
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                    LCD_RGBPACK(0xC6, 0xC6, 0xC8)));
+    display->hline(sx, sx + sw - 1, sy + PL_TITLE_H - 1);
 
     for (i = 0; i < rows && top + i < pl_count; i++)
     {
@@ -240,13 +287,13 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
         bool ok;
         const fb_data *px;
 
-        y = PL_TITLE_H + i * PL_ROW_H;
+        y = sy + PL_TITLE_H + i * PL_ROW_H;
 
         if (idx == sel)
         {
             display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
                                         LCD_RGBPACK(0xE5, 0xE5, 0xEA)));
-            display->fillrect(0, y, vp.width, PL_ROW_H);
+            display->fillrect(sx, y, sw, PL_ROW_H);
         }
 
         px = pl_thumb(idx, &ok);
@@ -254,14 +301,15 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
             display->bitmap_part(px, 0, 0,
                                  STRIDE(display->screen_type, PL_THUMB,
                                         PL_THUMB),
-                                 PL_MARGIN, y + (PL_ROW_H - PL_THUMB) / 2,
+                                 sx + PL_MARGIN,
+                                 y + (PL_ROW_H - PL_THUMB) / 2,
                                  PL_THUMB, PL_THUMB);
         else
         {
             /* no artwork: fall back to the themed playlist icon
              * (put_line needs a line_desc; screen_put_iconxy is the
              * direct pixel-position API) */
-            screen_put_iconxy(display, PL_MARGIN,
+            screen_put_iconxy(display, sx + PL_MARGIN,
                               y + (PL_ROW_H - get_icon_height(
                                        display->screen_type)) / 2,
                               Icon_Playlist);
@@ -269,14 +317,15 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
 
         display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
                                                        A26_TEXT_PRIMARY));
-        display->putsxy(PL_MARGIN + PL_THUMB + 10,
+        display->putsxy(sx + PL_MARGIN + PL_THUMB + 10,
                         y + (PL_ROW_H - display->getcharheight()) / 2,
                         pl_list[idx].name);
 
         /* hairline separator, inset to the text column */
         display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
                                         LCD_RGBPACK(0xC6, 0xC6, 0xC8)));
-        display->hline(PL_MARGIN + PL_THUMB + 10, vp.width, y + PL_ROW_H - 1);
+        display->hline(sx + PL_MARGIN + PL_THUMB + 10, sx + sw - 1,
+                       y + PL_ROW_H - 1);
     }
 
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
@@ -297,7 +346,7 @@ bool apple2026_playlist_picker(const char *track_path)
     if (pl_scan() <= 0)
         return false;
 
-    rows = (display->lcdheight - PL_TITLE_H) / PL_ROW_H;
+    rows = (display->lcdheight - PL_PANEL_Y - PL_TITLE_H) / PL_ROW_H;
     if (rows < 1)
         rows = 1;
 
