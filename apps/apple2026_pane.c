@@ -66,8 +66,8 @@
 #define SCAN_QUEUE_MAX      96
 #define SCAN_DIRS_PER_TICK  4
 #define SCAN_MAX_DEPTH      4        /* /Music/a/b/c */
-#define PANE_HOLD_TICKS     (10 * HZ)
-#define PANE_FADE_TICKS     (HZ / 3)
+#define PANE_HOLD_TICKS     (18 * HZ)
+#define PANE_FADE_TICKS     (HZ * 3 / 4)
 
 #define MUSIC_LIBRARY_ROOT  "/Music"
 
@@ -115,9 +115,20 @@ static enum { MUSIC_EMPTY, MUSIC_FADING, MUSIC_HOLD } music_state = MUSIC_EMPTY;
 static long fade_start_tick = 0;
 static long hold_until_tick = 0;
 static bool music_active = false;
-/* slow horizontal pan across the displayed cover */
-static bool pan_left_to_right = true;
-static int  pan_last_drawn_x = -1;
+/* Slow diagonal drift across the displayed cover.  Each cover picks one of
+ * the four diagonals at random, the way the original iPod menu never quite
+ * repeated itself. */
+static int  pan_dx = 1, pan_dy = 1;
+static int  pan_last_drawn_x = -1, pan_last_drawn_y = -1;
+
+/* Window of the outgoing cover, frozen where it stopped so the incoming one
+ * can cross-fade over it instead of flashing through white. */
+static int  prev_slot = -1;
+static int  prev_x = 0, prev_y = 0;
+
+/* Size of the box the cover was last drawn into (the pane is shorter when
+ * something is playing), so the tick measures the same drift the draw does. */
+static int  pane_box_w = PANE_MAX_W, pane_box_h = PANE_MAX_H;
 
 /* left-edge shadow work strip */
 static fb_data shadow_strip[PANE_SHADOW_W * PANE_MAX_H];
@@ -375,6 +386,18 @@ static inline fb_data pane_fade_px(fb_data c, unsigned a)
     return (fb_data)((rb | g) >> 8);
 }
 
+/* Blend c1 over c2, a = 0..256 opacity of c1.  Same masked arithmetic and
+ * the same multiple-of-4 requirement as pane_fade_px above. */
+static inline fb_data pane_mix_px(fb_data c1, fb_data c2, unsigned a)
+{
+    unsigned inv;
+    a &= ~3u;
+    inv = 256 - a;
+    unsigned rb = (((c1 & 0xF81Fu) * a) + ((c2 & 0xF81Fu) * inv)) & 0xF81F00u;
+    unsigned g  = (((c1 & 0x07E0u) * a) + ((c2 & 0x07E0u) * inv)) & 0x07E000u;
+    return (fb_data)((rb | g) >> 8);
+}
+
 static unsigned fade_alpha_now(void)
 {
     long elapsed = current_tick - fade_start_tick;
@@ -424,23 +447,49 @@ static void pane_edge_shadow(struct screen *display, const fb_data *src,
  * column colors are constant per x, so compute one row and replicate. */
 static void pane_edge_shadow_solid(struct screen *display, int h);
 
-/* Slow horizontal pan: travels the spare cover width over the whole
- * fade+hold period, alternating direction randomly per cover. */
-static int pan_x_now(const struct bitmap *bm, int vp_w)
+/* Slow diagonal drift: travels whatever spare width and height the cover
+ * has over the whole fade+hold period, along the randomly chosen diagonal. */
+static void pan_pos_now(const struct bitmap *bm, int vp_w, int vp_h,
+                        int *out_x, int *out_y)
 {
-    int range = bm->width - vp_w;
+    int rx = bm->width - vp_w;
+    int ry = bm->height - vp_h;
     long total = PANE_FADE_TICKS + PANE_HOLD_TICKS;
     long elapsed = current_tick - fade_start_tick;
-    int x;
+    int x, y;
 
-    if (range <= 0)
-        return 0;
     if (elapsed < 0)
         elapsed = 0;
     if (elapsed > total)
         elapsed = total;
-    x = (int)((long long)range * elapsed / total);
-    return pan_left_to_right ? x : range - x;
+
+    if (rx <= 0)
+        x = 0;
+    else
+    {
+        x = (int)((long long)rx * elapsed / total);
+        if (pan_dx < 0)
+            x = rx - x;
+    }
+    if (ry <= 0)
+        y = 0;
+    else
+    {
+        y = (int)((long long)ry * elapsed / total);
+        if (pan_dy < 0)
+            y = ry - y;
+    }
+    *out_x = x;
+    *out_y = y;
+}
+
+/* Pick one of the four diagonals for the cover that is coming in. */
+static void pan_pick_diagonal(void)
+{
+    int r = rand();
+
+    pan_dx = (r & 1) ? 1 : -1;
+    pan_dy = (r & 2) ? 1 : -1;
 }
 
 /* ---- public: tick / animating ----------------------------------------- */
@@ -453,9 +502,8 @@ bool apple2026_pane_animating(void)
         return false;
     if (music_state == MUSIC_FADING)
         return true;
-    /* pan runs through the hold as well (redraws only on 1px steps) */
-    return music_state == MUSIC_HOLD && cover_slot_ready[cover_front]
-        && cover_slot_bmp[cover_front].width > PANE_MAX_W;
+    /* the drift runs through the hold as well (redraws on 1px steps) */
+    return music_state == MUSIC_HOLD && cover_slot_ready[cover_front];
 }
 
 /* Poll cadence for the list loop: fades need ~20fps; the slow hold-pan
@@ -468,9 +516,8 @@ int apple2026_pane_anim_timeout(void)
         return 0;
     if (music_state == MUSIC_FADING)
         return HZ / 20;
-    if (music_state == MUSIC_HOLD && cover_slot_ready[cover_front]
-        && cover_slot_bmp[cover_front].width > PANE_MAX_W)
-        return HZ / 8;
+    if (music_state == MUSIC_HOLD && cover_slot_ready[cover_front])
+        return HZ / 6;   /* the drift is slower now: fewer wakeups suffice */
     return 0;
 }
 
@@ -524,8 +571,9 @@ bool apple2026_pane_tick(void)
             {
                 music_state = MUSIC_FADING;
                 fade_start_tick = current_tick;
-                pan_left_to_right = (rand() & 1) != 0;
-                pan_last_drawn_x = -1;
+                pan_pick_diagonal();
+                prev_slot = -1;            /* nothing to dissolve from */
+                pan_last_drawn_x = pan_last_drawn_y = -1;
                 return true;
             }
             return false;
@@ -537,17 +585,28 @@ bool apple2026_pane_tick(void)
             }
             if (TIME_AFTER(current_tick, hold_until_tick))
             {
+                /* Freeze where the outgoing cover stopped.  Its pixels stay
+                 * valid for the whole fade: the next prefetch only happens
+                 * once we are back in HOLD. */
+                prev_slot = cover_front;
+                prev_x = pan_last_drawn_x < 0 ? 0 : pan_last_drawn_x;
+                prev_y = pan_last_drawn_y < 0 ? 0 : pan_last_drawn_y;
+
                 cover_front = back;
                 cover_slot_ready[cover_front ^ 1] = false;
                 music_state = MUSIC_FADING;
                 fade_start_tick = current_tick;
-                pan_left_to_right = (rand() & 1) != 0;
-                pan_last_drawn_x = -1;
+                pan_pick_diagonal();
+                pan_last_drawn_x = pan_last_drawn_y = -1;
                 return true;
             }
-            /* slow pan: request a redraw only when it moved a full pixel */
-            return pan_x_now(&cover_slot_bmp[cover_front], PANE_MAX_W)
-                   != pan_last_drawn_x;
+            /* drift: request a redraw only once it moved a whole pixel */
+            {
+                int nx, ny;
+                pan_pos_now(&cover_slot_bmp[cover_front],
+                            pane_box_w, pane_box_h, &nx, &ny);
+                return nx != pan_last_drawn_x || ny != pan_last_drawn_y;
+            }
         case MUSIC_FADING:
             return true;   /* redraw drives fade progress */
     }
@@ -802,11 +861,13 @@ static void pane_draw_music(struct screen *display, struct viewport *vp)
     stride = bm->width;
     w = MIN(bm->width, vp->width);
     h = MIN(bm->height, vp->height);
-    src_x = pan_x_now(bm, vp->width);
-    src_y = (bm->height > vp->height) ? (bm->height - vp->height) / 2 : 0;
+    pane_box_w = w;
+    pane_box_h = h;
+    pan_pos_now(bm, w, h, &src_x, &src_y);
     dst_x = (vp->width - w) / 2;
     dst_y = (vp->height - h) / 2;
     pan_last_drawn_x = src_x;
+    pan_last_drawn_y = src_y;
 
     if (music_state == MUSIC_FADING)
     {
@@ -815,17 +876,35 @@ static void pane_draw_music(struct screen *display, struct viewport *vp)
         {
             music_state = MUSIC_HOLD;
             hold_until_tick = current_tick + PANE_HOLD_TICKS;
+            prev_slot = -1;
         }
         else
         {
-            /* blend only the visible window into the work buffer */
+            /* Dissolve the incoming cover straight over the outgoing one.
+             * Fading through the white shell read as a flash; going image
+             * to image is what the original menu does. */
+            const struct bitmap *pb = (prev_slot >= 0)
+                                    ? &cover_slot_bmp[prev_slot] : NULL;
+            const fb_data *pv = (prev_slot >= 0)
+                              ? cover_slot_px[prev_slot] : NULL;
             fb_data *dst = (fb_data *)pane_workbuf;
             int x, y;
+
             for (y = 0; y < h; y++)
             {
                 const fb_data *row = src + (src_y + y) * stride + src_x;
+                const fb_data *prow = NULL;
+
+                if (pv && prev_y + y < pb->height)
+                    prow = pv + (prev_y + y) * pb->width + prev_x;
+
                 for (x = 0; x < w; x++)
-                    dst[y * w + x] = pane_fade_px(row[x], a);
+                {
+                    if (prow && prev_x + x < pb->width)
+                        dst[y * w + x] = pane_mix_px(row[x], prow[x], a);
+                    else
+                        dst[y * w + x] = pane_fade_px(row[x], a);
+                }
             }
             src = dst;
             stride = w;
