@@ -365,10 +365,16 @@
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%?ps<%xd(Db)|%xd(Da)>|>
 
-%V(249,126,15,15,-)
+%V(249,120,15,15,-)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%?mm<%xd(Ea)|%xd(Eb)|%xd(Ed)|%xd(Eb)|%xd(Eb)>|>
+
+# Same idea as the player screen: name the one mode without its own glyph.
+%V(242,137,30,18,8)
+%Vf(FF2E56)
+%Vb(FFFFFF)
+%?if(%cs, =, 10)<%?mm<||||%acA-B>|>
 
 # Brightness cue below the wheel (down on the wheel lowers it)
 %V(153,190,14,14,-)

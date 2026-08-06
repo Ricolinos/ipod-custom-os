@@ -100,7 +100,7 @@
 
 # Active-only playback-state/status lane on the right
 %Vd(shuffle_state)
-%Vd(repeat_icon_state)
+%Vd(repeat_icon_state)%Vd(repeat_ab_tag)
 %Vd(player_status_lane)
 %Vd(mode_vol)%Vd(mode_scrub)%Vd(mode_pl)%Vd(mode_lyr)%Vd(mode_rate)
 %Vd(star1)%Vd(star2)%Vd(star3)%Vd(star4)%Vd(star5)
@@ -163,9 +163,17 @@
 # Always drawn: pink when active, muted gray when off.  Repeat-one
 # swaps the glyph (SF: repeat / repeat.1 / shuffle).
 # %mm: 0=off 1=all 2=one 3=shuffle 4=A-B
-%Vl(repeat_icon_state,20,212,15,15,-)
+%Vl(repeat_icon_state,20,206,15,15,-)
 %Vb(FFFFFF)
 %?mm<%xd(Oa)|%xd(Ob)|%xd(Od)|%xd(Ob)|%xd(Ob)>
+
+# A-B is the one repeat mode with no glyph of its own, so it says so in
+# words underneath; every other mode is already told apart by its icon
+# (shuffle-repeat lights the shuffle indicator instead).
+%Vl(repeat_ab_tag,12,222,32,16,6)
+%Vf(FF2E56)
+%Vb(FFFFFF)
+%?mm<||||%acA-B>
 
 %Vl(shuffle_state,285,212,15,15,-)
 %Vb(FFFFFF)
