@@ -397,6 +397,11 @@ enum themable_icons {
     Icon_S_PfScrollSpd,
     Icon_S_PfTransSpd,
     Icon_S_PfTextFade,
+    /* Cover Flow: sus menús son listas de cadenas, así que el icono lo
+     * pone el propio plugin fila a fila. */
+    Icon_S_PlugGames,
+    Icon_S_PlugApps,
+    Icon_S_PlugDemos,
 #endif
     Icon_Last_Themeable,
 };

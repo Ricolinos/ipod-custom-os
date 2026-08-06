@@ -728,8 +728,10 @@ static int item_callback(int action,
                          const struct menu_item_ex *this_item,
                          struct gui_synclist *this_list);
 
+#if !((MODEL_NUMBER == 5) || (MODEL_NUMBER == 71))   /* sólo el menú raíz estándar */
 MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
                         NULL, Icon_Bookmark);
+#endif
 
 /* Apple2026: /Music folder view inside the Music submenu ("Carpetas"),
  * run inline so backing out stays in the Music submenu. */
@@ -816,8 +818,10 @@ MENUITEM_RETURNVALUE(pictureflow_item, "Cover Flow", GO_TO_PICTUREFLOW,
                         NULL, Icon_Display_menu);
 #endif
 #endif
+#if !((MODEL_NUMBER == 5) || (MODEL_NUMBER == 71))   /* aquí cuelga de Extras */
 MENUITEM_RETURNVALUE(rocks_browser, ID2P(LANG_PLUGINS), GO_TO_BROWSEPLUGINS,
                         NULL, Icon_Plugin);
+#endif
 
 static char *get_wps_item_name(int selected_item, void * data,
                                char *buffer, size_t buffer_len)
@@ -830,11 +834,13 @@ static char *get_wps_item_name(int selected_item, void * data,
 MENUITEM_RETURNVALUE_DYNTEXT(wps_item, GO_TO_WPS, item_callback,
                                 get_wps_item_name,
                                 NULL, NULL, Icon_Playback_menu);
+#if !((MODEL_NUMBER == 5) || (MODEL_NUMBER == 71))   /* ídem: aquí cuelgan de Extras */
 MENUITEM_RETURNVALUE(equalizer_item, ID2P(LANG_EQUALIZER), GO_TO_EQUALIZER,
                      NULL, Icon_EQ);
 #ifdef HAVE_RECORDING
 MENUITEM_RETURNVALUE(rec, ID2P(LANG_RECORDING), GO_TO_RECSCREEN,
                         NULL, Icon_Recording);
+#endif
 #endif
 #if CONFIG_TUNER
 MENUITEM_RETURNVALUE(fm, ID2P(LANG_FM_RADIO), GO_TO_FM,
@@ -875,14 +881,49 @@ static int extras_files_fn(void)
     return a26_inline_browse(GO_TO_FILEBROWSER);
 }
 MENUITEM_FUNCTION(files_browser, MENU_FUNC_CHECK_RETVAL,
-                  "Files", extras_files_fn, NULL, Icon_file_view_menu);
+                  ID2P(LANG_DIR_BROWSER), extras_files_fn, NULL,
+                  Icon_file_view_menu);
+/* Accesos directos, Ecualizador y Grabación entraban como MENUITEM_RETURNVALUE,
+ * así que al elegirlos do_menu devolvía el GO_TO_* hasta la raíz y, al salir de
+ * la pantalla, el usuario aparecía en el menú principal en vez de volver a
+ * Extras.  Aquí se ejecutan en línea, como ya hacía Archivos, y el Ecualizador
+ * cuelga directamente de su propio menú. */
+static int extras_plugins_fn(void)
+{
+    int ret = do_menu(&plugin_menu, NULL, NULL, false);
+
+    return (ret == GO_TO_PREVIOUS || ret == GO_TO_ROOT) ? 0 : ret;
+}
+MENUITEM_FUNCTION(extras_plugins, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_PLUGINS), extras_plugins_fn, NULL,
+                  Icon_A26_Plugins);
+
+static int extras_shortcuts_fn(void)
+{
+    int ret = do_shortcut_menu(NULL);
+
+    return (ret == GO_TO_PREVIOUS || ret == GO_TO_ROOT) ? 0 : ret;
+}
+MENUITEM_FUNCTION(extras_shortcuts, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_SHORTCUTS), extras_shortcuts_fn, NULL,
+                  Icon_Bookmark);
+
 #ifdef HAVE_RECORDING
+static int extras_recording_fn(void)
+{
+    recording_screen(false);
+    return 0;
+}
+MENUITEM_FUNCTION(extras_recording, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_RECORDING), extras_recording_fn, NULL,
+                  Icon_Recording);
+
 MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
-          &files_browser, &rocks_browser, &shortcut_menu, &equalizer_item,
-          &rec);
+          &files_browser, &extras_plugins, &extras_shortcuts, &equalizer_menu,
+          &extras_recording);
 #else
 MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
-          &files_browser, &rocks_browser, &shortcut_menu, &equalizer_item);
+          &files_browser, &extras_plugins, &extras_shortcuts, &equalizer_menu);
 #endif
 
 /* Apple2026: Music opens an iPod-style submenu of database views (direct
