@@ -109,7 +109,7 @@ REQUIRED_RUNTIME_FILES = [
 ]
 
 REQUIRED_BMP_DIMENSIONS = {
-    "icons/Apple2026Icons.bmp": (30, 1530),  # +Coverflow/Photos/Shuffle/Genre/MusicApp
+    "icons/Apple2026Icons.bmp": (30, 2310),  # +Coverflow/Photos/Shuffle/Genre/MusicApp
     "wps/Apple2026/albumPlaceholder.bmp": (110, 110),  # matches the 110px art rect
     "wps/Apple2026/art_mask.bmp": (32, 32),
     "wps/Apple2026/miniplayer_bg.bmp": (320, 50),

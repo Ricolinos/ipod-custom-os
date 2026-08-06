@@ -164,7 +164,7 @@ MAKE_MENU(lss_settings, ID2P(LANG_SELECTOR_COLOR_MENU),
 
 /* now the actual menu */
 MAKE_MENU(colors_settings, ID2P(LANG_COLORS_MENU),
-            NULL, Icon_Display_menu,
+            NULL, Icon_A26_Colors,
             &lss_settings,  &set_sep_col,
             &set_bg_col, &set_fg_col, &reset_colors
          );
@@ -227,7 +227,7 @@ MENUITEM_SETTING(volume_type, &global_settings.volume_type, NULL);
 #if (CONFIG_BATTERY_MEASURE != 0)
 MENUITEM_SETTING(battery_display, &global_settings.battery_display, NULL);
 #endif
-MAKE_MENU(bars_menu, ID2P(LANG_BARS_MENU), 0, Icon_NOICON,
+MAKE_MENU(bars_menu, ID2P(LANG_BARS_MENU), 0, Icon_A26_StatusBar,
           &scrollbar_item, &scrollbar_width, &statusbar,
 #ifdef HAVE_REMOTE_LCD
           &remote_statusbar,

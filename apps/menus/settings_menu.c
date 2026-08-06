@@ -351,7 +351,7 @@ MAKE_MENU(disk_menu, ID2P(LANG_DISK_MENU), 0, Icon_A26_Disk,
 MENUITEM_SETTING(max_files_in_dir, &global_settings.max_files_in_dir, NULL);
 MENUITEM_SETTING(max_files_in_playlist, &global_settings.max_files_in_playlist, NULL);
 MENUITEM_SETTING(default_glyphs, &global_settings.glyphs_to_cache, NULL);
-MAKE_MENU(limits_menu, ID2P(LANG_LIMITS_MENU), 0, Icon_NOICON,
+MAKE_MENU(limits_menu, ID2P(LANG_LIMITS_MENU), 0, Icon_A26_Limits,
            &max_files_in_dir, &max_files_in_playlist
            ,&default_glyphs
            );
@@ -367,7 +367,7 @@ MENUITEM_SETTING(keyclick, &global_settings.keyclick, NULL);
 MENUITEM_SETTING(keyclick_repeats, &global_settings.keyclick_repeats, NULL);
 #ifdef HAVE_HARDWARE_CLICK
 MENUITEM_SETTING(keyclick_hardware, &global_settings.keyclick_hardware, NULL);
-MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
+MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_A26_KeyClick,
            &keyclick, &keyclick_hardware, &keyclick_repeats);
 #else
 MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
@@ -377,7 +377,7 @@ MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
 #if CONFIG_CHARGING
 MENUITEM_SETTING(car_adapter_mode, &global_settings.car_adapter_mode, NULL);
 MENUITEM_SETTING(car_adapter_mode_delay, &global_settings.car_adapter_mode_delay, NULL);
-MAKE_MENU(car_adapter_mode_menu, ID2P(LANG_CAR_ADAPTER_MODE), 0, Icon_NOICON,
+MAKE_MENU(car_adapter_mode_menu, ID2P(LANG_CAR_ADAPTER_MODE), 0, Icon_A26_Car,
            &car_adapter_mode, &car_adapter_mode_delay);
 #endif
 #ifdef IPOD_ACCESSORY_PROTOCOL
@@ -434,7 +434,7 @@ MENUITEM_FUNCTION(sel_softlock_mask, 0, ID2P(LANG_SETTINGS),
                   Icon_Menu_setting);
 
 MAKE_MENU(sel_softlock, ID2P(LANG_SOFTLOCK_SELECTIVE),
-          NULL, Icon_Menu_setting, &bt_selective_actions, &sel_softlock_mask);
+          NULL, Icon_A26_LockKey, &bt_selective_actions, &sel_softlock_mask);
 #endif /* !HAS_BUTTON_HOLD */
 
 MENUITEM_SETTING(wps_select_action, &global_settings.wps_select_action, NULL);
@@ -444,7 +444,7 @@ MENUITEM_SETTING(governor, &global_settings.governor, NULL);
 #endif
 
 MAKE_MENU(system_menu, ID2P(LANG_SYSTEM),
-          0, Icon_A26_Tools,
+          0, Icon_A26_SystemGears,
 #if (BATTERY_CAPACITY_INC > 0) || defined(HAVE_USB_CHARGING_ENABLE)
             &battery_menu,
 #endif
@@ -778,7 +778,7 @@ MENUITEM_SETTING(browser_default,
 MENUITEM_SETTING(hotkey_wps_item, &global_settings.hotkey_wps, NULL);
 #endif
 
-MAKE_MENU(wps_settings, ID2P(LANG_WPS), 0, Icon_Playback_menu
+MAKE_MENU(wps_settings, ID2P(LANG_WPS), 0, Icon_A26_NowPlaying
             ,&browser_default
 #ifdef HAVE_HOTKEY
             ,&hotkey_wps_item

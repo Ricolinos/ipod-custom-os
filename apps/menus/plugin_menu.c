@@ -107,5 +107,5 @@ MENUITEM_FUNCTION_W_PARAM(demos_item, ITEM_FLAG, ID2P(LANG_PLUGIN_DEMOS),
 
 
 MAKE_MENU(plugin_menu, ID2P(LANG_PLUGINS), &menu_callback,
-          Icon_Plugin,
+          Icon_A26_Plugins,
           &games_item, &apps_item, &demos_item);

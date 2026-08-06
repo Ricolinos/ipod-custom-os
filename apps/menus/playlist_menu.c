@@ -142,7 +142,7 @@ MENUITEM_SETTING(show_indices, &global_settings.playlist_viewer_indices, NULL);
 MENUITEM_SETTING(track_display,
                  &global_settings.playlist_viewer_track_display, NULL);
 MAKE_MENU(viewer_settings_menu, ID2P(LANG_PLAYLISTVIEWER_SETTINGS),
-          NULL, Icon_Playlist,
+          NULL, Icon_A26_PlaylistView,
           &show_icons, &show_indices, &track_display);
 
 /* Current Playlist submenu */
@@ -151,7 +151,7 @@ MENUITEM_SETTING(keep_current_track_on_replace, &global_settings.keep_current_tr
 MENUITEM_SETTING(show_shuffled_adding_options, &global_settings.show_shuffled_adding_options, NULL);
 MENUITEM_SETTING(show_queue_options, &global_settings.show_queue_options, NULL);
 MAKE_MENU(currentplaylist_settings_menu, ID2P(LANG_CURRENT_PLAYLIST),
-          NULL, Icon_Playlist,
+          NULL, Icon_A26_CurPlaylist,
           &warn_on_erase,
           &keep_current_track_on_replace,
           &show_shuffled_adding_options,

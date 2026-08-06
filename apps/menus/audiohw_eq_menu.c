@@ -226,7 +226,7 @@ MAKE_MENU(hardware_eq_tone_controls_advanced, ID2P(LANG_HW_EQ_TONE_CONTROLS_ADVA
     );
 /* Shows only the gains + advanced settings submenu */
 MAKE_MENU(audiohw_eq_tone_controls, ID2P(LANG_HW_EQ_TONE_CONTROLS),
-          NULL, Icon_NOICON
+          NULL, Icon_A26_ToneControls
           ,&hw_eq_band1_gain
 #ifdef AUDIOHW_HAVE_EQ_BAND2
           ,&hw_eq_band2_gain

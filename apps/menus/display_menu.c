@@ -172,7 +172,7 @@ MENUITEM_FUNCTION(sel_backlight_mask, 0, ID2P(LANG_SETTINGS),
                   Icon_Menu_setting);
 
 MAKE_MENU(sel_backlight, ID2P(LANG_BACKLIGHT_SELECTIVE),
-          NULL, Icon_Menu_setting, &bl_selective_actions, &sel_backlight_mask);
+          NULL, Icon_A26_BacklightExc, &bl_selective_actions, &sel_backlight_mask);
 
 #ifdef HAVE_LCD_SLEEP_SETTING
 MENUITEM_SETTING(lcd_sleep_after_backlight_off,
@@ -193,7 +193,7 @@ MENUITEM_SETTING(flip_display, &global_settings.flip_display, flipdisplay_callba
 #endif
 /* now the actual menu */
 MAKE_MENU(lcd_settings,ID2P(LANG_LCD_MENU),
-            NULL, Icon_Display_menu
+            NULL, Icon_A26_LCD
 #ifdef HAVE_BACKLIGHT
             ,&backlight_timeout
 # if CONFIG_CHARGING
@@ -336,7 +336,7 @@ MENUITEM_SETTING(scroll_paginated, &global_settings.scroll_paginated, NULL);
 MENUITEM_SETTING(list_wraparound, &global_settings.list_wraparound, NULL);
 MENUITEM_SETTING(list_order, &global_settings.list_order, NULL);
 
-MAKE_MENU(scroll_settings_menu, ID2P(LANG_SCROLL_MENU), 0, Icon_NOICON,
+MAKE_MENU(scroll_settings_menu, ID2P(LANG_SCROLL_MENU), 0, Icon_A26_Scroll,
           &scroll_speed, &scroll_delay,
           &scroll_step,
           &bidir_limit,
@@ -531,7 +531,7 @@ MENUITEM_FUNCTION(peak_meter_min_item, 0, ID2P(LANG_PM_MIN),
                   peak_meter_min, NULL, Icon_NOICON);
 MENUITEM_FUNCTION(peak_meter_max_item, 0, ID2P(LANG_PM_MAX),
                   peak_meter_max, NULL, Icon_NOICON);
-MAKE_MENU(peak_meter_menu, ID2P(LANG_PM_MENU), NULL, Icon_NOICON,
+MAKE_MENU(peak_meter_menu, ID2P(LANG_PM_MENU), NULL, Icon_A26_PeakMeter,
           &peak_meter_release, &peak_meter_hold,
           &peak_meter_clip_hold,
 #ifdef HAVE_RECORDING
@@ -581,7 +581,7 @@ MENUITEM_FUNCTION(touchscreen_menu_reset_calibration, 0,
 	              reset_mapping, NULL, Icon_NOICON);
 MENUITEM_SETTING(list_line_padding, &global_settings.list_line_padding, line_padding_callback);
 
-MAKE_MENU(touchscreen_menu, ID2P(LANG_TOUCHSCREEN_SETTINGS), NULL, Icon_NOICON, &list_line_padding, &touch_mode,
+MAKE_MENU(touchscreen_menu, ID2P(LANG_TOUCHSCREEN_SETTINGS), NULL, Icon_A26_Touch, &list_line_padding, &touch_mode,
             &touchscreen_menu_calibrate, &touchscreen_menu_reset_calibration);
 #endif
 

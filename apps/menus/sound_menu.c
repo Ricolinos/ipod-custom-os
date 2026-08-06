@@ -152,7 +152,7 @@ MENUITEM_SETTING(power_mode, &global_settings.power_mode, NULL);
                      &global_settings.crossfeed_hf_attenuation, lowlatency_callback);
     MENUITEM_SETTING(crossfeed_hf_cutoff,
                      &global_settings.crossfeed_hf_cutoff, lowlatency_callback);
-    MAKE_MENU(crossfeed_menu,ID2P(LANG_CROSSFEED), NULL, Icon_NOICON,
+    MAKE_MENU(crossfeed_menu,ID2P(LANG_CROSSFEED), NULL, Icon_A26_Crossfeed,
               &crossfeed, &crossfeed_direct_gain, &crossfeed_cross_gain,
               &crossfeed_hf_attenuation, &crossfeed_hf_cutoff);
 
@@ -184,7 +184,7 @@ static int timestretch_callback(int action,
                      &global_settings.pbe, lowlatency_callback);
     MENUITEM_SETTING(pbe_precut,
                      &global_settings.pbe_precut, lowlatency_callback);
-    MAKE_MENU(pbe_menu,ID2P(LANG_PBE), NULL, Icon_NOICON,
+    MAKE_MENU(pbe_menu,ID2P(LANG_PBE), NULL, Icon_A26_PBE,
               &pbe,&pbe_precut);
     MENUITEM_SETTING(surround_enabled,
                      &global_settings.surround_enabled, lowlatency_callback);
@@ -198,7 +198,7 @@ static int timestretch_callback(int action,
                      &global_settings.surround_method2, lowlatency_callback);
     MENUITEM_SETTING(surround_mix,
                      &global_settings.surround_mix, lowlatency_callback);
-    MAKE_MENU(surround_menu,ID2P(LANG_SURROUND), NULL, Icon_NOICON,
+    MAKE_MENU(surround_menu,ID2P(LANG_SURROUND), NULL, Icon_A26_Surround,
               &surround_enabled,&surround_balance,&surround_fx1,&surround_fx2,&surround_method2,&surround_mix);
 
     /* compressor submenu */
@@ -220,7 +220,7 @@ static int timestretch_callback(int action,
     MENUITEM_SETTING(compressor_release,
                      &global_settings.compressor_settings.release_time,
                      lowlatency_callback);
-    MAKE_MENU(compressor_menu,ID2P(LANG_COMPRESSOR), NULL, Icon_NOICON,
+    MAKE_MENU(compressor_menu,ID2P(LANG_COMPRESSOR), NULL, Icon_A26_Compressor,
               &compressor_threshold, &compressor_gain, &compressor_ratio,
               &compressor_knee, &compressor_attack, &compressor_release);
 
@@ -231,7 +231,7 @@ static int timestretch_callback(int action,
 #ifdef AUDIOHW_HAVE_EQ
 #endif /* AUDIOHW_HAVE_EQ */
 
-MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_A26_SoundSet,
+MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_A26_SoundDial,
           &volume
           ,&volume_limit
 #ifdef AUDIOHW_HAVE_BASS

@@ -66,7 +66,7 @@ MENUITEM_SETTING(play_selected, &global_settings.play_selected, NULL);
 
 MENUITEM_SETTING(ff_rewind_accel, &global_settings.ff_rewind_accel, NULL);
 MENUITEM_SETTING(ff_rewind_min_step, &global_settings.ff_rewind_min_step, NULL);
-MAKE_MENU(ff_rewind_settings_menu, ID2P(LANG_WIND_MENU), 0, Icon_NOICON,
+MAKE_MENU(ff_rewind_settings_menu, ID2P(LANG_WIND_MENU), 0, Icon_A26_FFRew,
           &ff_rewind_min_step, &ff_rewind_accel);
 #ifdef HAVE_DISK_STORAGE
 static int buffermargin_callback(int action,
@@ -103,7 +103,7 @@ MENUITEM_SETTING(crossfade_fade_out_duration,
     &global_settings.crossfade_fade_out_duration, setcrossfadeonexit_callback);
 MENUITEM_SETTING(crossfade_fade_out_mixmode,
     &global_settings.crossfade_fade_out_mixmode,NULL);
-MAKE_MENU(crossfade_settings_menu,ID2P(LANG_CROSSFADE),0, Icon_NOICON,
+MAKE_MENU(crossfade_settings_menu,ID2P(LANG_CROSSFADE),0, Icon_A26_Crossfade,
           &crossfade, &crossfade_fade_in_delay, &crossfade_fade_in_duration,
           &crossfade_fade_out_delay, &crossfade_fade_out_duration,
           &crossfade_fade_out_mixmode);
@@ -134,7 +134,7 @@ MENUITEM_SETTING(replaygain_type,
 MENUITEM_SETTING(replaygain_preamp,
                  &global_settings.replaygain_settings.preamp,
                  replaygain_callback);
-MAKE_MENU(replaygain_settings_menu,ID2P(LANG_REPLAYGAIN),0, Icon_NOICON,
+MAKE_MENU(replaygain_settings_menu,ID2P(LANG_REPLAYGAIN),0, Icon_A26_ReplayGain,
           &replaygain_type, &replaygain_noclip, &replaygain_preamp);
 
 MENUITEM_SETTING(beep, &global_settings.beep ,NULL);
@@ -164,7 +164,7 @@ MENUITEM_SETTING(cuesheet, &global_settings.cuesheet, cuesheet_callback);
 #ifdef HAVE_HEADPHONE_DETECTION
 MENUITEM_SETTING(unplug_mode, &global_settings.unplug_mode, NULL);
 MENUITEM_SETTING(unplug_autoresume, &global_settings.unplug_autoresume, NULL);
-MAKE_MENU(unplug_menu, ID2P(LANG_HEADPHONE_UNPLUG), 0, Icon_NOICON,
+MAKE_MENU(unplug_menu, ID2P(LANG_HEADPHONE_UNPLUG), 0, Icon_A26_Unplug,
           &unplug_mode, &unplug_autoresume);
 #endif
 
