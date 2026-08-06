@@ -17428,3 +17428,17 @@
     *: "Letra"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_ADD_TO_PLAYLIST
+  desc: Apple2026 playlist picker title
+  user: core
+  <source>
+    *: "Add to Playlist"
+  </source>
+  <dest>
+    *: "Agregar a Playlist"
+  </dest>
+  <voice>
+    *: "Agregar a Playlist"
+  </voice>
+</phrase>

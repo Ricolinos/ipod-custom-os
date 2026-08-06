@@ -66,6 +66,7 @@
 #include "plugin.h"
 #include "apple2026_shell.h"
 #include "playlist_catalog.h"
+#include "apple2026_pl_picker.h"
 #include "filetypes.h"
 #ifdef HAVE_TAGCACHE
 #include "tagcache.h"
@@ -838,8 +839,7 @@ static void a26_wps_run_mode(struct mp3entry *id3)
             if (id3 && id3->path[0] && a26_playlists_available())
             {
                 gwps_leave_wps(true);
-                catalog_add_to_a_playlist(id3->path, FILE_ATTR_AUDIO,
-                                          false, NULL, NULL);
+                apple2026_playlist_picker(id3->path);
                 /* the wps loop re-enters through `restore` */
             }
             break;
