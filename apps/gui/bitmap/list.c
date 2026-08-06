@@ -145,14 +145,9 @@ static bool a26_switch_ready(void)
                                   sizeof(a26_sw_px), FORMAT_NATIVE, NULL) > 0
                     && bm.width == A26_SW_W
                     && bm.height == A26_SW_H * 2) ? 1 : -1;
-    if (a26_sw_state > 0)
-    {
-        int i, n = A26_SW_W * A26_SW_H * 2;
-
-        for (i = 0; i < n; i++)
-            if (a26_sw_px[i] == LCD_RGBPACK(255, 0, 255))
-                a26_sw_px[i] = A26_SHELL_BG;
-    }
+    /* El color clave se conserva: la fila puede estar seleccionada, y
+     * hornearlo a blanco dejaba las esquinas redondeadas del interruptor
+     * en blanco sobre el gris de la selección. */
     return a26_sw_state > 0;
 }
 
@@ -165,7 +160,7 @@ static void a26_draw_switch(struct screen *display, struct viewport *vp,
         return;
     sx = vp->width - A26_SW_W - A26_LIST_CONTENT_INSET;
     sy = y + (line_h - A26_SW_H) / 2;
-    display->bitmap_part(a26_sw_px, 0, on ? A26_SW_H : 0,
+    display->transparent_bitmap_part(a26_sw_px, 0, on ? A26_SW_H : 0,
                          STRIDE(display->screen_type, A26_SW_W, A26_SW_H * 2),
                          sx, sy, A26_SW_W, A26_SW_H);
 }
@@ -193,21 +188,29 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
     char a26_cut[192];
     if (!is_title && list_info->toggle >= 0 && dsp_text)
     {
+        /* el hueco disponible descuenta también la columna del icono, que
+         * no viene en item_indent sino que la añade el propio put_line */
         int room = list_info->vp->width - A26_SW_W
-                 - A26_LIST_CONTENT_INSET * 2 - item_indent;
+                 - A26_LIST_CONTENT_INSET * 3 - item_indent
+                 - (have_icons ? list_info->icon_width + ICON_PADDING : 0);
         int tw = 0, len;
 
         linedes->scroll = false;
         strmemccpy(a26_cut, dsp_text, sizeof(a26_cut));
         display->getstringsize((unsigned char *)a26_cut, &tw, NULL);
-        len = strlen(a26_cut);
-        while (tw > room && len > 1)
+        if (tw > room)
         {
-            do {
-                len--;
-            } while (len > 1 && (a26_cut[len] & 0xC0) == 0x80);
-            a26_cut[len] = '\0';
-            display->getstringsize((unsigned char *)a26_cut, &tw, NULL);
+            /* con elipsis: un corte seco parece un fallo de dibujo, y no
+             * dice que el nombre siga */
+            len = strlen(a26_cut);
+            while (tw > room && len > 1)
+            {
+                do {
+                    len--;
+                } while (len > 1 && (a26_cut[len] & 0xC0) == 0x80);
+                strmemccpy(a26_cut + len, "...", sizeof(a26_cut) - len);
+                display->getstringsize((unsigned char *)a26_cut, &tw, NULL);
+            }
         }
         dsp_text = a26_cut;
     }
