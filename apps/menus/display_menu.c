@@ -610,7 +610,7 @@ MENUITEM_SETTING(codepage_setting, &global_settings.default_codepage, codepage_c
 
 
 MAKE_MENU(display_menu, ID2P(LANG_DISPLAY),
-            NULL, Icon_Display_menu,
+            NULL, Icon_A26_Display,
             &lcd_settings,
 #ifdef HAVE_REMOTE_LCD
             &lcd_remote_settings,

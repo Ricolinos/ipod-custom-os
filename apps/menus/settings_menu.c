@@ -197,7 +197,7 @@ MENUITEM_FUNCTION(tc_import, 0, ID2P(LANG_TAGCACHE_IMPORT),
 MENUITEM_FUNCTION(tc_paths, 0, ID2P(LANG_SELECT_DATABASE_DIRS),
                   dirs_to_scan, db_folder_select_menu_cb, Icon_NOICON);
 
-MAKE_MENU(tagcache_menu, ID2P(LANG_TAGCACHE), 0, Icon_NOICON,
+MAKE_MENU(tagcache_menu, ID2P(LANG_TAGCACHE), 0, Icon_A26_Database,
 #ifdef HAVE_TC_RAMCACHE
                 &tagcache_ram,
 #endif
@@ -235,7 +235,7 @@ MENUITEM_FUNCTION(clear_start_directory_item, 0, ID2P(LANG_RESET_START_DIR),
 static int filemenu_callback(int action,
                              const struct menu_item_ex *this_item,
                              struct gui_synclist *this_list);
-MAKE_MENU(file_menu, ID2P(LANG_FILE), filemenu_callback, Icon_file_view_menu,
+MAKE_MENU(file_menu, ID2P(LANG_FILE), filemenu_callback, Icon_A26_FileView,
                 &sort_case, &sort_dir, &sort_file, &interpret_numbers,
                 &dirfilter, &show_filename_ext, &browse_current,
                 &show_path_in_browser,
@@ -291,7 +291,7 @@ static int usbcharging_callback(int action,
 }
 MENUITEM_SETTING(usb_charging, &global_settings.usb_charging, usbcharging_callback);
 #endif /* HAVE_USB_CHARGING_ENABLE */
-MAKE_MENU(battery_menu, ID2P(LANG_BATTERY_MENU), 0, Icon_NOICON,
+MAKE_MENU(battery_menu, ID2P(LANG_BATTERY_MENU), 0, Icon_A26_Battery,
 #if BATTERY_CAPACITY_INC > 0
             &battery_capacity,
 #endif
@@ -336,7 +336,7 @@ static int dircache_callback(int action,
 MENUITEM_SETTING(dircache, &global_settings.dircache, dircache_callback);
 #endif
 #if defined(HAVE_DIRCACHE) || defined(HAVE_DISK_STORAGE)
-MAKE_MENU(disk_menu, ID2P(LANG_DISK_MENU), 0, Icon_NOICON,
+MAKE_MENU(disk_menu, ID2P(LANG_DISK_MENU), 0, Icon_A26_Disk,
 #ifdef HAVE_DISK_STORAGE
           &disk_spindown,
           &storage_mode,
@@ -582,7 +582,7 @@ MENUITEM_SETTING(clear_settings_on_hold,
 #endif
 
 MAKE_MENU(startup_shutdown_menu, ID2P(LANG_STARTUP_SHUTDOWN),
-          0, Icon_System_menu,
+          0, Icon_A26_Power,
             &show_shutdown_message,
             &start_screen,
             &poweroff,
@@ -699,7 +699,7 @@ MENUITEM_SETTING(autoresume_automatic, &global_settings.autoresume_automatic,
                  autoresume_nexttrack_callback);
 
 MAKE_MENU(autoresume_menu, ID2P(LANG_AUTORESUME),
-          0, Icon_NOICON,
+          0, Icon_A26_Resume,
           &autoresume_enable, &autoresume_automatic);
 
 #endif /* HAVE_TAGCACHE */
