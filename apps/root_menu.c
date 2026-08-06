@@ -847,7 +847,7 @@ MENUITEM_RETURNVALUE(fm, ID2P(LANG_FM_RADIO), GO_TO_FM,
                         item_callback, Icon_Radio_screen);
 #endif
 MENUITEM_RETURNVALUE(menu_, ID2P(LANG_SETTINGS), GO_TO_MAINMENU,
-                        NULL, Icon_General_settings_menu);
+                        NULL, Icon_S_Settings);
 MENUITEM_RETURNVALUE(bookmarks, ID2P(LANG_BOOKMARK_MENU_RECENT_BOOKMARKS),
                         GO_TO_RECENTBMARKS,  item_callback,
                         Icon_Bookmark);
@@ -918,11 +918,11 @@ MENUITEM_FUNCTION(extras_recording, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_RECORDING), extras_recording_fn, NULL,
                   Icon_Recording);
 
-MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
+MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_S_Extras,
           &files_browser, &extras_plugins, &extras_shortcuts, &equalizer_menu,
           &extras_recording);
 #else
-MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
+MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_S_Extras,
           &files_browser, &extras_plugins, &extras_shortcuts, &equalizer_menu);
 #endif
 

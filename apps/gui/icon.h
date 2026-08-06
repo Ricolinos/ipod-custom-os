@@ -402,6 +402,10 @@ enum themable_icons {
     Icon_S_PlugGames,
     Icon_S_PlugApps,
     Icon_S_PlugDemos,
+    /* Cover Flow: sus menús son listas de cadenas, así que el icono lo
+     * pone el propio plugin fila a fila. */
+    Icon_S_Extras,
+    Icon_S_Settings,
 #endif
     Icon_Last_Themeable,
 };
