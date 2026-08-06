@@ -885,13 +885,13 @@ static int db_view_fn(void *param)
 }
 MENUITEM_FUNCTION_W_PARAM(db_songs_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_SONGS), db_view_fn, (void *)0,
-                  NULL, Icon_NOICON);
+                  NULL, Icon_Audio);
 MENUITEM_FUNCTION_W_PARAM(db_artists_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_ARTISTS), db_view_fn, (void *)1,
-                  NULL, Icon_NOICON);
+                  NULL, Icon_Artist);
 MENUITEM_FUNCTION_W_PARAM(db_albums_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_ALBUMS), db_view_fn, (void *)2,
-                  NULL, Icon_NOICON);
+                  NULL, Icon_Album);
 MENUITEM_FUNCTION_W_PARAM(db_genres_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_GENRES), db_view_fn, (void *)3,
                   NULL, Icon_Genre);
