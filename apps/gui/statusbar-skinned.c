@@ -231,14 +231,13 @@ void sb_skin_update(enum screen_type screen, bool force)
         {
             if (force)
                 skin_request_full_update(CUSTOM_STATUSBAR);
-            /* Apple2026: with the bottom mini-player retired (the
-             * now-playing card is drawn by apple2026_pane.c), the SBS no
-             * longer needs STATIC content re-rendered on every steady-state
-             * pass — static pixels persist in the framebuffer and full
-             * redraws re-render them anyway.  Saves a full static-tree
-             * render at ~7Hz. */
+            /* The whole tree has to be rendered, STATIC included: %Vd —
+             * the tag that makes a labelled viewport visible — is itself a
+             * STATIC token, so skipping STATIC leaves every %Vd-gated
+             * viewport unrendered.  That is what kept the root title from
+             * appearing and made the bar's contents come and go. */
             skin_update(CUSTOM_STATUSBAR, screen,
-                        SKIN_REFRESH_NON_STATIC |
+                        SKIN_REFRESH_STATIC | SKIN_REFRESH_NON_STATIC |
                         SKIN_REFRESH_SCROLL);
         }
         next_update[i] = current_tick + update_delay; /* don't update too often */

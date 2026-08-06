@@ -88,7 +88,8 @@
 #
 # Header title â€” full screens center it; split screens use the small
 # left-bar titles (large_title at root, lm_title in the Music submenu)
-%?Lo<%Vd(hdr_title_split)%Vd(hdr_clock_split)|%?LM<%Vd(hdr_title_split)%Vd(hdr_clock_split)|%Vd(hdr_title)%?bs<%Vd(sleeptimertext)|%Vd(hdr_clock)>>>
+%?Lo<%Vd(hdr_title_split)|%?LM<%Vd(hdr_title_split)|%Vd(hdr_title)>>
+%?Lo<%Vd(hdr_clock_split)|%?LM<%Vd(hdr_clock_split)|%?bs<%Vd(sleeptimertext)|%Vd(hdr_clock)>>>
 %?if(%cs, =, 10)<|%?mv(1.2)<%?mp<|%Vd(mp_volume_bg)%Vd(mp_volume_clip)||%Vd(mp_volume_bg)%Vd(mp_volume_clip)|%Vd(mp_volume_bg)%Vd(mp_volume_clip)>>|>
 #
 # USB backdrop
@@ -124,7 +125,7 @@
 %Vl(hdr_title_split,6,0,46,20,8)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%al%?Lo<iPod|%Lt>
+%al%?Lo<iPod|%Lt>
 
 # -- Clock: centred on the screen (full) or on the left panel (split) -----
 # Follows the 12/24h setting, like every other clock in the shell.

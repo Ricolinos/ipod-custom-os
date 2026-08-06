@@ -138,7 +138,7 @@ CLAIM_CONTRACTS = {
             ("%Vl(lock_split,104,4,9,12,-)", "split bars need their own lock slot"),
             ("%Vl(hdr_title,6,0,98,20,3)", "full-screen header title must stop short of the clock viewport"),
             ("%Vl(hdr_title_split,6,0,46,20,8)", "split header title is left aligned in the left column"),
-            ("%s%al%?Lo<iPod|%Lt>", "root header must read iPod through a dynamic tag, never a static literal"),
+            ("%al%?Lo<iPod|%Lt>", "root header must read iPod through a dynamic tag, never a static literal"),
             ("%Vl(hdr_clock,120,0,80,20,8)", "clock is centred on the screen for full-width shells"),
             ("%Vl(hdr_clock_split,56,0,48,20,8)", "clock is centred on the left panel for split shells"),
             ("%xl(J,statusPlay.bmp,0,0,2)", "status bar must carry the play/pause indicator"),
@@ -505,14 +505,17 @@ def audit_source_contract() -> list[str]:
             errors.append("statusbar-skinned.c: missing CUSTOM_STATUSBAR steady-state update call")
         else:
             refresh_expr = refresh_call.group(1)
-            # STATIC was only needed while the bottom mini-player lived on
-            # static lanes; the now-playing card is C-drawn, so steady-state
-            # passes intentionally skip the static tree (perf).
-            for token in ("SKIN_REFRESH_NON_STATIC", "SKIN_REFRESH_SCROLL"):
-                if token not in refresh_expr:
-                    errors.append(
-                        f"statusbar-skinned.c: steady-state CUSTOM_STATUSBAR refresh must include {token}"
-                    )
+            # The static tree cannot be skipped: %Vd, the tag that makes a
+            # labelled viewport visible, is itself a STATIC token, so a
+            # non-static-only pass renders none of the %Vd-gated viewports
+            # and the bar's contents come and go.
+            if "SKIN_REFRESH_ALL" not in refresh_expr:
+                for token in ("SKIN_REFRESH_STATIC", "SKIN_REFRESH_NON_STATIC",
+                              "SKIN_REFRESH_SCROLL"):
+                    if token not in refresh_expr:
+                        errors.append(
+                            f"statusbar-skinned.c: steady-state CUSTOM_STATUSBAR refresh must include {token}"
+                        )
 
     if ART_FRAME_TOOL.exists():
         generator_text = ART_FRAME_TOOL.read_text(encoding="utf-8", errors="replace")
