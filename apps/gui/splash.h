@@ -43,6 +43,7 @@ extern void splashf(int ticks, const char *fmt, ...) ATTRIBUTE_PRINTF(2, 3);
 struct screen;
 /* Apple2026 full-page loading visuals (return false when unavailable) */
 bool apple2026_loading_page(struct screen *display);
+bool apple2026_power_page(struct screen *display, bool battery_dead);
 bool apple2026_progress_page(struct screen *display, const char *text,
                              int current, int total);
 

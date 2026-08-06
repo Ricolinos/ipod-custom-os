@@ -233,27 +233,35 @@ static void usb_screens_draw(struct usb_screen_vps_t *usb_screen_vps_ar)
         if (i == SCREEN_MAIN)
         {
 #if ROCKPOD_APPLE2026_IPOD
-            /* Apple2026: draw "Connected" label and "Eject to disconnect" hint
-             * below logo in clean Apple-style treatment. */
+            /* Apple2026: the stock screen is a bare logo over an empty
+             * panel, with two English strings under it.  Dressed like the
+             * rest of the shell it is just the status strip —clock and the
+             * charging battery, which is what the device is doing— plus a
+             * single line naming the state. */
             if (screen->depth >= 16)
             {
-                int char_h = font_get(logo->font)->height;
-                int label_y = logo->y + logo->height + 8;
                 struct viewport label_vp = *parent;
-                label_vp.y = label_y;
-                label_vp.height = char_h;
-                label_vp.flags |= VP_FLAG_ALIGN_CENTER;
-                screen->set_foreground(LCD_RGBPACK(0x00, 0x00, 0x00));
-                screen->set_viewport(&label_vp);
-                screen->puts_scroll(0, 0, "Connected");
+                int char_h = font_get(logo->font)->height;
 
-                struct viewport hint_vp = *parent;
-                hint_vp.y = label_y + char_h + 4;
-                hint_vp.height = char_h;
-                hint_vp.flags |= VP_FLAG_ALIGN_CENTER;
-                screen->set_foreground(LCD_RGBPACK(0x8E, 0x8E, 0x93));
-                screen->set_viewport(&hint_vp);
-                screen->puts_scroll(0, 0, "Eject before disconnecting");
+                /* La barra superior ya la pinta el SBS del tema en esta
+                 * pantalla, con su reloj y su batería; aquí sólo falta
+                 * nombrar el estado. */
+                int tw = 0, th = 0;
+
+                label_vp = *parent;
+                label_vp.y = logo->y + logo->height + 14;
+                label_vp.height = char_h + 4;
+                screen->set_viewport(&label_vp);
+                screen->setfont(FONT_UI);
+                screen->getstringsize((const unsigned char *)
+                                      str(LANG_A26_MEDIA_MODE), &tw, &th);
+                screen->set_drawmode(DRMODE_FG);
+                screen->set_foreground(SCREEN_COLOR_TO_NATIVE(screen,
+                                            A26_TEXT_SECONDARY));
+                screen->putsxy((label_vp.width - tw) / 2, 0,
+                               (const unsigned char *)
+                               str(LANG_A26_MEDIA_MODE));
+                screen->set_drawmode(DRMODE_SOLID);
                 screen->set_viewport(parent);
             }
 #endif

@@ -119,6 +119,55 @@ bool apple2026_loading_page(struct screen *display)
     return true;
 }
 
+/* Power-down page.  The stock shutdown is a text box in the middle of an
+ * otherwise blank screen, which is the one bit of chrome that still looked
+ * like plain Rockbox.  A symbol says it without words in any language: the
+ * power glyph for a normal shutdown, and a spent battery that blinks when
+ * the reason is that there is no charge left. */
+#define A26_POWER_PX 96
+static fb_data a26_power_px[A26_POWER_PX * A26_POWER_PX];
+static int a26_power_state;
+static int a26_battempty_state;
+
+bool apple2026_power_page(struct screen *display, bool battery_dead)
+{
+    const char *file = battery_dead
+        ? WPS_DIR "/Apple2026/a26_battery_empty.bmp"
+        : WPS_DIR "/Apple2026/a26_power.bmp";
+    int *state = battery_dead ? &a26_battempty_state : &a26_power_state;
+    struct viewport vp;
+    int blinks = battery_dead ? 6 : 1;
+    int i;
+
+    /* the two images share one buffer, so a switch has to force a reload */
+    static bool last_dead = false;
+    if (last_dead != battery_dead)
+    {
+        a26_power_state = a26_battempty_state = 0;
+        last_dead = battery_dead;
+    }
+
+    if (!a26_load_strip(file, a26_power_px, sizeof(a26_power_px),
+                        A26_POWER_PX, 1, state))
+        return false;
+
+    for (i = 0; i < blinks; i++)
+    {
+        a26_page_begin(display, &vp);
+        if (!battery_dead || (i & 1) == 0)
+            display->transparent_bitmap_part(a26_power_px, 0, 0,
+                    STRIDE(display->screen_type, A26_POWER_PX, A26_POWER_PX),
+                    (vp.width - A26_POWER_PX) / 2,
+                    (vp.height - A26_POWER_PX) / 2,
+                    A26_POWER_PX, A26_POWER_PX);
+        display->update_viewport();
+        if (blinks > 1)
+            sleep(HZ / 4);
+    }
+    display->set_viewport(NULL);
+    return true;
+}
+
 /* Progress page: gear + label + percentage + Apple-style bar. */
 bool apple2026_progress_page(struct screen *display, const char *text,
                              int current, int total)

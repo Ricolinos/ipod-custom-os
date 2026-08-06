@@ -88,10 +88,6 @@ static const char kb_chars[] =
 #define KB_LEAD       2             /* characters shown behind the cursor */
 
 static int kb_f_head = -1, kb_f_sub = -1, kb_f_active = -1, kb_f_strip = -1;
-static int kb_f_bar = -1;
-
-static fb_data kb_batt_px[KB_BATT_W * KB_BATT_H * KB_BATT_N];
-static bool kb_batt_ok, kb_batt_tried;
 
 /* Field the caller says we are searching; empty means it did not say. */
 static char kb_field[48];
@@ -114,8 +110,6 @@ static void kb_fonts(void)
         kb_f_active = font_load(FONT_DIR "/17-SFProText-Bold.fnt");
     if (kb_f_strip < 0)
         kb_f_strip = font_load(FONT_DIR "/15-SFProText-Medium.fnt");
-    if (kb_f_bar < 0)
-        kb_f_bar = font_load(FONT_DIR "/14-SFProText-Regular.fnt");
 }
 
 static int kb_f(int f)
@@ -203,84 +197,6 @@ static void kb_magnifier(struct screen *display, int cx, int cy)
     }
 }
 
-/* Status strip: same content and placement as the shell's own bar. */
-static void kb_battery(struct screen *display, int x, int y)
-{
-    int level, frame;
-
-    if (!kb_batt_tried)
-    {
-        struct bitmap bm;
-        char path[MAX_PATH];
-
-        kb_batt_tried = true;
-        snprintf(path, sizeof(path), WPS_DIR "/Apple2026/batteryStatus.bmp");
-        memset(&bm, 0, sizeof(bm));
-        bm.data = (unsigned char *)kb_batt_px;
-        bm.width = KB_BATT_W;
-        bm.height = KB_BATT_H * KB_BATT_N;
-        kb_batt_ok = read_bmp_file(path, &bm, sizeof(kb_batt_px),
-                                   FORMAT_NATIVE, NULL) > 0
-                     && bm.width == KB_BATT_W
-                     && bm.height == KB_BATT_H * KB_BATT_N;
-        if (kb_batt_ok)
-        {
-            int i, n = KB_BATT_W * KB_BATT_H * KB_BATT_N;
-
-            for (i = 0; i < n; i++)
-                if (kb_batt_px[i] == LCD_RGBPACK(255, 0, 255))
-                    kb_batt_px[i] = A26_SHELL_BG;
-        }
-    }
-    if (!kb_batt_ok)
-        return;
-
-    /* first half of the strip is the discharging ramp, empty to full */
-    level = battery_level();
-    if (level < 0)
-        level = 0;
-    if (level > 100)
-        level = 100;
-    frame = level * 5 / 100;
-    if (frame > 4)
-        frame = 4;
-    display->bitmap_part(kb_batt_px, 0, frame * KB_BATT_H,
-                         STRIDE(display->screen_type, KB_BATT_W,
-                                KB_BATT_H * KB_BATT_N),
-                         x, y, KB_BATT_W, KB_BATT_H);
-}
-
-static void kb_status_bar(struct screen *display, int width)
-{
-    struct tm *tm = get_time();
-    char clock[16];
-    int w = 0;
-
-    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_BG));
-    display->fillrect(0, 0, width, KB_BAR_H);
-
-    display->setfont(kb_f(kb_f_bar));
-    display->set_drawmode(DRMODE_FG);
-    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
-    display->putsxy(6, 1, (unsigned char *)str(LANG_ROOT_SEARCH));
-
-    if (valid_time(tm))
-    {
-        if (global_settings.timeformat == 0)
-            snprintf(clock, sizeof(clock), "%02d:%02d", tm->tm_hour,
-                     tm->tm_min);
-        else
-            snprintf(clock, sizeof(clock), "%d:%02d %s",
-                     tm->tm_hour % 12 == 0 ? 12 : tm->tm_hour % 12,
-                     tm->tm_min, tm->tm_hour < 12 ? "AM" : "PM");
-        display->getstringsize((unsigned char *)clock, &w, NULL);
-        display->putsxy((width - w) / 2, 1, (unsigned char *)clock);
-    }
-    display->set_drawmode(DRMODE_SOLID);
-    kb_battery(display, width - KB_BATT_W - 5, 2);
-    display->setfont(FONT_UI);
-}
-
 #define KB_BLINK (HZ / 2)
 
 static void kb_draw(struct screen *display, const char *text, int sel,
@@ -305,7 +221,8 @@ static void kb_draw(struct screen *display, const char *text, int sel,
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_BG));
     display->fillrect(0, 0, vp.width, vp.height);
 
-    kb_status_bar(display, vp.width);
+    apple2026_status_strip(display, vp.width,
+                           (const char *)str(LANG_ROOT_SEARCH));
 
     /* ---- header ---- */
     kb_magnifier(display, KB_ICON_X + KB_ICON_R, KB_ICON_Y + KB_ICON_R);

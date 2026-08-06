@@ -212,7 +212,19 @@ static enum themable_icons  menu_get_icon(int selected_item, void * data)
         if(flags == MT_MENU)
             menu_icon = Icon_Submenu;
         else if (flags == MT_SETTING || flags == MT_SETTING_W_TEXT)
+        {
              menu_icon = Icon_Menu_setting;
+#if ROCKPOD_APPLE2026_IPOD
+             {
+                 const struct settings_list *st = find_setting(menu->variable);
+                 int ic = st ? apple2026_setting_icon(st->cfg_name)
+                             : Icon_NOICON;
+
+                 if (ic != Icon_NOICON)
+                     menu_icon = ic;
+             }
+#endif
+        }
         else if (flags == MT_FUNCTION_CALL || flags == MT_RETURN_VALUE)
              menu_icon = Icon_Menu_functioncall;
     }

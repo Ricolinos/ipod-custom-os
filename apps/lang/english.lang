@@ -17475,3 +17475,17 @@
     *: "Search by"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_MEDIA_MODE
+  desc: Apple2026 USB mass storage screen label
+  user: core
+  <source>
+    *: "Media mode"
+  </source>
+  <dest>
+    *: "Media mode"
+  </dest>
+  <voice>
+    *: "Media mode"
+  </voice>
+</phrase>

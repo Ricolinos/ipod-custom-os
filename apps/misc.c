@@ -393,21 +393,24 @@ static bool clean_shutdown(enum shutdown_type sd_type,
             level = battery_level();
             if (level > 10 || level < 0)
             {
-                if (global_settings.show_shutdown_message)
+                if (global_settings.show_shutdown_message
+                    && !apple2026_power_page(&screens[SCREEN_MAIN], false))
                     splash(0, str(LANG_SHUTTINGDOWN));
             }
             else
             {
                 msg_id = LANG_WARNING_BATTERY_LOW;
-                splashf(0, "%s %s", str(LANG_WARNING_BATTERY_LOW),
-                                    str(LANG_SHUTTINGDOWN));
+                if (!apple2026_power_page(&screens[SCREEN_MAIN], true))
+                    splashf(0, "%s %s", str(LANG_WARNING_BATTERY_LOW),
+                            str(LANG_SHUTTINGDOWN));
             }
         }
         else
         {
             msg_id = LANG_WARNING_BATTERY_EMPTY;
-            splashf(0, "%s %s", str(LANG_WARNING_BATTERY_EMPTY),
-                                str(LANG_SHUTTINGDOWN));
+            if (!apple2026_power_page(&screens[SCREEN_MAIN], true))
+                splashf(0, "%s %s", str(LANG_WARNING_BATTERY_EMPTY),
+                                    str(LANG_SHUTTINGDOWN));
         }
 
 #ifdef HAVE_DISK_STORAGE

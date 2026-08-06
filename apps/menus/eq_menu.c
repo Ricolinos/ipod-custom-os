@@ -224,7 +224,7 @@ static int eq_do_simple_menu(void * param)
     return 0;
 }
 MENUITEM_FUNCTION(gain_menu, 0, ID2P(LANG_EQUALIZER_GAIN),
-	              eq_do_simple_menu, NULL, Icon_Submenu);
+	              eq_do_simple_menu, NULL, Icon_S_EqGraph);
 
 static void selection_to_banditem(int selection, int expanded_band, int *band, int *item)
 {

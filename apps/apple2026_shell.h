@@ -41,6 +41,16 @@
 #define A26_SPLASH_BROKEN_FILL LCD_RGBPACK(242, 242, 246)
 
 bool apple2026_theme_selected(void);
+
+struct screen;
+/* Franja de estado para pantallas que se dibujan solas (búsqueda, USB):
+ * título a la izquierda, reloj al centro, batería a la derecha. */
+void apple2026_status_strip(struct screen *display, int width,
+                            const char *title);
+
+/* Icono propio de un ajuste, por su nombre de configuración; Icon_NOICON
+ * cuando no tiene uno asignado. */
+int apple2026_setting_icon(const char *cfg_name);
 bool apple2026_quicksettings_enabled(void);
 void apple2026_playpause(void);
 
