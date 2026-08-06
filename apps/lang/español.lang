@@ -17470,3 +17470,31 @@
     *: "Modo multimedia"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_WRITE_TEXT
+  desc: Apple2026 text entry screen header when it is not a search
+  user: core
+  <source>
+    *: "Text"
+  </source>
+  <dest>
+    *: "Texto"
+  </dest>
+  <voice>
+    *: "Texto"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_SAVE_AS
+  desc: Apple2026 text entry screen header when naming a file to save
+  user: core
+  <source>
+    *: "Save as"
+  </source>
+  <dest>
+    *: "Guardar como..."
+  </dest>
+  <voice>
+    *: "Guardar como..."
+  </voice>
+</phrase>

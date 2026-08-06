@@ -11,8 +11,18 @@
  * `text` is edited in place and must hold at least `buflen` bytes. */
 int apple2026_kbd_input(char *text, int buflen);
 
-/* Names the field the next text entry is searching ("Artista", "Álbum"...).
- * Consumed and cleared by the next apple2026_kbd_input(). */
+/* Qué clase de escritura es la siguiente.  La pantalla la usa para su
+ * título, su encabezado y su símbolo; sin contexto se presenta como una
+ * escritura de texto normal, no como una búsqueda. */
+enum a26_kbd_kind {
+    A26_KBD_WRITE = 0,   /* lápiz  — renombrar, crear, nombrar */
+    A26_KBD_SEARCH,      /* lupa   — buscar */
+    A26_KBD_SAVE,        /* flecha — guardar como */
+};
+
+void apple2026_kbd_set_context(enum a26_kbd_kind kind, const char *title,
+                               const char *header, const char *sub);
+/* Atajo histórico: nombra el campo de una búsqueda. */
 void apple2026_kbd_set_field(const char *name);
 #endif
 

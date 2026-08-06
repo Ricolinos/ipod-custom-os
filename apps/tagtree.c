@@ -2271,9 +2271,11 @@ int tagtree_enter(struct tree_context* c, bool is_visible)
                         else
                         {
 #if ROCKPOD_APPLE2026_IPOD
-                            /* The menu entry the user picked already names
-                             * the field, in the user's language. */
-                            apple2026_kbd_set_field(csi->name);
+                            /* La entrada que el usuario eligió ya nombra el
+                             * campo en su idioma.  El nombre visible está en
+                             * la entrada del menú, no en `si.name`, que el
+                             * analizador de tagnavi deja vacío. */
+                            apple2026_kbd_set_field((const char *)P2STR(name));
 #endif
                             rc = kbd_input(searchstring, SEARCHSTR_SIZE, NULL);
                             if (rc < 0 || !searchstring[0])

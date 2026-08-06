@@ -46,6 +46,7 @@
 #include "timefuncs.h"
 #include "powermgmt.h"
 #include "bmp.h"
+#include "rbpaths.h"
 #include "apple2026_shell.h"
 
 /* The strip the wheel travels.  '_' stands in for a space, which is what
@@ -89,15 +90,27 @@ static const char kb_chars[] =
 
 static int kb_f_head = -1, kb_f_sub = -1, kb_f_active = -1, kb_f_strip = -1;
 
-/* Field the caller says we are searching; empty means it did not say. */
-static char kb_field[48];
+/* Contexto de la escritura en curso: quien abre la pantalla dice qué es.
+ * Sin contexto la pantalla se presenta como escritura de texto normal, no
+ * como una búsqueda. */
+static enum a26_kbd_kind kb_kind = A26_KBD_WRITE;
+static char kb_title[48], kb_header[48], kb_sub[48];
+
+void apple2026_kbd_set_context(enum a26_kbd_kind kind, const char *title,
+                               const char *header, const char *sub)
+{
+    kb_kind = kind;
+    strmemccpy(kb_title, title ? title : "", sizeof(kb_title));
+    strmemccpy(kb_header, header ? header : "", sizeof(kb_header));
+    strmemccpy(kb_sub, sub ? sub : "", sizeof(kb_sub));
+}
 
 void apple2026_kbd_set_field(const char *name)
 {
-    if (name && *name)
-        strmemccpy(kb_field, name, sizeof(kb_field));
-    else
-        kb_field[0] = '\0';
+    apple2026_kbd_set_context(A26_KBD_SEARCH,
+                              (const char *)str(LANG_ROOT_SEARCH),
+                              (const char *)str(LANG_A26_SEARCH_BY),
+                              name && *name ? name : NULL);
 }
 
 static void kb_fonts(void)
@@ -156,45 +169,38 @@ static void kb_round_rect(struct screen *display, int x, int y, int w, int h,
     }
 }
 
-/* Magnifier: drawn rather than shipped as a bitmap so it follows the accent
- * colour.  The ring is coverage-antialiased against the white shell — a
- * plain inside/outside test left the circle visibly stepped. */
-static void kb_magnifier(struct screen *display, int cx, int cy)
+/* Símbolo de la cabecera: uno por clase de escritura.  Van en bitmap y no
+ * dibujados a mano porque son tres y comparten el resto de la pantalla; la
+ * clave magenta deja pasar el blanco de la carcasa. */
+#define KB_ICON_PX 26
+static fb_data kb_icon_px[KB_ICON_PX * KB_ICON_PX];
+static int kb_icon_loaded = -1;         /* clase ya residente, -1 ninguna */
+static bool kb_icon_ok;
+
+static void kb_header_icon(struct screen *display, int x, int y)
 {
-    const int ro8 = KB_ICON_R * 8;
-    const int ri8 = (KB_ICON_R - 2) * 8;
-    int dx, dy, i;
+    static const char * const files[] = {
+        WPS_DIR "/Apple2026/a26_kbd_write.bmp",
+        WPS_DIR "/Apple2026/a26_kbd_search.bmp",
+        WPS_DIR "/Apple2026/a26_kbd_save.bmp",
+    };
 
-    for (dy = -KB_ICON_R - 1; dy <= KB_ICON_R + 1; dy++)
-        for (dx = -KB_ICON_R - 1; dx <= KB_ICON_R + 1; dx++)
-        {
-            int cov = 0, sx, sy;
-
-            for (sy = 0; sy < 4; sy++)
-                for (sx = 0; sx < 4; sx++)
-                {
-                    int px = dx * 8 + sx * 2 + 1;
-                    int py = dy * 8 + sy * 2 + 1;
-                    int d = px * px + py * py;
-
-                    if (d <= ro8 * ro8 && d >= ri8 * ri8)
-                        cov++;
-                }
-            if (!cov)
-                continue;
-            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                kb_mix(A26_ACCENT, A26_SHELL_BG, (unsigned)cov * 16)));
-            display->drawpixel(cx + dx, cy + dy);
-        }
-
-    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_ACCENT));
-    for (i = 0; i < 6; i++)
+    if (kb_icon_loaded != (int)kb_kind)
     {
-        int x = cx + KB_ICON_R - 2 + i, y = cy + KB_ICON_R - 2 + i;
+        struct bitmap bm;
 
-        display->drawpixel(x, y);
-        display->drawpixel(x + 1, y);
+        memset(&bm, 0, sizeof(bm));
+        bm.data = (unsigned char *)kb_icon_px;
+        kb_icon_loaded = (int)kb_kind;
+        kb_icon_ok = read_bmp_file(files[kb_kind], &bm, sizeof(kb_icon_px),
+                                   FORMAT_NATIVE | FORMAT_DITHER, NULL) > 0
+                  && bm.width == KB_ICON_PX && bm.height == KB_ICON_PX;
     }
+    if (!kb_icon_ok)
+        return;
+    display->transparent_bitmap_part(kb_icon_px, 0, 0,
+            STRIDE(display->screen_type, KB_ICON_PX, KB_ICON_PX),
+            x, y, KB_ICON_PX, KB_ICON_PX);
 }
 
 #define KB_BLINK (HZ / 2)
@@ -222,10 +228,11 @@ static void kb_draw(struct screen *display, const char *text, int sel,
     display->fillrect(0, 0, vp.width, vp.height);
 
     apple2026_status_strip(display, vp.width,
-                           (const char *)str(LANG_ROOT_SEARCH));
+            kb_title[0] ? kb_title
+                        : (const char *)str(LANG_A26_WRITE_TEXT));
 
     /* ---- header ---- */
-    kb_magnifier(display, KB_ICON_X + KB_ICON_R, KB_ICON_Y + KB_ICON_R);
+    kb_header_icon(display, KB_ICON_X, KB_ICON_Y - 2);
 
     /* Text is drawn in FG mode throughout: SOLID paints the viewport
      * background behind every glyph, which put an opaque white block behind
@@ -233,8 +240,9 @@ static void kb_draw(struct screen *display, const char *text, int sel,
     display->set_drawmode(DRMODE_FG);
     display->setfont(kb_f(kb_f_head));
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
-    display->putsxy(KB_TEXT_X, KB_HEAD_Y,
-                    (unsigned char *)str(LANG_A26_SEARCH_BY));
+    display->putsxy(KB_TEXT_X, KB_HEAD_Y, (unsigned char *)
+                    (kb_header[0] ? kb_header
+                                  : (const char *)str(LANG_A26_WRITE_TEXT)));
 
     display->setfont(kb_f(kb_f_sub));
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
@@ -333,20 +341,19 @@ int apple2026_kbd_input(char *text, int buflen)
     bool done = false;
     const char *title;
 
-    /* Prefer what the caller told us; otherwise fall back to the title of
-     * the list we came from. */
-    if (kb_field[0])
-        strmemccpy(field, kb_field, sizeof(field));
+    /* El subtítulo lo pone quien abre la pantalla.  El título de la lista de
+     * la que venimos sólo sirve de reserva cuando nadie fijó contexto: si
+     * alguien ya puso encabezado y dejó el subtítulo vacío, es porque no hay
+     * nada que añadir, y colar ahí "Menú contextual" sería ruido. */
+    if (kb_sub[0])
+        strmemccpy(field, kb_sub, sizeof(field));
+    else if (kb_header[0])
+        field[0] = '\0';
     else
     {
         title = sb_get_title(SCREEN_MAIN);
-        if (title && *title)
-            strmemccpy(field, title, sizeof(field));
-        else
-            strmemccpy(field, (const char *)str(LANG_ROOT_SEARCH),
-                       sizeof(field));
+        strmemccpy(field, (title && *title) ? title : "", sizeof(field));
     }
-    kb_field[0] = '\0';
 
     /* This screen paints its own status strip, so it takes the whole LCD
      * like the keyboard it replaces. */
@@ -422,6 +429,9 @@ int apple2026_kbd_input(char *text, int buflen)
 
     FOR_NB_SCREENS(l)
         viewportmanager_theme_undo(l, false);
+    /* El contexto es de un solo uso: quien no lo fije verá la pantalla
+     * neutra, no la de la escritura anterior. */
+    apple2026_kbd_set_context(A26_KBD_WRITE, NULL, NULL, NULL);
     return ret;
 }
 

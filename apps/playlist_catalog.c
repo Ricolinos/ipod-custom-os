@@ -29,6 +29,7 @@
 #include "filetree.h"
 #include "kernel.h"
 #include "keyboard.h"
+#include "apple2026_kbd.h"
 #include "lang.h"
 #include "list.h"
 #include "misc.h"
@@ -417,6 +418,12 @@ bool catalog_pick_new_playlist_name(char *pl_name, size_t buf_size,
 {
     char bmark_file[MAX_PATH + 7], *p;
     bool do_save = false;
+#if ROCKPOD_APPLE2026_IPOD
+    apple2026_kbd_set_context(A26_KBD_SAVE,
+                              (const char *)str(LANG_A26_SAVE_AS),
+                              (const char *)str(LANG_A26_SAVE_AS),
+                              (const char *)str(LANG_CREATE_PLAYLIST));
+#endif
     while (!do_save && !remove_extension(pl_name) &&
            !kbd_input(pl_name, buf_size - 7, NULL))
     {

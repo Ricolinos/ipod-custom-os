@@ -32,6 +32,7 @@
 #include "menu.h"
 #include "plugin.h"
 #include "keyboard.h"
+#include "apple2026_kbd.h"
 #include "filetypes.h"
 #include "onplay.h"
 #include "talk.h"
@@ -1238,6 +1239,9 @@ bool search_playlist(void)
 
     if (!playlist_viewer_init(&viewer, 0, false, NULL))
         return ret;
+#if ROCKPOD_APPLE2026_IPOD
+    apple2026_kbd_set_field((const char *)str(LANG_PLAYLIST));
+#endif
     if (kbd_input(search_str, sizeof(search_str), NULL) < 0)
         return ret;
     lcd_clear_display();
