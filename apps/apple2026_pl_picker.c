@@ -375,9 +375,13 @@ bool apple2026_playlist_picker(const char *track_path)
                     sel = pl_count - 1;
                 break;
             case ACTION_STD_OK:
-                catalog_add_to_a_playlist(track_path, FILE_ATTR_AUDIO, false,
-                                          pl_list[sel].file, NULL);
-                added = true;
+                /* Insert straight into the chosen playlist.  The catalog's
+                 * add_to_a_playlist() ignores the name unless it is
+                 * creating a new list — it opens its own full-screen
+                 * chooser instead, which is the second screen we were
+                 * seeing. */
+                added = catalog_insert_into(pl_list[sel].file, false,
+                                            track_path, FILE_ATTR_AUDIO) == 0;
                 /* fall through */
             case ACTION_STD_CANCEL:
             case ACTION_STD_MENU:
