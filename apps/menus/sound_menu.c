@@ -166,7 +166,14 @@ static int timestretch_callback(int action,
     {
         case ACTION_EXIT_MENUITEM: /* on exit */
             if (global_settings.timestretch_enabled && !dsp_timestretch_available())
-                splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
+                {
+                    if (!apple2026_symbol_page(&screens[SCREEN_MAIN],
+                                WPS_DIR "/Apple2026/a26_reboot.bmp",
+                                str(LANG_PLEASE_REBOOT), 1))
+                        splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
+                    else
+                        sleep(HZ*2);
+                }
             break;
     }
     lowlatency_callback(action, this_item, NULL);

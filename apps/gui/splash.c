@@ -119,53 +119,64 @@ bool apple2026_loading_page(struct screen *display)
     return true;
 }
 
-/* Power-down page.  The stock shutdown is a text box in the middle of an
- * otherwise blank screen, which is the one bit of chrome that still looked
- * like plain Rockbox.  A symbol says it without words in any language: the
- * power glyph for a normal shutdown, and a spent battery that blinks when
- * the reason is that there is no charge left. */
-#define A26_POWER_PX 96
-static fb_data a26_power_px[A26_POWER_PX * A26_POWER_PX];
-static int a26_power_state;
-static int a26_battempty_state;
+/* Página de símbolo: un glifo grande centrado y, opcionalmente, una línea
+ * de texto debajo.  Sustituye a los cuadros de texto sueltos sobre pantalla
+ * blanca que quedaban en el apagado, en el aviso de reinicio y mientras se
+ * construye la base de datos, que eran el último resto de cromo de Rockbox
+ * a la vista. */
+#define A26_SYM_PX 96
+static fb_data a26_sym_px[A26_SYM_PX * A26_SYM_PX];
+static int a26_sym_state;
+static const char *a26_sym_loaded;
 
-bool apple2026_power_page(struct screen *display, bool battery_dead)
+bool apple2026_symbol_page(struct screen *display, const char *file,
+                           const char *text, int blinks)
 {
-    const char *file = battery_dead
-        ? WPS_DIR "/Apple2026/a26_battery_empty.bmp"
-        : WPS_DIR "/Apple2026/a26_power.bmp";
-    int *state = battery_dead ? &a26_battempty_state : &a26_power_state;
     struct viewport vp;
-    int blinks = battery_dead ? 6 : 1;
     int i;
 
-    /* the two images share one buffer, so a switch has to force a reload */
-    static bool last_dead = false;
-    if (last_dead != battery_dead)
+    /* un solo buffer para todas: al cambiar de imagen hay que recargar */
+    if (a26_sym_loaded != file)
     {
-        a26_power_state = a26_battempty_state = 0;
-        last_dead = battery_dead;
+        a26_sym_state = 0;
+        a26_sym_loaded = file;
     }
-
-    if (!a26_load_strip(file, a26_power_px, sizeof(a26_power_px),
-                        A26_POWER_PX, 1, state))
+    if (!a26_load_strip(file, a26_sym_px, sizeof(a26_sym_px),
+                        A26_SYM_PX, 1, &a26_sym_state))
         return false;
 
+    if (blinks < 1)
+        blinks = 1;
     for (i = 0; i < blinks; i++)
     {
+        int y;
+
         a26_page_begin(display, &vp);
-        if (!battery_dead || (i & 1) == 0)
-            display->transparent_bitmap_part(a26_power_px, 0, 0,
-                    STRIDE(display->screen_type, A26_POWER_PX, A26_POWER_PX),
-                    (vp.width - A26_POWER_PX) / 2,
-                    (vp.height - A26_POWER_PX) / 2,
-                    A26_POWER_PX, A26_POWER_PX);
+        y = (vp.height - A26_SYM_PX) / 2 - (text && *text ? 14 : 0);
+        if (blinks == 1 || (i & 1) == 0)
+            display->transparent_bitmap_part(a26_sym_px, 0, 0,
+                    STRIDE(display->screen_type, A26_SYM_PX, A26_SYM_PX),
+                    (vp.width - A26_SYM_PX) / 2, y, A26_SYM_PX, A26_SYM_PX);
+        if (text && *text)
+        {
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                        A26_TEXT_SECONDARY));
+            a26_center_text(display, &vp, y + A26_SYM_PX + 14, text);
+        }
         display->update_viewport();
         if (blinks > 1)
             sleep(HZ / 4);
     }
     display->set_viewport(NULL);
     return true;
+}
+
+bool apple2026_power_page(struct screen *display, bool battery_dead)
+{
+    return apple2026_symbol_page(display,
+            battery_dead ? WPS_DIR "/Apple2026/a26_battery_empty.bmp"
+                         : WPS_DIR "/Apple2026/a26_power.bmp",
+            NULL, battery_dead ? 6 : 1);
 }
 
 /* Progress page: gear + label + percentage + Apple-style bar. */

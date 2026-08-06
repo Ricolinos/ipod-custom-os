@@ -44,6 +44,10 @@ struct screen;
 /* Apple2026 full-page loading visuals (return false when unavailable) */
 bool apple2026_loading_page(struct screen *display);
 bool apple2026_power_page(struct screen *display, bool battery_dead);
+/* Glifo grande centrado con una línea opcional debajo; blinks > 1 lo hace
+ * parpadear. */
+bool apple2026_symbol_page(struct screen *display, const char *file,
+                           const char *text, int blinks);
 bool apple2026_progress_page(struct screen *display, const char *text,
                              int current, int total);
 
