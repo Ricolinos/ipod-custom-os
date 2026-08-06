@@ -32,6 +32,8 @@
 %Fl(7,35-SFProDisplay-Bold.fnt)
 # Slot 8: compact secondary labels + mini-player title â€” 14pt SF Pro Text Regular (RB12 h=18px)
 %Fl(8,14-SFProText-Regular.fnt)
+# Slot 4: tiny badge face (A-B repeat tag) - 7pt SF Pro
+%Fl(4,07-SFPro-Rail.fnt)
 
 # â”€â”€ Asset preloads â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # playerStatus: 16x18 per tile, 4 frames â€” Pa=stop Pb=pause-bars Pc=play-fill Pd=ff
@@ -365,13 +367,13 @@
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%?ps<%xd(Db)|%xd(Da)>|>
 
-%V(249,120,15,15,-)
+%V(249,124,15,15,-)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%?mm<%xd(Ea)|%xd(Eb)|%xd(Ed)|%xd(Eb)|%xd(Eb)>|>
 
 # Same idea as the player screen: name the one mode without its own glyph.
-%V(242,137,30,18,8)
+%V(242,140,30,12,4)
 %Vf(FF2E56)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%?mm<||||%acA-B>|>

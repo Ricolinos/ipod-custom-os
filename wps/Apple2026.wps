@@ -35,6 +35,8 @@
 # Slot 9: 16-SFProText-Medium.fnt      (RB12 h=20, title)
 %Fl(3,14-SFProText-Regular.fnt)
 %Fl(6,13-SFCompactText-Regular.fnt)
+# Slot 4: tiny badge face (A-B repeat tag) - 7pt SF Pro
+%Fl(4,07-SFPro-Rail.fnt)
 %Fl(8,20-SFProText-Medium.fnt)
 %Fl(9,16-SFProText-Medium.fnt)
 %Fl(7,35-SFProDisplay-Bold.fnt)
@@ -163,17 +165,17 @@
 # Always drawn: pink when active, muted gray when off.  Repeat-one
 # swaps the glyph (SF: repeat / repeat.1 / shuffle).
 # %mm: 0=off 1=all 2=one 3=shuffle 4=A-B
-%Vl(repeat_icon_state,20,206,15,15,-)
+%Vl(repeat_icon_state,20,212,15,15,-)
 %Vb(FFFFFF)
 %?mm<%xd(Oa)|%xd(Ob)|%xd(Od)|%xd(Ob)|%xd(Ob)>
 
 # A-B is the one repeat mode with no glyph of its own, so it says so in
 # words underneath; every other mode is already told apart by its icon
 # (shuffle-repeat lights the shuffle indicator instead).
-%Vl(repeat_ab_tag,12,222,32,16,6)
+%Vl(repeat_ab_tag,37,216,26,12,4)
 %Vf(FF2E56)
 %Vb(FFFFFF)
-%?mm<||||%acA-B>
+%?mm<||||%alA-B>
 
 %Vl(shuffle_state,285,212,15,15,-)
 %Vb(FFFFFF)
