@@ -13,8 +13,12 @@
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 
 #define ROCKPOD_APPLE2026_IPOD 1
-/* Full-bleed list chrome: viewport is LCD width; apply this indent to row content. */
-#define A26_LIST_CONTENT_INSET 10
+/* Full-bleed list chrome: viewport is LCD width; apply this indent to row
+ * content.  The icon tile is 30px wide with its glyph centred, so an 18px
+ * glyph starts 6px into the tile: an inset of 2 puts the visible edge of
+ * every icon 8px from the screen, which is the margin the design calls for,
+ * while keeping the glyphs centred on a common axis. */
+#define A26_LIST_CONTENT_INSET 2
 /* Shell background (FFFFFF) */
 #define A26_SHELL_BG LCD_RGBPACK(255, 255, 255)
 /* Primary body/header text (000000) */
