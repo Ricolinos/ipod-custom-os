@@ -880,7 +880,9 @@ static void a26_wps_rate(struct mp3entry *id3, int dir)
 }
 #endif
 
-static void a26_wps_run_mode(struct mp3entry *id3)
+/* Opens whatever the freshly-selected mode has to show.  Returns true when
+ * that screen asked to leave Now Playing altogether (lyrics + MENU). */
+static bool a26_wps_run_mode(struct mp3entry *id3)
 {
     switch (a26_wps_mode)
     {
@@ -896,9 +898,15 @@ static void a26_wps_run_mode(struct mp3entry *id3)
         case A26_WPS_LYRICS:
             if (a26_lyrics_available(id3))
             {
+                int exit_code;
+
                 gwps_leave_wps(true);
-                apple2026_lyrics_screen(id3);
+                exit_code = apple2026_lyrics_screen(id3);
                 /* the wps loop re-enters through `restore` */
+                if (exit_code == A26_LYRICS_RATE)
+                    a26_wps_mode = A26_WPS_RATING;
+                else if (exit_code == A26_LYRICS_LEAVE)
+                    return true;
             }
             break;
 
@@ -912,9 +920,10 @@ static void a26_wps_run_mode(struct mp3entry *id3)
         default:
             break;
     }
+    return false;
 }
 
-static void a26_wps_cycle_mode(struct mp3entry *id3)
+static bool a26_wps_cycle_mode(struct mp3entry *id3)
 {
     /* No splash: the mode row in the skin (%Wm) shows the active mode.
      * Modes with nothing to offer are skipped (their icon is drawn in the
@@ -928,7 +937,7 @@ static void a26_wps_cycle_mode(struct mp3entry *id3)
     if (a26_wps_mode == A26_WPS_RATING)
         a26_wps_mode = A26_WPS_VOLUME;
 #endif
-    a26_wps_run_mode(id3);
+    return a26_wps_run_mode(id3);
 }
 
 int a26_wps_get_mode(void)
@@ -1240,7 +1249,18 @@ long gui_wps_show(void)
 
 #if ROCKPOD_APPLE2026_IPOD
             case ACTION_A26_WPS_MODE:
-                a26_wps_cycle_mode(state->id3);
+                /* The lyrics screen stands in for Now Playing while it is
+                 * up; MENU there backs out to the browser, exactly as it
+                 * would from the player. */
+                if (a26_wps_cycle_mode(state->id3))
+                {
+                    long next_screen;
+
+                    a26_wps_mode = A26_WPS_VOLUME;
+                    if (!wps_handle_browse_parent(&next_screen, &theme_enabled,
+                                                  &restore))
+                        return next_screen;
+                }
                 restore = true;
                 break;
 #endif
