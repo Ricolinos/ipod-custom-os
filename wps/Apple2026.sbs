@@ -131,7 +131,7 @@
 # -- Header title on split screens (left 160 column only) -----------------
 # Root: "iPod"; Music submenu: the live list title.  Font slot 8 (14pt) so a
 # longer section name still fits beside the clock.
-%Vl(hdr_title_split,10,0,44,20,8)
+%Vl(hdr_title_split,10,0,54,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%?Lo<iPod|%Lt>
@@ -143,7 +143,7 @@
 %Vb(FFFFFF)
 %ac%?cf<%cH:%cM|%cl:%cM %cP>
 
-%Vl(hdr_clock_split,56,0,48,20,8)
+%Vl(hdr_clock_split,66,0,42,20,8)
 %Vf(000000)
 %Vb(FFFFFF)
 %ac%?cf<%cH:%cM|%cl:%cM>
@@ -209,7 +209,7 @@
 %Vb(FFFFFF)
 %xd(Ab)
 
-%Vl(lock_split,104,4,9,12,-)
+%Vl(lock_split,110,4,9,12,-)
 %Vb(FFFFFF)
 %xd(Ab)
 
@@ -218,7 +218,7 @@
 %Vb(FFFFFF)
 %?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 
-%Vl(pp_icon_split,116,4,12,12,-)
+%Vl(pp_icon_split,121,4,12,12,-)
 %Vb(FFFFFF)
 %?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 
@@ -248,7 +248,7 @@
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
 
 # â”€â”€ Battery icon aligned within large-title band (root only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon_root,130,2,28,16,3)
+%Vl(battery_icon_root,134,2,26,16,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
