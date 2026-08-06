@@ -43,6 +43,7 @@
 #include "debug.h"
 #include "line.h"
 #include "../skin_engine/skin_albumart_color.h"
+#include "string-extra.h"
 #include "apple2026_shell.h"
 #include "apple2026_pane.h"
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
@@ -162,19 +163,11 @@ static void a26_draw_switch(struct screen *display, struct viewport *vp,
 
     if (!a26_switch_ready())
         return;
-    /* El viewport viene recortado en (A26_SW_W + inset) para dejarle sitio,
-     * así que su borde derecho *es* donde empieza el interruptor — pero eso
-     * cae justo fuera y el recorte del viewport se lo comería.  Se ensancha
-     * mientras se pinta y se devuelve a su sitio. */
-    sx = vp->width;
+    sx = vp->width - A26_SW_W - A26_LIST_CONTENT_INSET;
     sy = y + (line_h - A26_SW_H) / 2;
-    vp->width += A26_SW_W + A26_LIST_CONTENT_INSET;
-    display->set_viewport(vp);
     display->bitmap_part(a26_sw_px, 0, on ? A26_SW_H : 0,
                          STRIDE(display->screen_type, A26_SW_W, A26_SW_H * 2),
                          sx, sy, A26_SW_W, A26_SW_H);
-    vp->width -= A26_SW_W + A26_LIST_CONTENT_INSET;
-    display->set_viewport(vp);
 }
 #endif
 
@@ -192,6 +185,33 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
     bool have_icons = list_info->have_icons;
     struct line_desc *linedes = list_info->linedes;
     const char *dsp_text = list_info->dsp_text;
+
+#if ROCKPOD_APPLE2026_IPOD
+    /* Una fila con interruptor no desplaza su texto: la marquesina se
+     * metería debajo del interruptor, y además el motor de desplazamiento
+     * repinta la línea más tarde y lo borraría.  Se recorta a mano. */
+    char a26_cut[192];
+    if (!is_title && list_info->toggle >= 0 && dsp_text)
+    {
+        int room = list_info->vp->width - A26_SW_W
+                 - A26_LIST_CONTENT_INSET * 2 - item_indent;
+        int tw = 0, len;
+
+        linedes->scroll = false;
+        strmemccpy(a26_cut, dsp_text, sizeof(a26_cut));
+        display->getstringsize((unsigned char *)a26_cut, &tw, NULL);
+        len = strlen(a26_cut);
+        while (tw > room && len > 1)
+        {
+            do {
+                len--;
+            } while (len > 1 && (a26_cut[len] & 0xC0) == 0x80);
+            a26_cut[len] = '\0';
+            display->getstringsize((unsigned char *)a26_cut, &tw, NULL);
+        }
+        dsp_text = a26_cut;
+    }
+#endif
 
     if (is_title)
     {
@@ -724,16 +744,8 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
         line_indent += indent;
 
 #if ROCKPOD_APPLE2026_IPOD
-        /* El hueco del interruptor se reserva antes de medir el texto: si se
-         * recorta después, el ancho ya se usó para calcular el desplazamiento
-         * y la cadena acaba pasando por debajo del interruptor. */
         list_info.toggle = list->callback_get_item_toggle
                          ? list->callback_get_item_toggle(i, list->data) : -1;
-        if (list_info.toggle >= 0)
-        {
-            list_text_vp->width -= A26_SW_W + A26_LIST_CONTENT_INSET;
-            display->set_viewport(list_text_vp);
-        }
 #endif
         /* position the string at the correct offset place */
         int item_width,h;
@@ -825,13 +837,6 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
 
 
         callback_draw_item(&list_info);
-#if ROCKPOD_APPLE2026_IPOD
-        if (list_info.toggle >= 0)
-        {
-            list_text_vp->width += A26_SW_W + A26_LIST_CONTENT_INSET;
-            display->set_viewport(list_text_vp);
-        }
-#endif
     }
 #if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
     parent->fg_pattern = dc_saved_list_fg;
