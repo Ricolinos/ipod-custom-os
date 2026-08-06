@@ -231,6 +231,55 @@ static enum themable_icons  menu_get_icon(int selected_item, void * data)
     return menu_icon;
 }
 
+#if ROCKPOD_APPLE2026_IPOD
+/* Devuelve el estado del ajuste de sí/no de la fila, o -1 si no lo es.
+ * Rockbox obliga a entrar a una pantalla de dos opciones para algo que cabe
+ * en un interruptor; con esto la fila lo muestra y lo cambia. */
+static const struct settings_list *a26_row_bool(int selected_item, void *data)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
+    const struct settings_list *st;
+
+    if ((menu->flags & MENU_TYPE_MASK) != MT_MENU)
+        return NULL;
+    selected_item = get_menu_selection(selected_item, menu);
+    menu = menu->submenus[selected_item];
+    if ((menu->flags & MENU_TYPE_MASK) != MT_SETTING)
+        return NULL;
+    st = find_setting(menu->variable);
+    if (!st || (st->flags & F_T_MASK) != F_T_BOOL)
+        return NULL;
+    return st;
+}
+
+static int menu_get_toggle(int selected_item, void *data)
+{
+    const struct settings_list *st = a26_row_bool(selected_item, data);
+
+    if (!st)
+        return -1;
+    return *(bool *)st->setting ? 1 : 0;
+}
+
+/* Invierte el ajuste de la fila.  Devuelve false si no era un sí/no, para
+ * que quien llama siga con el comportamiento normal. */
+static bool menu_toggle_row(int selected_item, void *data)
+{
+    const struct settings_list *st = a26_row_bool(selected_item, data);
+    bool *var;
+
+    if (!st)
+        return false;
+    var = (bool *)st->setting;
+    *var = !*var;
+    /* algunos ajustes tienen efecto en el momento */
+    if (st->bool_setting && st->bool_setting->option_callback)
+        st->bool_setting->option_callback(*var);
+    settings_save();
+    return true;
+}
+#endif
+
 static bool menu_item_is_navigable(int selected_item, void * data)
 {
     const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
@@ -319,6 +368,9 @@ static int init_menu_lists(const struct menu_item_ex *menu,
     title = init_title(menu, &icon, buf, buf_sz);
     gui_synclist_set_title(lists, title, icon);
     gui_synclist_set_icon_callback(lists, global_settings.show_icons?menu_get_icon:NULL);
+#if ROCKPOD_APPLE2026_IPOD
+    lists->callback_get_item_toggle = menu_get_toggle;
+#endif
     gui_synclist_set_navigable_callback(lists, menu_item_is_navigable);
     if(global_settings.talk_menu)
         gui_synclist_set_voice_callback(lists, talk_menu_item);
@@ -745,6 +797,17 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
         }
         else if (action == ACTION_STD_OK)
         {
+#if ROCKPOD_APPLE2026_IPOD
+            /* Un ajuste de sí/no se invierte aquí mismo: la pantalla de dos
+             * opciones a la que llevaría no aporta nada que la fila no
+             * muestre ya con su interruptor. */
+            if (!in_stringlist
+                && menu_toggle_row(gui_synclist_get_sel_pos(&lists), menu))
+            {
+                gui_synclist_draw(&lists);
+                continue;
+            }
+#endif
             /* entering an item that may not be a list, so stop scrolling */
             gui_synclist_scroll_stop(&lists);
             redraw_lists = true;

@@ -122,6 +122,62 @@ static int list_icon_width(enum screen_type screen)
     return get_icon_width(screen) + ICON_PADDING * 2;
 }
 
+#if ROCKPOD_APPLE2026_IPOD
+/* Interruptor de la fila: dos estados de 30x18 en un mismo strip, apagado
+ * arriba.  Se dibuja pegado al margen derecho del texto, de modo que
+ * convive con la barra de deslizamiento y el riel A-Z, que ya han recortado
+ * el viewport antes de llegar aquí. */
+#define A26_SW_W 30
+#define A26_SW_H 18
+static fb_data a26_sw_px[A26_SW_W * A26_SW_H * 2];
+static int a26_sw_state;   /* 0 sin intentar, 1 cargado, -1 falló */
+
+static bool a26_switch_ready(void)
+{
+    struct bitmap bm;
+
+    if (a26_sw_state)
+        return a26_sw_state > 0;
+    memset(&bm, 0, sizeof(bm));
+    bm.data = (unsigned char *)a26_sw_px;
+    a26_sw_state = (read_bmp_file(WPS_DIR "/Apple2026/a26_switch.bmp", &bm,
+                                  sizeof(a26_sw_px), FORMAT_NATIVE, NULL) > 0
+                    && bm.width == A26_SW_W
+                    && bm.height == A26_SW_H * 2) ? 1 : -1;
+    if (a26_sw_state > 0)
+    {
+        int i, n = A26_SW_W * A26_SW_H * 2;
+
+        for (i = 0; i < n; i++)
+            if (a26_sw_px[i] == LCD_RGBPACK(255, 0, 255))
+                a26_sw_px[i] = A26_SHELL_BG;
+    }
+    return a26_sw_state > 0;
+}
+
+static void a26_draw_switch(struct screen *display, struct viewport *vp,
+                            int y, int line_h, int on)
+{
+    int sx, sy;
+
+    if (!a26_switch_ready())
+        return;
+    /* El viewport viene recortado en (A26_SW_W + inset) para dejarle sitio,
+     * así que su borde derecho *es* donde empieza el interruptor — pero eso
+     * cae justo fuera y el recorte del viewport se lo comería.  Se ensancha
+     * mientras se pinta y se devuelve a su sitio. */
+    sx = vp->width;
+    sy = y + (line_h - A26_SW_H) / 2;
+    vp->width += A26_SW_W + A26_LIST_CONTENT_INSET;
+    display->set_viewport(vp);
+    display->bitmap_part(a26_sw_px, 0, on ? A26_SW_H : 0,
+                         STRIDE(display->screen_type, A26_SW_W, A26_SW_H * 2),
+                         sx, sy, A26_SW_W, A26_SW_H);
+    vp->width -= A26_SW_W + A26_LIST_CONTENT_INSET;
+    display->set_viewport(vp);
+}
+#endif
+
 static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
 {
     struct screen *display = list_info->display; 
@@ -165,6 +221,11 @@ static void _default_listdraw_fn(struct list_putlineinfo_t *list_info)
         display->put_line(x, y, linedes, "$*s$*t", item_indent, item_offset, dsp_text);
     }
 
+#if ROCKPOD_APPLE2026_IPOD
+    if (!is_title && display->depth >= 16 && list_info->toggle >= 0)
+        a26_draw_switch(list_info->display, list_info->vp, list_info->y,
+                        linedes->height, list_info->toggle);
+#endif
 #ifdef HAVE_LCD_COLOR
     if (!is_title && display->depth >= 16)
     {
@@ -625,6 +686,7 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
     {
         .x = 0, .y = 0, .vp = list_text_vp, .list = list,
         .icon_width = icon_w, .is_title = false, .show_cursor = show_cursor,
+        .toggle = -1,
         .have_icons = have_icons, .linedes = &linedes, .display = display
     };
 
@@ -661,6 +723,18 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
         }
         line_indent += indent;
 
+#if ROCKPOD_APPLE2026_IPOD
+        /* El hueco del interruptor se reserva antes de medir el texto: si se
+         * recorta después, el ancho ya se usó para calcular el desplazamiento
+         * y la cadena acaba pasando por debajo del interruptor. */
+        list_info.toggle = list->callback_get_item_toggle
+                         ? list->callback_get_item_toggle(i, list->data) : -1;
+        if (list_info.toggle >= 0)
+        {
+            list_text_vp->width -= A26_SW_W + A26_LIST_CONTENT_INSET;
+            display->set_viewport(list_text_vp);
+        }
+#endif
         /* position the string at the correct offset place */
         int item_width,h;
         display->getstringsize(entry_name, &item_width, &h);
@@ -749,7 +823,15 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
         list_info.dsp_text = entry_name;
         list_info.item_offset = item_offset;
 
+
         callback_draw_item(&list_info);
+#if ROCKPOD_APPLE2026_IPOD
+        if (list_info.toggle >= 0)
+        {
+            list_text_vp->width += A26_SW_W + A26_LIST_CONTENT_INSET;
+            display->set_viewport(list_text_vp);
+        }
+#endif
     }
 #if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
     parent->fg_pattern = dc_saved_list_fg;

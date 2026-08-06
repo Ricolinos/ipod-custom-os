@@ -98,6 +98,7 @@ struct list_putlineinfo_t {
     bool is_title;
     bool show_cursor;
     bool have_icons;
+    int toggle;   /* Apple2026: -1 no aplica, 0 apagado, 1 encendido */
 };
 
 typedef void list_draw_item(struct list_putlineinfo_t *list_info);
@@ -155,6 +156,10 @@ struct gui_synclist
     /* Apple2026: right-edge A-Z index rail + fast-wheel letter jumps
      * (database views and music tracklists) */
     bool a26_index_rail;
+    /* Apple2026: estado del interruptor de la fila — -1 si no es un ajuste
+     * de sí/no, 0 apagado, 1 encendido.  Permite verlo y cambiarlo desde la
+     * propia lista en vez de entrar a la pantalla de opciones. */
+    int (*callback_get_item_toggle)(int selected_item, void *data);
     bool keyclick;
     bool talk_menu;
     bool wraparound;
