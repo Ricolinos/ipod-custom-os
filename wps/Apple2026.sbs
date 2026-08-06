@@ -125,7 +125,7 @@
 %Vl(hdr_title_split,6,0,46,20,8)
 %Vf(000000)
 %Vb(FFFFFF)
-%al%?Lo<iPod|%Lt>
+%s%al%?Lo<iPod|%Lt>
 
 # -- Clock: centred on the screen (full) or on the left panel (split) -----
 # Follows the 12/24h setting, like every other clock in the shell.
