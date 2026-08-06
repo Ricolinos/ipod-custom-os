@@ -71,19 +71,20 @@ static const char kb_chars[] =
 #define KB_TEXT_X     42
 #define KB_RULE_Y     62
 
-/* Pill */
-#define KB_PILL_X     40
+/* Search bar — a rounded rectangle, centred on the screen.  Its x is worked
+ * out from the viewport at draw time so it stays centred whatever width the
+ * panel happens to be. */
 #define KB_PILL_Y     186
 #define KB_PILL_W     268
 #define KB_PILL_H     32
-#define KB_PILL_R     16
-#define KB_FIELD_X    (KB_PILL_X + 8)
+#define KB_PILL_R     10
+#define KB_FIELD_DX   7             /* inset of the entry field in the bar */
 #define KB_FIELD_Y    (KB_PILL_Y + 5)
 #define KB_FIELD_W    72
 #define KB_FIELD_H    22
-#define KB_FIELD_R    11
-#define KB_STRIP_X    (KB_FIELD_X + KB_FIELD_W + 8)
-#define KB_STRIP_PAD  10            /* keep glyphs off the pill's round end */
+#define KB_FIELD_R    7
+#define KB_STRIP_DX   (KB_FIELD_DX + KB_FIELD_W + 8)
+#define KB_STRIP_PAD  9             /* keep glyphs off the rounded end */
 #define KB_LEAD       2             /* characters shown behind the cursor */
 
 static int kb_f_head = -1, kb_f_sub = -1, kb_f_active = -1, kb_f_strip = -1;
@@ -284,7 +285,7 @@ static void kb_draw(struct screen *display, const char *text, int sel,
                     const char *field)
 {
     struct viewport vp;
-    int i, x, w = 0;
+    int i, x, w = 0, pill_x, field_x;
     char s[2] = { 0, 0 };
 
     viewport_set_defaults(&vp, display->screen_type);
@@ -325,10 +326,12 @@ static void kb_draw(struct screen *display, const char *text, int sel,
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_RAIL));
     display->hline(0, vp.width - 1, KB_RULE_Y);
 
-    /* ---- pill ---- */
-    kb_round_rect(display, KB_PILL_X, KB_PILL_Y, KB_PILL_W, KB_PILL_H,
+    /* ---- search bar ---- */
+    pill_x = (vp.width - KB_PILL_W) / 2;
+    field_x = pill_x + KB_FIELD_DX;
+    kb_round_rect(display, pill_x, KB_PILL_Y, KB_PILL_W, KB_PILL_H,
                   KB_PILL_R, A26_ACCENT);
-    kb_round_rect(display, KB_FIELD_X, KB_FIELD_Y, KB_FIELD_W, KB_FIELD_H,
+    kb_round_rect(display, field_x, KB_FIELD_Y, KB_FIELD_W, KB_FIELD_H,
                   KB_FIELD_R, A26_SHELL_BG);
 
     /* entered text, tail-anchored so the caret end stays visible */
@@ -349,7 +352,7 @@ static void kb_draw(struct screen *display, const char *text, int sel,
         display->set_drawmode(DRMODE_FG);
         display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
                                     A26_TEXT_PRIMARY));
-        display->putsxy(KB_FIELD_X + 6, KB_FIELD_Y + 3,
+        display->putsxy(field_x + 6, KB_FIELD_Y + 3,
                         (unsigned char *)shown);
         display->set_drawmode(DRMODE_SOLID);
     }
@@ -357,12 +360,12 @@ static void kb_draw(struct screen *display, const char *text, int sel,
     /* ---- letter strip ---- */
     {
         int start = sel - KB_LEAD;
-        int limit = KB_PILL_X + KB_PILL_W - KB_STRIP_PAD;
+        int limit = pill_x + KB_PILL_W - KB_STRIP_PAD;
         fb_data dim = kb_mix(LCD_WHITE, A26_ACCENT, 150);
 
         if (start < 0)
             start = 0;
-        x = KB_STRIP_X;
+        x = pill_x + KB_STRIP_DX;
         display->set_drawmode(DRMODE_FG);
         for (i = start; i < KB_COUNT; i++)
         {

@@ -84,12 +84,11 @@
 %?if(%St(battery display), =, numeric)<%?Lo<|%?LM<|%Vd(batterytext)>>>
 %?mh<%?Lo<%Vd(lock_split)|%?LM<%Vd(lock_split)|%Vd(lock)>>|>
 %?mp<|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>>
-%?bs<%?Lo<|%?LM<|%Vd(sleeptimertext)>>|>
 %?lh<%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>>>|>
 #
 # Header title â€” full screens center it; split screens use the small
 # left-bar titles (large_title at root, lm_title in the Music submenu)
-%?Lo<%Vd(hdr_title_split)%Vd(hdr_clock_split)|%?LM<%Vd(hdr_title_split)%Vd(hdr_clock_split)|%Vd(hdr_title)%Vd(hdr_clock)>>
+%?Lo<%Vd(hdr_title_split)%Vd(hdr_clock_split)|%?LM<%Vd(hdr_title_split)%Vd(hdr_clock_split)|%Vd(hdr_title)%?bs<%Vd(sleeptimertext)|%Vd(hdr_clock)>>>
 %?if(%cs, =, 10)<|%?mv(1.2)<%?mp<|%Vd(mp_volume_bg)%Vd(mp_volume_clip)||%Vd(mp_volume_bg)%Vd(mp_volume_clip)|%Vd(mp_volume_bg)%Vd(mp_volume_clip)>>|>
 #
 # USB backdrop
@@ -114,7 +113,7 @@
 # classed as static, drawn only on a full refresh and never restored after
 # anything else repaints the bar - that is why "iPod" used to disappear.
 # Font slot 3 RB12 height = 20px; VP height must be >= 20 to avoid clipping.
-%Vl(hdr_title,6,0,134,20,3)
+%Vl(hdr_title,6,0,98,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%?Lo<iPod|%?cs<%Lt|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>>
@@ -129,7 +128,7 @@
 
 # -- Clock: centred on the screen (full) or on the left panel (split) -----
 # Follows the 12/24h setting, like every other clock in the shell.
-%Vl(hdr_clock,110,0,100,20,8)
+%Vl(hdr_clock,120,0,80,20,8)
 %Vf(000000)
 %Vb(FFFFFF)
 %ac%?cf<%cH:%cM|%cl:%cM %cP>
@@ -137,7 +136,7 @@
 %Vl(hdr_clock_split,56,0,48,20,8)
 %Vf(000000)
 %Vb(FFFFFF)
-%ac%?cf<%cH:%cM|%cl:%cM %cP>
+%ac%?cf<%cH:%cM|%cl:%cM>
 
 # â”€â”€ Content viewports (selector + list dividers edge-to-edge; 16px row
 #    inset is applied in apps/gui/bitmap/list.c for Apple2026 iPod targets)
@@ -196,7 +195,7 @@
 %Vb(FFFFFF)
 
 # â”€â”€ Lock icon (SF lock.fill; reserved slot, shown whenever hold is on) â”€â”€â”€â”€â”€â”€
-%Vl(lock,-66,4,9,12,-)
+%Vl(lock,216,4,9,12,-)
 %Vb(FFFFFF)
 %xd(Ab)
 
@@ -205,7 +204,7 @@
 %xd(Ab)
 
 # â”€â”€ Playback state (SF play/pause.fill; shown whenever audio is active) â”€â”€â”€â”€â”€
-%Vl(pp_icon,-50,4,12,12,-)
+%Vl(pp_icon,232,4,12,12,-)
 %Vb(FFFFFF)
 %?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 
@@ -227,10 +226,10 @@
 %?if(%bl, =, 100)<100%%|%bl%%>
 
 # â”€â”€ Sleep timer text countdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(sleeptimertext,-100,0,58,20,6)
+%Vl(sleeptimertext,120,0,80,20,6)
 %Vf(8E8E93)
 %Vb(FFFFFF)
-%bs
+%ac%bs
 
 # â”€â”€ Battery icon (upper-right â€” moved up 2px from prior position) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 %Vl(battery_icon,-32,2,-,16,3)
@@ -245,12 +244,12 @@
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
 
 # â”€â”€ Busy indicator â€” right side (no battery %) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(busyindicator,-50,8,9,9,-)
+%Vl(busyindicator,202,8,9,9,-)
 %Vb(FFFFFF)
 %t(0.1)%xd(La);%t(0.1)%xd(Lb);%t(0.1)%xd(Lc);%t(0.1)%xd(Ld);%t(0.1)%xd(Le);%t(0.1)%xd(Lf);%t(0.1)%xd(Lg);%t(0.1)%xd(Lh);%t(0.1)%xd(Li);%t(0.1)%xd(Lj);%t(0.1)%xd(Lk);%t(0.1)%xd(Ll);%t(0.1)%xd(Lm);%t(0.1)%xd(Ln);%t(0.1)%xd(Lo);%t(0.1)%xd(Lp)
 
 # â”€â”€ Busy indicator â€” left side (when battery % shown) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(busyindicatorleft,58,8,9,9,-)
+%Vl(busyindicatorleft,202,8,9,9,-)
 %Vb(FFFFFF)
 %t(0.1)%xd(La);%t(0.1)%xd(Lb);%t(0.1)%xd(Lc);%t(0.1)%xd(Ld);%t(0.1)%xd(Le);%t(0.1)%xd(Lf);%t(0.1)%xd(Lg);%t(0.1)%xd(Lh);%t(0.1)%xd(Li);%t(0.1)%xd(Lj);%t(0.1)%xd(Lk);%t(0.1)%xd(Ll);%t(0.1)%xd(Lm);%t(0.1)%xd(Ln);%t(0.1)%xd(Lo);%t(0.1)%xd(Lp)
 
