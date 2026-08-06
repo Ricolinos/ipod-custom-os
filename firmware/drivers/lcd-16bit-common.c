@@ -707,6 +707,7 @@ static void ICODE_ATTR lcd_alpha_bitmap_part_mix(
 static unsigned char a26_cov[A26_CR_N];     /* 0..16 coverage per pixel */
 static fb_data a26_src[4][A26_CR_N];        /* value before we stamped */
 static fb_data a26_out[4][A26_CR_N];        /* value we stamped */
+static bool a26_stamped[4][A26_CR_N];       /* is a26_out meaningful yet? */
 static bool a26_corners_ready = false;
 
 static void a26_corners_build(void)
@@ -730,7 +731,7 @@ static void a26_corners_build(void)
                 }
             a26_cov[y * A26_CR + x] = cov;
         }
-    memset(a26_out, 0xFF, sizeof(a26_out));   /* nothing stamped yet */
+    memset(a26_stamped, 0, sizeof(a26_stamped));
     a26_corners_ready = true;
 }
 
@@ -754,7 +755,7 @@ static void a26_corner_pixel(int corner, int idx, int px, int py,
     }
 
     cur = *p;
-    if (cur == a26_out[corner][idx])
+    if (a26_stamped[corner][idx] && cur == a26_out[corner][idx])
         cur = a26_src[corner][idx];         /* untouched since last stamp */
     a26_src[corner][idx] = cur;
 
@@ -763,6 +764,7 @@ static void a26_corner_pixel(int corner, int idx, int px, int py,
     b = (cur & 0x1F) * cov / 16;
     val = (fb_data)((r << 11) | (g << 5) | b);
     a26_out[corner][idx] = val;
+    a26_stamped[corner][idx] = true;
     *p = val;
 }
 
