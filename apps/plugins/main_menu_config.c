@@ -52,9 +52,17 @@ static const char * menu_get_name(int selected_item, void * data,
 
 static enum themable_icons menu_get_icon(int selected_item, void * data)
 {
+    const struct menu_item_ex *item = menu_table[selected_item].item;
     (void)data;
 
-    return menu_items[selected_item].enabled ? Icon_Config : Icon_NOICON;
+    if (!menu_items[selected_item].enabled)
+        return Icon_NOICON;
+    /* Cada fila enciende o apaga una entrada del menú raíz, así que se enseña
+     * el icono de esa entrada: con Icon_Config para todas, las ocho filas
+     * llevaban el mismo dibujo y no decían nada. */
+    if (item->flags & MENU_HAS_DESC)
+        return item->callback_and_desc->icon_id;
+    return Icon_Config;
 }
 
 static unsigned char *item_name(int n)

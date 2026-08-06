@@ -182,20 +182,20 @@ MENUITEM_SETTING(tagcache_ram, &global_settings.tagcache_ram, NULL);
 #endif
 MENUITEM_SETTING(tagcache_autoupdate, &global_settings.tagcache_autoupdate, NULL);
 MENUITEM_FUNCTION(tc_init, 0, ID2P(LANG_TAGCACHE_FORCE_UPDATE),
-                  (int(*)(void))tagcache_rebuild_with_splash, NULL, Icon_NOICON);
+                  (int(*)(void))tagcache_rebuild_with_splash, NULL, Icon_S_DbInit);
 MENUITEM_FUNCTION(tc_update, 0, ID2P(LANG_TAGCACHE_UPDATE),
-                  (int(*)(void))tagcache_update_with_splash, NULL, Icon_NOICON);
+                  (int(*)(void))tagcache_update_with_splash, NULL, Icon_S_DbUpdate);
 MENUITEM_SETTING(runtimedb, &global_settings.runtimedb, NULL);
 
 MENUITEM_FUNCTION(tc_export, 0, ID2P(LANG_TAGCACHE_EXPORT),
                   tagtree_export,
-                  NULL, Icon_NOICON);
+                  NULL, Icon_S_DbExport);
 
 MENUITEM_FUNCTION(tc_import, 0, ID2P(LANG_TAGCACHE_IMPORT),
                   tagtree_import,
-                  NULL, Icon_NOICON);
+                  NULL, Icon_S_DbImport);
 MENUITEM_FUNCTION(tc_paths, 0, ID2P(LANG_SELECT_DATABASE_DIRS),
-                  dirs_to_scan, db_folder_select_menu_cb, Icon_NOICON);
+                  dirs_to_scan, db_folder_select_menu_cb, Icon_S_DbPaths);
 
 MAKE_MENU(tagcache_menu, ID2P(LANG_TAGCACHE), 0, Icon_A26_Database,
 #ifdef HAVE_TC_RAMCACHE
@@ -431,7 +431,7 @@ MENUITEM_SETTING(bt_selective_actions,
                                                     selectivesoftlock_callback);
 MENUITEM_FUNCTION(sel_softlock_mask, 0, ID2P(LANG_SETTINGS),
                   selectivesoftlock_set_mask, selectivesoftlock_callback,
-                  Icon_Menu_setting);
+                  Icon_S_SoftlockMask);
 
 MAKE_MENU(sel_softlock, ID2P(LANG_SOFTLOCK_SELECTIVE),
           NULL, Icon_A26_LockKey, &bt_selective_actions, &sel_softlock_mask);

@@ -64,7 +64,7 @@ static int clear_main_backdrop(void)
     return 0;
 }
 MENUITEM_FUNCTION(clear_main_bd, 0, ID2P(LANG_CLEAR_BACKDROP),
-                  clear_main_backdrop, NULL, Icon_NOICON);
+                  clear_main_backdrop, NULL, Icon_S_ClearBd);
 #endif
 #ifdef HAVE_LCD_COLOR
 
@@ -143,19 +143,19 @@ static int reset_color(void)
     return 0;
 }
 MENUITEM_FUNCTION_W_PARAM(set_bg_col, 0, ID2P(LANG_BACKGROUND_COLOR),
-                          set_color_func, (void*)COLOR_BG, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_BG, NULL, Icon_S_ColBg);
 MENUITEM_FUNCTION_W_PARAM(set_fg_col, 0, ID2P(LANG_FOREGROUND_COLOR),
-                          set_color_func, (void*)COLOR_FG, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_FG, NULL, Icon_S_ColFg);
 MENUITEM_FUNCTION_W_PARAM(set_lss_col, 0, ID2P(LANG_SELECTOR_START_COLOR),
-                          set_color_func, (void*)COLOR_LSS, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_LSS, NULL, Icon_S_ColLss);
 MENUITEM_FUNCTION_W_PARAM(set_lse_col, 0, ID2P(LANG_SELECTOR_END_COLOR),
-                          set_color_func, (void*)COLOR_LSE, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_LSE, NULL, Icon_S_ColLse);
 MENUITEM_FUNCTION_W_PARAM(set_lst_col, 0, ID2P(LANG_SELECTOR_TEXT_COLOR),
-                          set_color_func, (void*)COLOR_LST, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_LST, NULL, Icon_S_ColLst);
 MENUITEM_FUNCTION_W_PARAM(set_sep_col, 0, ID2P(LANG_LIST_SEPARATOR_COLOR),
-                          set_color_func, (void*)COLOR_SEP, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_SEP, NULL, Icon_S_ColSep);
 MENUITEM_FUNCTION(reset_colors, 0, ID2P(LANG_RESET_COLORS),
-                  reset_color, NULL, Icon_NOICON);
+                  reset_color, NULL, Icon_S_ColReset);
 
 MAKE_MENU(lss_settings, ID2P(LANG_SELECTOR_COLOR_MENU),
             NULL, Icon_A26_SelColor,
@@ -351,7 +351,7 @@ MENUITEM_FUNCTION_W_PARAM(browse_fonts, 0, ID2P(LANG_CUSTOM_FONT),
                           browse_folder, (void*)&fonts, NULL, Icon_Font);
 
 MENUITEM_FUNCTION_W_PARAM(browse_sbs, 0, ID2P(LANG_BASE_SKIN),
-                          browse_folder, (void*)&sbs, NULL, Icon_Wps);
+                          browse_folder, (void*)&sbs, NULL, Icon_S_BrowseSbs);
 #if CONFIG_TUNER
 MENUITEM_FUNCTION_W_PARAM(browse_fms, 0, ID2P(LANG_RADIOSCREEN),
                           browse_folder, (void*)&fms, NULL, Icon_Wps);
@@ -391,7 +391,7 @@ static int showicons_callback(int action,
 
 MENUITEM_SETTING(show_icons, &global_settings.show_icons, showicons_callback);
 MENUITEM_FUNCTION_W_PARAM(browse_themes, 0, ID2P(LANG_CUSTOM_THEME),
-                          browse_folder, (void*)&themes, NULL, Icon_Config);
+                          browse_folder, (void*)&themes, NULL, Icon_S_BrowseThemes);
 MENUITEM_SETTING(cursor_style, &global_settings.cursor_style, NULL);
 #if LCD_DEPTH > 1
 MENUITEM_SETTING(sep_menu, &global_settings.list_separator_height, NULL);

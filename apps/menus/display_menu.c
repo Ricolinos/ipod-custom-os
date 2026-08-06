@@ -169,7 +169,7 @@ MENUITEM_SETTING(bl_selective_actions,
 
 MENUITEM_FUNCTION(sel_backlight_mask, 0, ID2P(LANG_SETTINGS),
                   selectivebacklight_set_mask, selectivebacklight_callback,
-                  Icon_Menu_setting);
+                  Icon_S_BlMask);
 
 MAKE_MENU(sel_backlight, ID2P(LANG_BACKLIGHT_SELECTIVE),
           NULL, Icon_A26_BacklightExc, &bl_selective_actions, &sel_backlight_mask);
@@ -521,16 +521,16 @@ static bool history_interval(void)
 }
 
 MENUITEM_FUNCTION(histogram, 0, ID2P(LANG_HISTOGRAM_INTERVAL),
-                  history_interval, NULL, Icon_Menu_setting);
+                  history_interval, NULL, Icon_S_PmHistogram);
 
 #endif
 
 MENUITEM_FUNCTION(peak_meter_scale_item, 0, ID2P(LANG_PM_SCALE),
-                  peak_meter_scale, NULL, Icon_NOICON);
+                  peak_meter_scale, NULL, Icon_S_PmScale);
 MENUITEM_FUNCTION(peak_meter_min_item, 0, ID2P(LANG_PM_MIN),
-                  peak_meter_min, NULL, Icon_NOICON);
+                  peak_meter_min, NULL, Icon_S_PmMin);
 MENUITEM_FUNCTION(peak_meter_max_item, 0, ID2P(LANG_PM_MAX),
-                  peak_meter_max, NULL, Icon_NOICON);
+                  peak_meter_max, NULL, Icon_S_PmMax);
 MAKE_MENU(peak_meter_menu, ID2P(LANG_PM_MENU), NULL, Icon_A26_PeakMeter,
           &peak_meter_release, &peak_meter_hold,
           &peak_meter_clip_hold,
