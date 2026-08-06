@@ -17442,3 +17442,17 @@
     *: "Agregar a Playlist"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_SEARCH_BY
+  desc: Apple2026 search screen header
+  user: core
+  <source>
+    *: "Search by"
+  </source>
+  <dest>
+    *: "Buscar por"
+  </dest>
+  <voice>
+    *: "Buscar por"
+  </voice>
+</phrase>
