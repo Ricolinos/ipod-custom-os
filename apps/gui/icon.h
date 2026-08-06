@@ -265,6 +265,21 @@ enum themable_icons {
     Icon_D26,
     Icon_D27,
     Icon_D28,
+    /* Ecualizador avanzado: un motivo por banda (el pico se desplaza por
+     * el eje de frecuencia) y uno por parámetro. */
+    Icon_S_EqBandLow,
+    Icon_S_EqBand1,
+    Icon_S_EqBand2,
+    Icon_S_EqBand3,
+    Icon_S_EqBand4,
+    Icon_S_EqBand5,
+    Icon_S_EqBand6,
+    Icon_S_EqBand7,
+    Icon_S_EqBand8,
+    Icon_S_EqBandHigh,
+    Icon_S_EqCutoff,
+    Icon_S_EqQ,
+    Icon_S_EqGain,
 #endif
     Icon_Last_Themeable,
 };

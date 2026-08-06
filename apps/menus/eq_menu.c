@@ -50,6 +50,7 @@
 #include "pcmbuf.h"
 #include "option_select.h"
 #include "string-extra.h"
+#include "apple2026_shell.h"
 
 static void eq_apply(void);
 
@@ -344,10 +345,32 @@ static enum themable_icons advancedmenu_get_icon(int selected_item, void * data)
 
     selection_to_banditem(selected_item, *(intptr_t*)data, &band, &item);
 
+#if ROCKPOD_APPLE2026_IPOD
+    /* Las diez bandas comparten motivo —el eje de frecuencia con su curva—
+     * y se distinguen por dónde cae el pico: los extremos son los filtros de
+     * nivel y los ocho de en medio recorren el eje.  Los tres parámetros de
+     * cada banda sí llevan símbolo propio, que antes era el mismo para los
+     * tres. */
+    if (item == 0)
+    {
+        if (band == 0)
+            return Icon_S_EqBandLow;
+        if (band == EQ_NUM_BANDS - 1)
+            return Icon_S_EqBandHigh;
+        return Icon_S_EqBand1 + (band - 1);
+    }
+    switch (item)
+    {
+        case 1:  return Icon_S_EqCutoff;   /* frecuencia central o de corte */
+        case 2:  return Icon_S_EqQ;        /* ancho de banda */
+        default: return Icon_S_EqGain;
+    }
+#else
     if (item == 0)
         return Icon_Submenu;
     else
         return Icon_Menu_setting;
+#endif
 }
 extern struct eq_band_setting eq_defaults[EQ_NUM_BANDS];
 
