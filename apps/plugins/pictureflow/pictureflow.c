@@ -1806,7 +1806,7 @@ static int load_album_index(void){
     }
 
 failure:
-    rb->splash(HZ/2, "Failed to load index");
+    rb->splash(HZ/2, rb->str(LANG_A26_PF_NO_INDEX));
     if (fr >= 0)
         rb->close(fr);
 
@@ -2003,7 +2003,7 @@ static int id3_get_index(struct mp3entry *id3)
         }
 
     }
-    rb->splash(HZ/2, "Album Not Found!");
+    rb->splash(HZ/2, rb->str(LANG_A26_PF_NO_ALBUM));
     return pf_cfg.last_album;
 }
 
@@ -2465,7 +2465,7 @@ static bool incremental_albumart_cache(bool verbose)
                           aa_cache.buf_sz, format, &format_transposed);
     if (ret <= 0) {
         if (verbose) {
-            rb->splashf(HZ, "Album art is bad: %s", get_album_name(idx));
+            rb->splashf(HZ, rb->str(LANG_A26_PF_BAD_ART), get_album_name(idx));
         }
 
         goto aa_failure;
@@ -5252,7 +5252,7 @@ static void draw_album_text(void)
 */
 static void error_wait(const char *message)
 {
-    rb->splashf(0, "%s. Press any button to continue.", message);
+    rb->splashf(0, rb->str(LANG_A26_PF_ANY_KEY), message);
     while (rb->get_action(CONTEXT_STD, 1) == ACTION_NONE)
         rb->yield();
     rb->sleep(2 * HZ);

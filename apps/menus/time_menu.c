@@ -282,7 +282,7 @@ int time_screen(void* ignored)
     struct tm *tm = get_time();
     if (tm->tm_year==102 && tm->tm_hour==2 && tm->tm_min==2 && tm->tm_sec==2)
     {
-        splash(4*HZ, "Can't set time/date due to hardware issues!");
+        splash(4*HZ, str(LANG_A26_RTC_FAILED));
         pop_current_activity();
         return 0;
     }

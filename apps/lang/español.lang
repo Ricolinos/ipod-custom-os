@@ -17568,3 +17568,73 @@
     *: "Fundido del texto"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_PF_NO_INDEX
+  desc: Cover Flow: cache could not be read
+  user: core
+  <source>
+    *: "Could not read the cache"
+  </source>
+  <dest>
+    *: "No se pudo leer la caché"
+  </dest>
+  <voice>
+    *: "No se pudo leer la caché"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_NO_ALBUM
+  desc: Cover Flow: album missing from the database
+  user: core
+  <source>
+    *: "Album not found"
+  </source>
+  <dest>
+    *: "Álbum no encontrado"
+  </dest>
+  <voice>
+    *: "Álbum no encontrado"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_BAD_ART
+  desc: Cover Flow: unreadable album art
+  user: core
+  <source>
+    *: "Unreadable cover: %s"
+  </source>
+  <dest>
+    *: "Carátula ilegible: %s"
+  </dest>
+  <voice>
+    *: "Carátula ilegible: %s"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ANY_KEY
+  desc: Cover Flow: wait for a keypress
+  user: core
+  <source>
+    *: "%s. Press any button to continue."
+  </source>
+  <dest>
+    *: "%s. Pulsa cualquier botón para continuar."
+  </dest>
+  <voice>
+    *: "%s. Pulsa cualquier botón para continuar."
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_RTC_FAILED
+  desc: Clock could not be set
+  user: core
+  <source>
+    *: "Can't set the time: the clock is not responding"
+  </source>
+  <dest>
+    *: "No se pudo poner la hora: el reloj no responde"
+  </dest>
+  <voice>
+    *: "No se pudo poner la hora: el reloj no responde"
+  </voice>
+</phrase>

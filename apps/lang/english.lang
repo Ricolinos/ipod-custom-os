@@ -17587,3 +17587,73 @@
     *: "Text crossfade"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_PF_NO_INDEX
+  desc: Cover Flow: cache could not be read
+  user: core
+  <source>
+    *: "Could not read the cache"
+  </source>
+  <dest>
+    *: "Could not read the cache"
+  </dest>
+  <voice>
+    *: "Could not read the cache"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_NO_ALBUM
+  desc: Cover Flow: album missing from the database
+  user: core
+  <source>
+    *: "Album not found"
+  </source>
+  <dest>
+    *: "Album not found"
+  </dest>
+  <voice>
+    *: "Album not found"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_BAD_ART
+  desc: Cover Flow: unreadable album art
+  user: core
+  <source>
+    *: "Unreadable cover: %s"
+  </source>
+  <dest>
+    *: "Unreadable cover: %s"
+  </dest>
+  <voice>
+    *: "Unreadable cover: %s"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ANY_KEY
+  desc: Cover Flow: wait for a keypress
+  user: core
+  <source>
+    *: "%s. Press any button to continue."
+  </source>
+  <dest>
+    *: "%s. Press any button to continue."
+  </dest>
+  <voice>
+    *: "%s. Press any button to continue."
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_RTC_FAILED
+  desc: Clock could not be set
+  user: core
+  <source>
+    *: "Can't set the time: the clock is not responding"
+  </source>
+  <dest>
+    *: "Can't set the time: the clock is not responding"
+  </dest>
+  <voice>
+    *: "Can't set the time: the clock is not responding"
+  </voice>
+</phrase>
