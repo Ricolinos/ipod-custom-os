@@ -82,6 +82,12 @@
  *      cada tres despertares no movían nada y el tercero saltaba en diagonal.
  *      Ese era el tirón.  A HZ/10 con subpíxel cada despertar mueve ~0,25 px
  *      de peso, que es lo que el ojo lee como continuo.
+ *      OJO, es un timeout: HZ/10 despierta MÁS que HZ/6 (10 veces por segundo
+ *      contra 6).  El cambio cuesta energía y se aceptó a sabiendas — el
+ *      presupuesto es la mitad por segundo que el fundido, que ya corre a 20
+ *      fps y está probado, y a cambio se quita el redibujo de la lista.  Si
+ *      alguna vez hay que recortar consumo, ES ESTE NÚMERO, no el subpíxel:
+ *      subirlo a HZ/8 quita despertares sin volver al movimiento a saltos.
  *  PANE_PAN_SUBPIX       0 vuelve al blit entero de antes.  Sirve para
  *      comparar nitidez: la composición de 2 taps es un promedio ponderado y
  *      puede ablandar la carátula; si se nota, la salida es subir a bilineal
@@ -646,10 +652,11 @@ bool apple2026_pane_animating(void)
  *
  * H-16: la deriva estaba a HZ/6 y avanzaba de píxel entero en píxel entero,
  * o sea un paso cada ~390 ms — dos de cada tres despertares no movían nada y
- * el tercero saltaba.  Ahora va a HZ/10 pero cada fotograma mueve fracción,
- * así que hay MENOS despertares que antes y aun así el movimiento es continuo.
- * Toda la cadencia sigue bajo la puerta `lcd_active()` de arriba: con la
- * pantalla dormida no se despierta la CPU ni una vez. */
+ * el tercero saltaba.  Ahora va a HZ/10 y cada fotograma mueve fracción.
+ * Son 10 despertares por segundo contra 6: MÁS, no menos.  Lo que abarata el
+ * cambio es que cada uno repinta sólo el panel en vez de arrastrar un
+ * redibujo completo de la lista.  Todo sigue bajo la puerta `lcd_active()`
+ * de arriba: con la pantalla dormida no se despierta la CPU ni una vez. */
 int apple2026_pane_anim_timeout(void)
 {
     if (!a26_pane_lcd_on())
