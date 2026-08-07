@@ -1202,7 +1202,14 @@ static int a26_photo_loop(void)
             }
             else if (!iv_api.running_slideshow)
             {
-                rb->lcd_putsxy(8, LCD_HEIGHT / 2, rb->str(LANG_READ_FAILED));
+                /* H-21: LANG_READ_FAILED lleva un %s y se pasaba a
+                 * putsxy tal cual, así que la pantalla mostraba los dos
+                 * caracteres "%s" en vez del nombre del archivo. */
+                char msg[MAX_PATH + 32];
+                rb->snprintf(msg, sizeof(msg), rb->str(LANG_READ_FAILED),
+                             rb->strrchr(np_file, '/')
+                                 ? rb->strrchr(np_file, '/') + 1 : np_file);
+                rb->lcd_putsxy(8, LCD_HEIGHT / 2, msg);
             }
             rb->lcd_update();
             next_tick = *rb->current_tick + settings.ss_timeout * HZ;

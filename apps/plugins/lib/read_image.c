@@ -29,7 +29,14 @@ int read_image_file(const char* filename, struct bitmap *bm, int maxsize,
                     int format, const struct custom_format *cformat)
 {
     int namelen = rb->strlen(filename);
-    if (rb->strcmp(filename + namelen - 4, ".bmp"))
+
+    /* H-21: el reparto era un strcmp con ".bmp" en minúsculas, así que un
+     * archivo llamado FOTO.BMP se mandaba al decodificador JPEG y fallaba
+     * con un error críptico.  Comparar sin distinguir mayúsculas cuesta lo
+     * mismo.  (Los formatos que este wrapper no conoce —PNG, GIF, PPM—
+     * siguen cayendo al lado JPEG: repartirlos de verdad exige el
+     * get_image_type() del imageviewer, que no está en lib.) */
+    if (namelen < 4 || rb->strcasecmp(filename + namelen - 4, ".bmp"))
         return read_jpeg_file(filename, bm, maxsize, format, cformat);
     else
         return scaled_read_bmp_file(filename, bm, maxsize, format, cformat);

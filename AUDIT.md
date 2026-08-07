@@ -318,7 +318,8 @@ con `diskutil info`, respaldar `.rockbox/config.cfg`, descomprimir encima,
 - Verificación pendiente: **[~]** verlo girando en pantalla, claro y oscuro. Secuencia lista: `tools/apple2026_sim_theme.sh claro` · `tools/apple2026_sim_shot.sh H20-spinner-claro 36:150 125:30 36:150` (la entrada a Cover Flow es donde más dura); repetir con `oscuro`. Lo que no se puede ver ni así es la fluidez del giro con disco real → razonado-no-observado.
 
 ### H-21 · Fotos: enrutado de formatos roto, error crudo, y modos fit/fill
-- Estado: **diagnosticado** · Lote post-auditoría · Detectado por el usuario ("Error al cargar %s" con fotos grandes)
+- Estado: **parcialmente arreglado** (lote-2, 2026-08-07); enrutado completo, fit/fill y página de símbolo PENDIENTES
+- Estado previo: **diagnosticado** · Lote post-auditoría · Detectado por el usuario ("Error al cargar %s" con fotos grandes)
 - Causa raíz (NO es memoria: 17× de holgura, 12 MP pico ≈220 KB vs 3 MiB; IDCT ya decodifica a 1/8): `read_image_file()` (`read_image.c:31-36`) despacha con `strcmp(".bmp")` a 2 ramas — PNG/GIF/PPM/`.BMP` mayúsculas caen al decodificador JPEG y fallan; **JPEG progresivo** → -4 (`jpeg_load.c:1063-1078`), y los exportadores generan progresivo justo en fotos grandes. El 6G usa SÓLO `a26_photo_loop()` (`imageviewer.c:1163-1266`; ruta stock y su keymap = código muerto, `:1365-1377`). El `%s` se imprime literal (`:1205`, `rb->str()` sin snprintf).
 - Arreglos, en orden:
   1. Enrutar por `get_image_type()` a los decodificadores correctos; para JPEG progresivo (el núcleo no lo implementa): página de símbolo explicando el formato, no error críptico.
@@ -327,7 +328,12 @@ con `diskutil info`, respaldar `.rockbox/config.cfg`, descomprimir encima,
   4. Fluidez: `JPEG_READ_BUF_SIZE` 16 → 2048 (`jpeg_common.h:34`; hoy ~262k `read()` por foto de 4 MB; toca núcleo compartido con carátulas — auditar, es a mejor).
   5. Bug latente: alineación de `bm.data` (`imageviewer.c:1188`) impar en modo directorio CON música → alinear.
 - **Decisión (usuario preguntó): SIN pre-escalado ni caché** — es optimización de velocidad, no de capacidad, y no arregla el bug. Reevaluar caché (opción C) sólo si los tiempos medidos en aparato tras 1+4 siguen mal.
-- Verificación pendiente: [~] añadir a la biblioteca sintética un PNG, un JPEG progresivo y un `.BMP` en mayúsculas; recorrerlas en Fotos; alternar SELECT en una 16:9 y una 3:4. El bug de alineación: sólo con música y en el aparato (razonado-no-observado).
+- **Hecho 2026-08-07 (lote-2) — sólo lo que no exige mirar la pantalla:**
+  - `.BMP` en mayúsculas: el reparto de `read_image_file` era un `strcmp` con ".bmp" en minúsculas, así que esos archivos se mandaban al decodificador JPEG y fallaban. Pasa a `strcasecmp` (+ guarda de longitud).
+  - El `%s` que se imprimía literal: `LANG_READ_FAILED` lleva un `%s` y se pasaba a `putsxy` sin formatear, de modo que la pantalla mostraba los dos caracteres en vez del nombre. Ahora se formatea con `snprintf` y se muestra **sólo el nombre del archivo**, no la ruta.
+  - `JPEG_READ_BUF_SIZE` 16 → **2048**: con 16 bytes una foto de 4 MB hacía unas 262.000 llamadas a `read()`. Lo comparte con las carátulas y ahí también es a mejor.
+- **NO hecho, y por qué**: (1) el enrutado completo por `get_image_type()` —esa función vive en `apps/plugins/imageviewer/`, no en `lib/`, así que PNG/GIF/PPM siguen cayendo al lado JPEG; moverla o duplicarla toca el lib que comparten varios plugins; (2) la página de símbolo para el error y para el JPEG progresivo —mismo bloqueo que H-18: `apple2026_symbol_page` no está en el API de plugins; (3) los modos **fit/fill** con SELECT y (5) la alineación de `bm.data`: son cambios cuyo efecto es puramente visual o dependiente del aparato, y esta sesión no podía ver ninguna pantalla. El diagnóstico de arriba sigue vigente y anclado.
+- Verificación pendiente: **[~]** añadir a la biblioteca sintética un PNG, un JPEG progresivo y un `.BMP` en mayúsculas; recorrerlas en Fotos y comprobar que el `.BMP` ya abre y que el error muestra el nombre. El bug de alineación: sólo con música y en el aparato (razonado-no-observado).
 
 ---
 

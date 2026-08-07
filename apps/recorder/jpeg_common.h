@@ -31,7 +31,11 @@
 #include "bmp.h"
 
 #define HUFF_LOOKAHEAD 8 /* # of bits of lookahead */
-#define JPEG_READ_BUF_SIZE 16
+/* H-21: con 16 bytes, una foto de 4 MB hacía ~262.000 llamadas a read().
+ * 2 KiB es un sector y pico y el buffer vive en la pila del decodificador,
+ * que ya reserva mucho más.  Lo comparte con las carátulas, y ahí también
+ * es a mejor. */
+#define JPEG_READ_BUF_SIZE 2048
 struct derived_tbl
 {
     /* Basic tables: (element [0] of each array is unused) */
