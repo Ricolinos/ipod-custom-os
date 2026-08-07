@@ -152,6 +152,34 @@ static void usb_screen_fix_viewports(struct screen *screen,
         logo_height = BMPHEIGHT_usblogo;
     }
 
+#if ROCKPOD_APPLE2026_IPOD
+    /* La página de USB corre con el tema DESACTIVADO.
+     *
+     * Con el tema activo, cada `send_event(GUI_EVENT_ACTIONUPDATE)` del bucle
+     * de USB llega a `viewportmanager_redraw`, que llama a `sb_skin_update()`,
+     * y eso repinta el shell entero —lista y panel— ENCIMA de la página del
+     * cable.  En el aparato es fatal: `handle_usb_events()` tiene su propio
+     * `while(1)` y no vuelve hasta que se desconecta, así que
+     * `usb_screens_draw()` corre UNA sola vez y medio segundo después el menú
+     * ya está encima para siempre.  En el simulador el bucle exterior sí
+     * redibuja la página en cada vuelta, y por eso allí sólo se ve
+     * "parpadear" — que es exactamente lo que hizo que esta pantalla pasara
+     * por buena en la auditoría: una captura suelta cae en la fase buena.
+     *
+     * Desactivar el tema corta la cadena en su raíz: `toggle_events()` deja de
+     * registrar el manejador de GUI_EVENT_ACTIONUPDATE, así que ya no hay
+     * quien repinte.  Además es lo que H-19 daba por supuesto al añadir la
+     * variante de página a pantalla completa de `a26_page_begin` "para
+     * contextos con tema desactivado (plugin, USB, apagado)": el código decía
+     * lo contrario de lo que decía su propio comentario.
+     *
+     * Efecto secundario buscado: desaparece la barra de estado, cuyo reloj se
+     * quedaba congelado toda la sesión de USB de todos modos.  El iPod
+     * original tampoco muestra barra aquí. */
+    if (screen->screen_type == SCREEN_MAIN && apple2026_theme_selected())
+        viewportmanager_theme_enable(screen->screen_type, false, parent);
+    else
+#endif
     viewportmanager_theme_enable(screen->screen_type, true, parent);
 
     if (logo_width  > parent->width)
