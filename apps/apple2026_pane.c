@@ -135,7 +135,16 @@ static int  cover_front = 0;
 /* Shared work area: JPEG/BMP decode target (needs headroom for the
  * decoder state + scaler rows) and, while fading, the blended frame.
  * The two uses never overlap: decodes happen in HOLD, blends in FADE. */
-static unsigned char pane_workbuf[COVER_AREA * sizeof(fb_data) + 56 * 1024];
+/* La holgura era de 56 KB y se quedaba corta por 396 bytes con carátulas
+ * reales.  Con una biblioteca de verdad (JPEG de 500x500, que es el tamaño
+ * típico de un ripeo) el decodificador consume casi toda la holgura y al
+ * escalador de `resize.c` le quedaban 13.428 bytes cuando pide 13.824 para
+ * una salida de 288 px de ancho — así que devolvía 0 y el pase se quedaba
+ * sin esa carátula.  Con la biblioteca sintética no se veía: sus BMP no
+ * pasan por el decodificador JPEG.
+ * 64 KB dan 8 KB de margen sobre lo que hace falta.  El coste son 8 KB de
+ * RAM estática; el panel ya gasta 550 KB en los dos slots de carátula. */
+static unsigned char pane_workbuf[COVER_AREA * sizeof(fb_data) + 64 * 1024];
 
 static enum { MUSIC_EMPTY, MUSIC_FADING, MUSIC_HOLD } music_state = MUSIC_EMPTY;
 static long fade_start_tick = 0;

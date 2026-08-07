@@ -362,6 +362,14 @@ con `diskutil info`, respaldar `.rockbox/config.cfg`, descomprimir encima,
 - Arreglo propuesto para B (**no ejecutado**): en `ly_load()`, imitar a `lrcplayer`: `.lrc8` → UTF-8; BOM UTF-8/UTF-16 → decodificar; resto → `iso_decode` con el codepage por defecto. Es un cambio contenido a una función y sin efecto sobre archivos ya UTF-8.
 - Nota de paso (menor, no es H-22): en Carpetas los `.lrc` salen listados con el icono de **"?" (tipo desconocido)** junto al mp3 — dos filas por canción. Ver `T1-08-sel-latin1.png`.
 
+### H-26 · El panel se comía las carátulas reales por 396 bytes
+- Estado: **arreglado, verificado-sim** (2026-08-07) · Aparecido al montar la biblioteca REAL del usuario
+- Síntoma: con la biblioteca de verdad, el pase de carátulas se saltaba 11 de las 15 portadas. En el log, once veces: `unable to allocate required buffer: 13824 needed, 13428 available`.
+- Causa: `resize.c:803`. El escalador pide `sizeof(uint32_argb) * 3 * ancho` = 16×3×288 = **13.824 bytes** para una salida de `COVER_SIZE`. `pane_workbuf` son `288×288×2` (165.888) más **56 KB** de holgura; el decodificador JPEG de una imagen de 500×500 —el tamaño típico de un ripeo, y el de TODAS las carátulas del usuario— consume casi toda esa holgura y deja 13.428. **Faltaban 396 bytes.**
+- Por qué no salió antes en toda la auditoría: la biblioteca sintética (`tools/apple2026_sim_library.py`) no tiene carátulas, y las de prueba que se generaron después (`apple2026_sim_covers.py`) son **BMP**, que no pasan por el decodificador JPEG. El fallo sólo existe con JPEG grandes de verdad.
+- Arreglo: holgura de 56 → **64 KB**. 8 KB más de RAM estática, sobre los 550 KB que el panel ya gasta en los dos slots. Tras el arreglo, **0 fallos** en toda la sesión (antes 11).
+- Lección de método: **una biblioteca sintética no vale para juzgar el panel.** Montar la del usuario con `tools/apple2026_sim_mount_music.py` destapó en cinco minutos un fallo que nueve fases de auditoría no vieron.
+
 ### H-25 · Pantalla USB: símbolo e instrucciones del modo del mando (HID)
 - Estado: **hecho; dibujo verificado en simulador (los 4 modos × 2 temas), cambio real de modo razonado-no-observado** (2026-08-07) · Pedido por el usuario
 - **La investigación, que era media tarea**: el iPod 6G expone un mando HID además del disco. Los modos viven en `hid_key_mappings` (`apps/usb_keymaps.c:161-169`) y el índice ES `usb_keypad_mode`: **0 Multimedia · 1 Presentación · 2 Navegador · 3 Ratón**. Se cambian con **SELECT (botón central) mantenido + la derecha o la izquierda de la rueda** — `keymap-ipod.c:225-228`, `ACTION_USB_HID_MODE_SWITCH_NEXT`/`PREV`. `usb_hid` viene **activado de fábrica** (`settings_list.c:2397`), así que esto está vivo en el aparato sin tocar nada.
