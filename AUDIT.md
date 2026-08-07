@@ -1,6 +1,6 @@
 # AUDIT — Auditoría integral de la capa Apple2026
 
-> Estado global: **F0 pendiente** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
+> Estado global: **F0 cerrada · F1 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
 > Ejecuta: Opus 5. Modo por defecto: una fase por sesión. **Modo nocturno
 > (autorizado por el usuario el 2026-08-07): si el prompt lo pide, encadenar
 > F0→F9 en automático**, cerrando cada fase completa (casillas, hallazgos,
@@ -18,7 +18,8 @@
 - Leer primero `CLAUDE.md` (operativa) y `DESIGN.md` (criterio de diseño). Este archivo es la fuente de verdad del progreso.
 - Compilar: `cd build-sim && make` · Assets+auditor: `./build-sim.sh -i --install-only` · Lanzar: `cd build-sim && ./rockboxui`
 - OJO: el build resetea el tema del sim a claro; el skin NO recarga en caliente (reiniciar sim); comprobar el frontmost con `osascript` antes de teclear (si es `loginwindow`, la Mac está bloqueada: avisar y esperar).
-- Captura: F5 (código 96) → `build-sim/simdisk/dump*.bmp` → `sips -s format png` → guardar como `screenshots/audit/<ID>-<claro|oscuro>[-estado].png`
+- **Captura (atajo de la auditoría, F0)**: `tools/apple2026_sim_shot.sh <ID>-<claro|oscuro>[-estado] [cod:ms ...]` — enfoca el sim, teclea, dispara F5, convierte a `screenshots/audit/<nombre>.png` y limpia el `.bmp`. Sale con 2 si la Mac está bloqueada y con 3 si no hubo volcado.
+- **Tema (atajo de la auditoría, F0)**: `tools/apple2026_sim_theme.sh claro|oscuro` — aplica el `.cfg` sobre `config.cfg` y relanza el sim (el skin no recarga en caliente), imprimiendo `loaded/fallback/failsafe`.
 - Teclas: `swift tools/apple2026_sim_keys.swift cod:ms ...` (126=↑ 125=↓ 123=← 124=→ 36=SELECT 53=MENU 49=PLAY; 30 ms rueda/F5, 150 ms botones, MENU largo=600). Ráfaga de rueda: `swift tools/apple2026_sim_burst.swift 125 30 50`. Biblioteca sintética: `python3 tools/apple2026_sim_library.py` (+ borrar `simdisk/.rockbox/database_*.tcd`, iniciar BD, reiniciar sim).
 - Toda captura de pantalla se hace en claro Y oscuro; el tema oscuro se aplica en Configuración → Configuración de temas → Explorar archivos de temas → Tema Oscuro.
 - Leyenda de casillas: `[ ]` pendiente · `[~]` a medias · `[x]` verificada OK · `[!]` hallazgo → H-nn
@@ -29,8 +30,8 @@
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| F0 | Línea base: compilar ambos targets, biblioteca sintética, capturas raíz claro/oscuro, arnés verificado | pendiente |
-| F1 | Barra de estado: H-01 + H-02 + barrido zona A | pendiente |
+| F0 | Línea base: compilar ambos targets, biblioteca sintética, capturas raíz claro/oscuro, arnés verificado | **cerrada** |
+| F1 | Barra de estado: H-01 + H-02 + barrido zona A | en curso |
 | F2 | Clúster tagnavi: H-03 (orden d→b→a) + Agregado/Historial a Música | pendiente |
 | F3 | Cuadros blancos: H-04 (B1-B5) + barrido zona B | pendiente |
 | F4 | Barrido zona C (navegadores) + H-05 (ajustes Cover Flow) | pendiente |
@@ -148,8 +149,22 @@ Secuencias desde el menú raíz con selección en Música (arriba). Capturar SIE
 ### F8 — Transiciones
 - T01 raíz↔Música↔listas (títulos y partido correcto en cada paso) · T02 lista↔WPS · T03 WPS↔Cover Flow (ida y vuelta, `return_to_tracklist`) · T04 entrar/salir de todos los plugins · T05 aplicar tema claro↔oscuro en caliente · T06 quickscreen entrar/salir · T07 hold en cada pantalla · T08 salidas de teclado (aceptar/cancelar en los 3 contextos)
 
+## F0 — Línea base (cerrada 2026-08-07)
+
+- [x] `build-sim/make` verde · [x] `./build-hw.sh` verde (zip + auditor de plugins OK; único WARN preexistente: `h264_poc.rock` sin mapear en viewers.config)
+- [x] `./build-sim.sh -i --install-only` verde (contratos de skin y plugins OK)
+- [x] Biblioteca sintética ya presente: 104 mp3 + `database_*.tcd` construidos — no hizo falta regenerar
+- [x] `screenshots/audit/F0-raiz-claro.png` · `F0-raiz-oscuro.png` — raíz partida correcta en ambos temas
+- [x] Arnés verificado extremo a extremo: rueda (`F0-arnes-teclas`, 3 pasos → Podcasts con su tile), SELECT sondeado a 150 ms (`F0-arnes-select` → submenú Música), F5, y cambio de tema
+- [x] Log del sim: `loaded=1 fallback=0 failsafe=0` en ambos temas
+
+Herramientas nuevas (versionadas): `tools/apple2026_sim_shot.sh` (teclea+captura+convierte en un paso) y `tools/apple2026_sim_theme.sh` (cambia tema y relanza). Sin ellas cada captura eran 4 comandos manuales × ~200 capturas previstas.
+
+Observación menor (no es hallazgo): en esta sesión `build-sim.sh --install-only` **no** reseteó el tema del sim a claro — arrancó en oscuro, que es lo que dejó la sesión anterior en `config.cfg`. La nota de CLAUDE.md aplica al build completo, no a `--install-only`.
+
 ## Registro de sesiones
 
 | Fecha | Fase | Hecho | Quedó a medias | Próxima acción |
 |---|---|---|---|---|
 | 2026-08-07 | plan | Plan maestro + este tracker creados (Fable) | — | Lanzar F0 con Opus 5 |
+| 2026-08-07 | F0 | Línea base cerrada: ambos targets, auditor verde, capturas raíz claro/oscuro, arnés probado; helpers `sim_shot.sh` y `sim_theme.sh` versionados | — | F1: H-01 + H-02 + barrido zona A |
