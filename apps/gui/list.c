@@ -788,6 +788,47 @@ char apple2026_list_current_letter(struct gui_synclist *lists)
 }
 #endif
 
+#if ROCKPOD_APPLE2026_IPOD
+/* ¿El giro actual es un "flick"?  El salto por letras sólo debe entrar con
+ * un giro rápido de verdad.  El flag REPEAT no sirve de señal: la rueda lo
+ * emite con cualquier giro continuo, también paseando canción a canción, y
+ * por eso era imposible desplazarse a velocidad normal.  El driver de la
+ * rueda del 6G publica la velocidad real (grados/segundo, punto fijo 28.4)
+ * en los datos de la acción; se entra al modo letras por encima de 420 º/s
+ * y se sale por debajo de 300 º/s — la histéresis evita rebotar entre
+ * modos justo en el umbral.  Sin velocímetro (simulador) se estima por la
+ * cadencia de eventos, exigiendo una racha para entrar. */
+static bool a26_wheel_is_flicking(void)
+{
+    static bool engaged;
+    unsigned int data = get_action_data();
+
+#ifdef HAVE_WHEEL_ACCELERATION
+    if (data & (1u << 31))
+    {
+        unsigned int v = (data & 0xffffffu) >> 4;   /* -> grados/seg */
+        engaged = v >= (engaged ? 300u : 420u);
+        return engaged;
+    }
+#endif
+    {
+        static long last_tick;
+        static int fast_run;
+
+        if (current_tick - last_tick <= HZ/10)
+        {
+            if (fast_run < 3)
+                fast_run++;
+        }
+        else
+            fast_run = 0;
+        last_tick = current_tick;
+        engaged = fast_run >= (engaged ? 1 : 3);
+        return engaged;
+    }
+}
+#endif
+
 bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
 {
     int action = *actionptr;
@@ -805,7 +846,8 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
 #if ROCKPOD_APPLE2026_IPOD
     /* Fast wheel on an indexed list jumps by first letter (iPod-style). */
     if (lists->a26_index_rail && lists->nb_items > 1 &&
-        (action == ACTION_STD_PREVREPEAT || action == ACTION_STD_NEXTREPEAT))
+        (action == ACTION_STD_PREVREPEAT || action == ACTION_STD_NEXTREPEAT) &&
+        a26_wheel_is_flicking())
     {
         int i = lists->selected_item;
         char cur = a26_item_letter(lists, i);

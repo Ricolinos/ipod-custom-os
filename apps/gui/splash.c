@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "stdarg.h"
 #include "string.h"
+#include "string-extra.h"
 #include "rbunicode.h"
 #include "stdio.h"
 #include "kernel.h"
@@ -124,7 +125,29 @@ bool apple2026_loading_page(struct screen *display)
 #define A26_SYM_PX 96
 static fb_data a26_sym_px[A26_SYM_PX * A26_SYM_PX];
 static int a26_sym_state;
-static const char *a26_sym_loaded;
+static char a26_sym_loaded[MAX_PATH];
+
+/* Un solo buffer para todas las páginas; la clave es la RUTA, no el
+ * puntero: A26_ASSET() reparte punteros de un búfer rotatorio de cuatro
+ * ranuras, así que dos archivos distintos pueden compartir dirección y la
+ * clave por puntero servía la imagen equivocada o arrastraba un fallo. */
+static bool a26_sym_ensure(const char *file)
+{
+    if (strcmp(a26_sym_loaded, file))
+    {
+        a26_sym_state = 0;
+        strmemccpy(a26_sym_loaded, file, sizeof(a26_sym_loaded));
+    }
+    return a26_load_strip(file, a26_sym_px, sizeof(a26_sym_px),
+                          A26_SYM_PX, 1, &a26_sym_state);
+}
+
+/* Carga anticipada: la pantalla de USB debe pedir su símbolo ANTES de
+ * ceder el disco al ordenador; después ya no hay archivos que leer. */
+void apple2026_symbol_preload(const char *file)
+{
+    a26_sym_ensure(file);
+}
 
 bool apple2026_symbol_page(struct screen *display, const char *file,
                            const char *text, int blinks)
@@ -132,14 +155,7 @@ bool apple2026_symbol_page(struct screen *display, const char *file,
     struct viewport vp;
     int i;
 
-    /* un solo buffer para todas: al cambiar de imagen hay que recargar */
-    if (a26_sym_loaded != file)
-    {
-        a26_sym_state = 0;
-        a26_sym_loaded = file;
-    }
-    if (!a26_load_strip(file, a26_sym_px, sizeof(a26_sym_px),
-                        A26_SYM_PX, 1, &a26_sym_state))
+    if (!a26_sym_ensure(file))
         return false;
 
     if (blinks < 1)

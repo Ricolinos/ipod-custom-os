@@ -48,6 +48,9 @@ bool apple2026_power_page(struct screen *display, bool battery_dead);
  * parpadear. */
 bool apple2026_symbol_page(struct screen *display, const char *file,
                            const char *text, int blinks);
+/* Precargar el bitmap de una página de símbolo mientras el disco aún es
+ * nuestro (la pantalla de USB lo necesita antes de ceder el disco). */
+void apple2026_symbol_preload(const char *file);
 bool apple2026_progress_page(struct screen *display, const char *text,
                              int current, int total);
 

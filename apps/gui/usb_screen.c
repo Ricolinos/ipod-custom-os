@@ -312,6 +312,14 @@ void gui_usb_screen_run(bool early_usb, intptr_t seqnum)
     send_event(GUI_EVENT_ACTIONUPDATE, NULL);
 #endif
 
+#if ROCKPOD_APPLE2026_IPOD
+    /* Tras el acuse el disco pasa al ordenador y ya no se pueden leer
+     * archivos: el símbolo de la página de USB se precarga ahora.  Cargarlo
+     * en usb_screens_draw() fallaba siempre en el aparato (y en el
+     * simulador nunca se notó, porque su disco no se cede). */
+    apple2026_symbol_preload(A26_ASSET("a26_usb.bmp"));
+#endif
+
     if(!early_usb)
     {
         /* The font system leaves the .fnt fd's open, so we need for force close them all */
