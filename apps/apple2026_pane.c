@@ -549,7 +549,14 @@ bool apple2026_pane_animating(void)
 }
 
 /* Poll cadence for the list loop: fades need ~20fps; the slow hold-pan
- * only moves ~4px/s, so HZ/8 wakeups are plenty (device battery). */
+ * only moves ~4px/s, so a handful of wakeups per second are plenty
+ * (device battery).
+ *
+ * El comentario decía HZ/8 y la deriva corre a HZ/6 (ver abajo): son cosas
+ * distintas y conviene no fiarse del comentario al calibrar.  Y HZ/6 no es
+ * inocente — con un paso de 1 px cada ~390 ms, dos de cada tres despertares
+ * no mueven nada y el tercero salta en diagonal, que es el tirón de H-16.
+ * Ahí está el arreglo pendiente. */
 int apple2026_pane_anim_timeout(void)
 {
     if (!a26_pane_lcd_on())
