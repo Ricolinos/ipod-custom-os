@@ -8,9 +8,15 @@
 #include <stdbool.h>
 
 #if ROCKPOD_APPLE2026_IPOD
-bool apple2026_playlist_picker(const char *track_path);
+/* Cómo se salió del selector. */
+enum {
+    A26_PL_DONE = 0,     /* añadida, o cancelada: quedarse donde estamos */
+    A26_PL_NEXT_MODE,    /* SELECT sin nada elegido: pasar al siguiente modo */
+};
+
+int apple2026_playlist_picker(const char *track_path);
 #else
-static inline bool apple2026_playlist_picker(const char *track_path)
+static inline int apple2026_playlist_picker(const char *track_path)
 {
     (void)track_path;
     return false;

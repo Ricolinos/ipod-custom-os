@@ -285,8 +285,13 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
     pl_fill_round(display, sx, sy, sw, sh, PL_PANEL_R, A26_SHELL_BG);
 
     display->setfont(FONT_UI);
+    /* En SOLID cada letra se dibuja sobre un rectángulo del color de fondo
+     * del viewport, que encima de la fila resaltada se ve como un recuadro
+     * claro rodeando el nombre. */
+    display->set_drawmode(DRMODE_FG);
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
     display->putsxy(sx + PL_MARGIN, sy + 5, str(LANG_A26_ADD_TO_PLAYLIST));
+    display->set_drawmode(DRMODE_SOLID);
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
                                     A26_SHELL_RAIL));
     display->hline(sx, sx + sw - 1, sy + PL_TITLE_H - 1);
@@ -325,11 +330,13 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
                               Icon_Playlist);
         }
 
+        display->set_drawmode(DRMODE_FG);
         display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
                                                        A26_TEXT_PRIMARY));
         display->putsxy(sx + PL_MARGIN + PL_THUMB + 10,
                         y + (PL_ROW_H - display->getcharheight()) / 2,
                         pl_list[idx].name);
+        display->set_drawmode(DRMODE_SOLID);
 
         /* hairline separator, inset to the text column */
         display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
@@ -343,10 +350,12 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
     display->set_viewport(NULL);
 }
 
-bool apple2026_playlist_picker(const char *track_path)
+int apple2026_playlist_picker(const char *track_path)
 {
     struct screen *display = &screens[SCREEN_MAIN];
-    int sel = 0, top = 0, rows;
+    /* -1 = nada elegido.  Se entra así para que un segundo SELECT pase al
+     * siguiente modo en vez de meter la canción en la primera lista. */
+    int sel = -1, top = 0, rows;
     bool added = false;
     unsigned i;
 
@@ -354,7 +363,7 @@ bool apple2026_playlist_picker(const char *track_path)
         thumb_owner[i] = -1;
 
     if (pl_scan() <= 0)
-        return false;
+        return A26_PL_DONE;
 
     rows = (display->lcdheight - PL_PANEL_Y - PL_TITLE_H) / PL_ROW_H;
     if (rows < 1)
@@ -364,10 +373,13 @@ bool apple2026_playlist_picker(const char *track_path)
     {
         int action;
 
-        if (sel < top)
-            top = sel;
-        else if (sel >= top + rows)
-            top = sel - rows + 1;
+        if (sel >= 0)
+        {
+            if (sel < top)
+                top = sel;
+            else if (sel >= top + rows)
+                top = sel - rows + 1;
+        }
 
         pl_draw(display, sel, top, rows);
         action = get_action(CONTEXT_LIST, HZ * 30);
@@ -376,15 +388,20 @@ bool apple2026_playlist_picker(const char *track_path)
         {
             case ACTION_STD_NEXT:
             case ACTION_STD_NEXTREPEAT:
+                /* la primera vuelta entra en la lista por arriba */
                 if (++sel >= pl_count)
                     sel = 0;
                 break;
             case ACTION_STD_PREV:
             case ACTION_STD_PREVREPEAT:
-                if (--sel < 0)
+                if (sel < 0)
+                    sel = pl_count - 1;   /* y por abajo si se sube */
+                else if (--sel < 0)
                     sel = pl_count - 1;
                 break;
             case ACTION_STD_OK:
+                if (sel < 0)
+                    return A26_PL_NEXT_MODE;
                 /* Insert straight into the chosen playlist.  The catalog's
                  * add_to_a_playlist() ignores the name unless it is
                  * creating a new list — it opens its own full-screen
@@ -396,10 +413,11 @@ bool apple2026_playlist_picker(const char *track_path)
             case ACTION_STD_CANCEL:
             case ACTION_STD_MENU:
             case ACTION_NONE:
-                return added;
+                (void)added;
+                return A26_PL_DONE;
             default:
                 if (default_event_handler(action) == SYS_USB_CONNECTED)
-                    return added;
+                    return A26_PL_DONE;
                 break;
         }
     }

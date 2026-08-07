@@ -404,40 +404,42 @@ static int ly_isqrt(int v)
     return r;
 }
 
-static void ly_round_rect(struct screen *display, int x, int y, int w, int h,
-                          int r, unsigned colour)
-{
-    int i;
 
-    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, colour));
-    for (i = 0; i < h; i++)
-    {
-        int dy = 0, inset = 0;
-
-        if (i < r)
-            dy = r - i;
-        else if (i >= h - r)
-            dy = i - (h - 1 - r);
-        if (dy > 0)
-            inset = r - ly_isqrt(r * r - dy * dy);
-        display->hline(x + inset, x + w - 1 - inset, y + i);
-    }
-}
-
-/* Soft drop shadow under the album, cast on the white column. */
+/* Sombra de la carátula.  Se calcula la distancia de cada píxel al borde
+ * redondeado y se desvanece con ella, en cuartos de píxel: con anillos
+ * macizos, el borde de cada uno se veía escalonado en las esquinas. */
 static void ly_art_shadow(struct screen *display)
 {
-    /* Cada anillo es el fondo oscurecido un poco más que el anterior.  Estaban
-     * escritos a mano como grises claros, que sólo valen sobre papel blanco:
-     * con el tema oscuro salían más claros que el fondo, o sea un halo
-     * brillante alrededor de la carátula en vez de una sombra. */
-    static const unsigned char dim[LY_SHADOW] = { 12, 22, 34, 48 };
-    int i;
+    const int r4 = LY_ART_RAD * 4;
+    const int reach4 = LY_SHADOW * 4;
+    /* la carátula, en cuartos de píxel; +2 en y para que la sombra caiga */
+    const int x0 = LY_ART_X * 4, y0 = (LY_ART_Y + 2) * 4;
+    const int x1 = x0 + LY_ART * 4 - 1, y1 = y0 + LY_ART * 4 - 1;
+    int x, y;
 
-    for (i = LY_SHADOW; i >= 1; i--)
-        ly_round_rect(display, LY_ART_X - i, LY_ART_Y - i + 2,
-                      LY_ART + 2 * i, LY_ART + 2 * i, LY_ART_RAD + i,
-                      ly_mix(A26_SHELL_BG, 0, dim[LY_SHADOW - i]));
+    for (y = LY_ART_Y + 2 - LY_SHADOW; y < LY_ART_Y + 2 + LY_ART + LY_SHADOW;
+         y++)
+    {
+        int py = y * 4 + 2;
+
+        for (x = LY_ART_X - LY_SHADOW; x < LY_ART_X + LY_ART + LY_SHADOW; x++)
+        {
+            int px = x * 4 + 2;
+            int qx = MAX(MAX(x0 + r4 - px, px - (x1 - r4)), 0);
+            int qy = MAX(MAX(y0 + r4 - py, py - (y1 - r4)), 0);
+            int d4 = ly_isqrt(qx * qx + qy * qy) - r4;
+            unsigned a;
+
+            if (d4 <= 0)
+                continue;               /* debajo de la carátula */
+            if (d4 >= reach4)
+                continue;               /* fuera del alcance */
+            a = (unsigned)(52 * (reach4 - d4) / reach4);
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                        ly_mix(A26_SHELL_BG, 0, a)));
+            display->drawpixel(x, y);
+        }
+    }
 }
 
 /* The white column sits above the lyrics panel: darken the first few

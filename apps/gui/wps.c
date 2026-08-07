@@ -942,15 +942,27 @@ static void a26_wps_validate_mode(struct mp3entry *id3)
 
 /* Opens whatever the freshly-selected mode has to show.  Returns true when
  * that screen asked to leave Now Playing altogether (lyrics + MENU). */
-static bool a26_wps_run_mode(struct mp3entry *id3)
+static void a26_wps_step_mode(struct mp3entry *id3);
+
+/* `left` dice si ya se salió del reproductor.  Encadenar dos modos —el
+ * selector de listas pasando al siguiente— tiene que salir una sola vez:
+ * cada salida deshace el tema, y hacerlo dos veces descuadra la pila. */
+static bool a26_wps_run_mode_ex(struct mp3entry *id3, bool left)
 {
     switch (a26_wps_mode)
     {
         case A26_WPS_PLAYLIST:
             if (id3 && id3->path[0] && a26_playlists_available())
             {
-                gwps_leave_wps(true);
-                apple2026_playlist_picker(id3->path);
+                if (!left)
+                    gwps_leave_wps(true);
+                /* Sin nada elegido, SELECT vale lo mismo que en el resto del
+                 * reproductor: pasar al siguiente modo. */
+                if (apple2026_playlist_picker(id3->path) == A26_PL_NEXT_MODE)
+                {
+                    a26_wps_step_mode(id3);
+                    return a26_wps_run_mode_ex(id3, true);
+                }
                 /* the wps loop re-enters through `restore` */
             }
             break;
@@ -960,7 +972,8 @@ static bool a26_wps_run_mode(struct mp3entry *id3)
             {
                 int exit_code;
 
-                gwps_leave_wps(true);
+                if (!left)
+                    gwps_leave_wps(true);
                 exit_code = apple2026_lyrics_screen(id3);
                 /* the wps loop re-enters through `restore` */
                 if (exit_code == A26_LYRICS_RATE)
@@ -986,7 +999,13 @@ static bool a26_wps_run_mode(struct mp3entry *id3)
     return false;
 }
 
-static bool a26_wps_cycle_mode(struct mp3entry *id3)
+static bool a26_wps_run_mode(struct mp3entry *id3)
+{
+    return a26_wps_run_mode_ex(id3, false);
+}
+
+/* Sólo avanza el modo; no abre nada. */
+static void a26_wps_step_mode(struct mp3entry *id3)
 {
     /* No splash: the mode row in the skin (%Wm) shows the active mode.
      * Modes with nothing to offer are skipped (their icon is drawn in the
@@ -1000,6 +1019,11 @@ static bool a26_wps_cycle_mode(struct mp3entry *id3)
     if (a26_wps_mode == A26_WPS_RATING)
         a26_wps_mode = A26_WPS_VOLUME;
 #endif
+}
+
+static bool a26_wps_cycle_mode(struct mp3entry *id3)
+{
+    a26_wps_step_mode(id3);
     return a26_wps_run_mode(id3);
 }
 
