@@ -1,6 +1,6 @@
 # AUDIT — Auditoría integral de la capa Apple2026
 
-> Estado global: **F0-F4 cerradas · F5 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
+> Estado global: **F0-F5 cerradas · F6 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
 > Ejecuta: Opus 5. Modo por defecto: una fase por sesión. **Modo nocturno
 > (autorizado por el usuario el 2026-08-07): si el prompt lo pide, encadenar
 > F0→F9 en automático**, cerrando cada fase completa (casillas, hallazgos,
@@ -35,8 +35,8 @@
 | F2 | Clúster tagnavi: H-03 (orden d→b→a) + Agregado/Historial a Música | **cerrada** |
 | F3 | Cuadros blancos: H-04 (B1-B5) + barrido zona B | **cerrada** |
 | F4 | Barrido zona C (navegadores) + H-05 (ajustes Cover Flow) | **cerrada** (H-05.4 pendiente) |
-| F5 | Barrido zona D (Reproduciendo + modos) + vigilar H-07 | en curso |
-| F6 | Barrido zona E (Configuración) | pendiente |
+| F5 | Barrido zona D (Reproduciendo + modos) + vigilar H-07 | **cerrada** |
+| F6 | Barrido zona E (Configuración) | en curso |
 | F7 | Barrido zonas F+G (plugins + estados del aparato) | pendiente |
 | F8 | Transiciones entre pantallas | pendiente |
 | F9 | Paquete final + instalación + lista de validación manual | pendiente |
@@ -147,10 +147,15 @@
 - Captura: `F4-tmp-cfajustes.png`.
 
 ### H-07 · [VIGILAR] Vista dividida perdida tras ciclar modos con SELECT en el reproductor
-- Estado: **detectado, sin reproducir** · Fase: F5 (y toda captura de cualquier fase)
-- Del archivo de memoria `split-view-bug-watch`: tras ciclar modos de rueda con SELECT y volver con MENU, los dos primeros niveles salen a ancho completo. Hipótesis: push/pop desbalanceado de `viewportmanager_theme_enable/undo` en los modos con pantalla propia (selector de listas, letras). Ejercitarlo exige canción CON letra (`.lrc`) — la biblioteca sintética no trae; generar una pista con `.lrc` en F5.
-- En TODA fase: si el raíz o Música salen a ancho completo en una captura, documentar la secuencia exacta y marcar aquí.
+- Estado: **no reproducido en F5 pese a ejercitar el camino sospechoso** · Fase: F5
+- En F5 se generó `simdisk/Music/A00.lrc` para poder entrar al modo letra, que es el modo con pantalla propia que la hipótesis señalaba. Ciclando los modos con SELECT hasta la letra y volviendo con MENU, la raíz sale **partida correctamente** con la tarjeta del panel intacta: `F5-H07-vuelta2.png`.
+- En ninguna captura de F0 a F5 —y son más de sesenta— han aparecido la raíz ni Música a ancho completo por esta vía. La única aparición de una lista a ancho completo bajo barra partida fue H-03, que tenía otra causa y ya está cerrado. **Cabe que H-07 fuera una manifestación de H-03**, porque el síntoma descrito es el mismo.
+- Queda en vigilancia para el aparato: si reaparece, anotar la secuencia exacta.
 
+### H-15 · La letra parte palabras al ajustar líneas
+- Estado: **detectado** · Fase: F5
+- Con la línea vigente en negrita, "Quinta y penúltima" se reparte como "Quinta y" / "pen" / "última": el ajuste corta dentro de la palabra en vez de en el espacio.
+- Captura: `F5-D05-modo-letra-claro.png`. Se ve sólo en la línea destacada (la fuente en negrita es más ancha y desborda el cálculo hecho con la normal).
 ### H-08 · El título del quickscreen no cabía y se desplazaba
 - Estado: **arreglado, verificado-sim** · Fase: F1 (hallazgo nuevo)
 - Síntoma: la barra del quickscreen mostraba `stes rápidos` — el título a medio recorrido de una marquesina.
@@ -229,6 +234,7 @@ Observación menor (no es hallazgo): en esta sesión `build-sim.sh --install-onl
 | Fecha | Fase | Hecho | Quedó a medias | Próxima acción |
 |---|---|---|---|---|
 | 2026-08-07 | plan | Plan maestro + este tracker creados (Fable) | — | Lanzar F0 con Opus 5 |
+| 2026-08-07 | F5 | .lrc sintético creado; WPS y modo letra capturados; H-07 NO se reproduce por el camino sospechoso; H-15 nuevo | modos avance/favoritos sin captura propia | F6: zona E |
 | 2026-08-07 | F4 | H-05 puntos 1-3 arreglados y verificados en ambos temas; H-13 y H-14 nuevos; zona C cubierta por las capturas de F2 | H-05.4 (iconos) sin hacer: exige ampliar las tiras | F5: zona D + H-07 |
 | 2026-08-07 | F3 | H-04 B1/B2/B4/B5 con indicador; B3 dejado a propósito (evitaría una ventana pero crearía un parpadeo); H-06 cerrado como diseño intencional con evidencia; H-12 nuevo; tiles del raíz barridos | las ventanas en sí: razonado-no-observado | F4: zona C + H-05 |
 | 2026-08-07 | F2 | H-03 cerrado con los tres pasos (d/b/a) + D1; H-10 nuevo arreglado; H-11 nuevo anotado para F4; traducciones de Agregado/Historial corregidas | V4 razonado-no-observado | F3: H-04 (B1-B5) + zona B |
