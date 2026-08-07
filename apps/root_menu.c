@@ -359,6 +359,17 @@ static int browser(void* param)
                         FOR_NB_SCREENS(i)
                             screens[i].clear_display();
 
+                        /* B5 de H-04: entre este clear y la primera página
+                         * de progreso del bucle de abajo la pantalla se
+                         * quedaba en blanco, y arrancar la reconstrucción
+                         * es justo lo que despierta el disco: es la espera
+                         * más larga de todas.  Se pinta ya la misma página
+                         * de símbolo que usará el progreso, para que además
+                         * no haya salto visual entre una y otra. */
+                        apple2026_symbol_page(&screens[SCREEN_MAIN],
+                                              A26_ASSET("a26_database.bmp"),
+                                              NULL, 1);
+
                         /* Start initialisation */
                         tagcache_rebuild();
                     }

@@ -1,6 +1,6 @@
 # AUDIT — Auditoría integral de la capa Apple2026
 
-> Estado global: **F0-F2 cerradas · F3 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
+> Estado global: **F0-F3 cerradas · F4 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
 > Ejecuta: Opus 5. Modo por defecto: una fase por sesión. **Modo nocturno
 > (autorizado por el usuario el 2026-08-07): si el prompt lo pide, encadenar
 > F0→F9 en automático**, cerrando cada fase completa (casillas, hallazgos,
@@ -33,8 +33,8 @@
 | F0 | Línea base: compilar ambos targets, biblioteca sintética, capturas raíz claro/oscuro, arnés verificado | **cerrada** |
 | F1 | Barra de estado: H-01 + H-02 + barrido zona A | **cerrada** |
 | F2 | Clúster tagnavi: H-03 (orden d→b→a) + Agregado/Historial a Música | **cerrada** |
-| F3 | Cuadros blancos: H-04 (B1-B5) + barrido zona B | en curso |
-| F4 | Barrido zona C (navegadores) + H-05 (ajustes Cover Flow) | pendiente |
+| F3 | Cuadros blancos: H-04 (B1-B5) + barrido zona B | **cerrada** |
+| F4 | Barrido zona C (navegadores) + H-05 (ajustes Cover Flow) | en curso |
 | F5 | Barrido zona D (Reproduciendo + modos) + vigilar H-07 | pendiente |
 | F6 | Barrido zona E (Configuración) | pendiente |
 | F7 | Barrido zonas F+G (plugins + estados del aparato) | pendiente |
@@ -109,16 +109,24 @@
   - Regresiones: raíz y Música siguen partidos (`%Lo` compara "Rockbox", intacto); log `loaded=1 fallback=0 failsafe=0`; Artistas→álbum→pista sube nivel a nivel; Buscar/Historial anidados funcionan.
 
 ### H-04 · Ventanas de pantalla en blanco sin indicador
-- Estado: **diagnosticado** · Fase: F3 · Detectado por el usuario
-- Las cinco ventanas (limpieza + trabajo largo sin repintar), por gravedad:
-  - B1 salida de plugin (la peor): `plugin.c:1081-1086` limpia; nadie repinta la lista hasta el `do_menu` del raíz (theme_undo sólo repinta deadspace+barra).
-  - B2 entrada de plugin: `plugin.c:990-992` limpia antes del entry point; el `splash(LANG_WAIT)` previo (sólo con disco parado, `plugin.c:939-942`) se borra con el clear.
-  - B3 entrada al WPS: `wps.c:611-612` limpia y la carátula se carga del disco dentro del mismo `skin_update`.
-  - B4 búsqueda del visor de listas: `playlist_viewer.c:1247` limpia y la pastilla sólo aparece tras la PRIMERA coincidencia (condición `found != last_found`).
-  - B5 vistas de BD grandes: `tagtree.c:2082-2084` (`retrieve_entries`) congela sin indicador; el rebuild (`root_menu.c:359-363`) limpia antes de `tagcache_rebuild`.
-- Trampa transversal: los indicadores leen su BMP del disco la primera vez (`a26_load_strip`), justo cuando el disco duerme → precargarlos en el arranque o al entrar al menú (patrón `apple2026_symbol_preload`).
-- Convención D4 para elegir indicador por ventana. La animación del indicador debe respetar la puerta `lcd_active()` y las reglas de energía de CLAUDE.md.
-- Verificación: entrar/salir de Cover Flow y Fotos con cronómetro visual (volcados intermedios); búsqueda sin coincidencias en visor de listas; abrir Canciones con biblioteca grande. Lo dependiente de disco duro real: razonado-no-observado.
+- Estado: **arreglado (B1, B2, B4, B5), razonado-no-observado** · Fase: F3 · Detectado por el usuario
+- Las ventanas en sí **no se pueden observar en el simulador**: su duración la marca un disco duro que arranca, y el simdisk responde al instante. Lo verificado en el simulador es que los indicadores nuevos no rompen nada (entrar y salir de un plugin sigue limpio: `F3-B2-plugin-dentro.png`, `F3-B1-plugin-salida.png`). La ventana la valida el usuario en el aparato.
+- B1 (salida de plugin) y B2 (entrada): `apple2026_loading_page()` tras cada `lcd_clear_display()`. Por D4 va spinner de página y no pastilla flotante, porque en ambos casos la pantalla ya cambió de contexto y no queda fondo sobre el que flotar. En B2 el spinner además sustituye al `splash(LANG_WAIT)` que el propio clear borraba dos líneas después.
+- B4 (búsqueda en el visor de listas): la pastilla estaba colgada de que **cambiara** el número de coincidencias, así que una búsqueda sin ningún resultado recorría la lista entera sobre la pantalla en blanco del `lcd_clear_display()` previo. Ahora refresca también cada 64 entradas; el aviso hablado sigue atado al conteo, que es lo que anuncia.
+- B5 (base de datos): el bucle de `retrieve_entries` **ya** estaba cubierto (`show_search_progress` → `apple2026_progress_page`). Lo que faltaba era el arranque de la reconstrucción: `root_menu.c` limpiaba y llamaba a `tagcache_rebuild()` sin nada en pantalla hasta la primera página de progreso. Ahora pinta ya la misma página de símbolo que usará el progreso, así que tampoco hay salto entre una y otra.
+- **B3 (entrada al WPS) se deja sin tocar, a propósito.** El remedio evidente —spinner entre el `clear_display()` y el `skin_update()`— sólo mejora las veces que la carátula viene del disco; cuando ya está en caché produce un destello de spinner tapado de inmediato, es decir, dos repintados donde debía haber uno, que es exactamente el parpadeo que DESIGN.md prohíbe. Arreglarlo bien exige cargar la carátula ANTES del clear, lo que toca el motor de skins y no cabe en esta fase. Queda anotado como pendiente consciente.
+
+### H-06 · Vistas divididas de submenú y la franja del mini-reproductor
+- Estado: **cerrado — no es un defecto** · Fase: F3
+- Se pedía comprobar primero si el solape era real. **No lo es**: con audio activo, una vista partida no dibuja mini-reproductor en absoluto; su función la hace la tarjeta de reproducción del panel derecho, que ocupa toda la altura. Lista y tarjeta no comparten franja.
+- Evidencia: `F1-A02-musica-claro.png` y `F2-V1-paso2-vuelta-oscuro.png` (submenú Música con música sonando: la lista llega hasta el borde inferior y el panel muestra la tarjeta completa con su barra de progreso).
+- `mainlarge_lt` y `sub_large_split` siguen sin usarse. Se dejan: son la reserva por si algún día una vista partida necesitara el mini-reproductor, y borrarlos no arregla nada visible.
+
+### H-12 · La lista de complementos enseña nombres de archivo
+- Estado: **detectado** · Fase: F7 (zona F)
+- `Extras → Explorar complementos → Aplicaciones` lista `alarmclock`, `calculator`, `chessclock`, `dart_scorer`, `db_commit`… — nombres de archivo en inglés y minúsculas, **todos con el mismo icono de pieza de puzle**.
+- Doble anti-patrón de DESIGN.md: nombres crudos y jerga, e icono repetido entre hermanos.
+- Captura: `F3-tmp-apps.png`.
 
 ### H-05 · Ajustes de Cover Flow: filas mentirosas, flips divergentes, iconos faltantes
 - Estado: **diagnosticado** · Fase: F4 · Detectado por el usuario ("Separación 32px→Sí/No")
@@ -129,11 +137,6 @@
   4. Iconos faltantes: menú contextual de pista (~5085, 3 filas, sin `apple2026_menu_rows`); "Control de reproducción" (`apps/plugins/lib/playback_control.c:89-109`, 7 filas Icon_NOICON); pantallas de opciones con `Icon_Questionmark` (`option_select.c:518`).
 - Mecanismo de referencia: `apple2026_menu_rows` en `apps/menu.c:195-361,643,938-960`; dibujo del valor en `apps/gui/bitmap/list.c:806-817` (toggle≥0 suprime el valor).
 - Verificación: recorrer los 3 menús del plugin fila a fila con capturas; alternar cada toggle rápido y comprobar persistencia tras salir/entrar del plugin (el de Redimensionar debe reconstruir caché).
-
-### H-06 · Vistas divididas de submenú no reservan franja del mini-reproductor
-- Estado: **detectado** · Fase: F3 (con zona B)
-- `Apple2026.sbs:77` no ramifica por `%mp`: con audio, `sub_full_split` (sin reserva de 50 px) convive con el mini-reproductor — lista y tarjeta comparten franja inferior. Existen `mainlarge_lt` (~178) y `sub_large_split` (~193) sin usar en esa rama.
-- Verificar primero si es un solape real en pantalla (captura con música en raíz y en Música) o diseño intencional.
 
 ### H-07 · [VIGILAR] Vista dividida perdida tras ciclar modos con SELECT en el reproductor
 - Estado: **detectado, sin reproducir** · Fase: F5 (y toda captura de cualquier fase)
@@ -218,6 +221,7 @@ Observación menor (no es hallazgo): en esta sesión `build-sim.sh --install-onl
 | Fecha | Fase | Hecho | Quedó a medias | Próxima acción |
 |---|---|---|---|---|
 | 2026-08-07 | plan | Plan maestro + este tracker creados (Fable) | — | Lanzar F0 con Opus 5 |
+| 2026-08-07 | F3 | H-04 B1/B2/B4/B5 con indicador; B3 dejado a propósito (evitaría una ventana pero crearía un parpadeo); H-06 cerrado como diseño intencional con evidencia; H-12 nuevo; tiles del raíz barridos | las ventanas en sí: razonado-no-observado | F4: zona C + H-05 |
 | 2026-08-07 | F2 | H-03 cerrado con los tres pasos (d/b/a) + D1; H-10 nuevo arreglado; H-11 nuevo anotado para F4; traducciones de Agregado/Historial corregidas | V4 razonado-no-observado | F3: H-04 (B1-B5) + zona B |
 | 2026-08-07 | F1 | H-01 y H-02 arreglados y verificados en ambos temas; H-08 nuevo (título del quickscreen) arreglado; H-09 nuevo anotado; zona A barrida; helpers de tema/ajustes y de zoom versionados | A09 (busy) razonado-no-observado | F2: H-03 en orden d→b→a |
 | 2026-08-07 | F0 | Línea base cerrada: ambos targets, auditor verde, capturas raíz claro/oscuro, arnés probado; helpers `sim_shot.sh` y `sim_theme.sh` versionados | — | F1: H-01 + H-02 + barrido zona A |

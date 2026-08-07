@@ -1253,23 +1253,31 @@ bool search_playlist(void)
     for (i = 0; i < playlist_count &&
         found_indicies_count < MAX_PLAYLIST_ENTRIES; i++)
     {
-        if (found_indicies_count != last_found_count)
+        /* B4 de H-04: la pastilla iba colgada de que CAMBIARA el número de
+         * coincidencias, de modo que una búsqueda sin ningún resultado
+         * recorría la lista entera sobre la pantalla en blanco que deja el
+         * lcd_clear_display() de arriba, sin nada que dijera que el aparato
+         * seguía trabajando.  Ahora avanza con el recorrido; el aviso
+         * hablado sí sigue atado al conteo, que es lo que anuncia. */
+        if (found_indicies_count != last_found_count || (i & 0x3f) == 0)
         {
-            if (global_settings.talk_menu &&
-                TIME_AFTER(current_tick, talked_tick + (HZ * 5)))
+            if (found_indicies_count != last_found_count)
             {
-                talked_tick = current_tick;
-                talk_number(found_indicies_count, false);
-                talk_id(LANG_PLAYLIST_SEARCH_MSG, true);
+                if (global_settings.talk_menu &&
+                    TIME_AFTER(current_tick, talked_tick + (HZ * 5)))
+                {
+                    talked_tick = current_tick;
+                    talk_number(found_indicies_count, false);
+                    talk_id(LANG_PLAYLIST_SEARCH_MSG, true);
+                }
+                last_found_count = found_indicies_count;
             }
-            /* (voiced above) */
             /* Aquí sí se sabe el total: pastilla con progreso real en vez
              * del cuadro de texto que tapa la lista. */
             if (!apple2026_progress_page(&screens[SCREEN_MAIN], NULL,
                                          i, playlist_count))
                 splashf(0, str(LANG_PLAYLIST_SEARCH_MSG),
                         found_indicies_count, str(LANG_OFF_ABORT));
-            last_found_count = found_indicies_count;
         }
 
         if (action_userabort(TIMEOUT_NOBLOCK))
