@@ -819,7 +819,8 @@ static bool progress_cancel(int step, int count, char *msg)
     {
         if (rb->gui_syncyesno_run(&prompt, NULL, NULL) == YESNO_YES)
             return true;
-        rb->lcd_clear_display();
+        /* el diálogo tapó la página: se restaura título y fondo */
+        draw_splashscreen(NULL, 0);
     }
     else
         msg = NULL;
@@ -2293,54 +2294,115 @@ static void draw_splashscreen(unsigned char * buf_tmp, size_t buf_tmp_size)
 
 
 /**
-  Draw a simple progress bar
+  Barra de progreso del arranque: la misma pastilla flotante del resto de
+  la interfaz, sobre el borde inferior, con el rótulo de fase debajo del
+  título "Cover Flow" (antes se pintaba encima y lo tapaba).  Limitada a
+  20 fps y con volcado parcial del LCD: cada iteración del índice hacía
+  un lcd_update() de pantalla completa sin límite, y construir el índice
+  se iba en repintados.
  */
+#ifdef HAVE_LCD_COLOR
+/* Mezcla fondo->tinta sin el recorte de pf_color_mix (eso es para texto;
+ * el carril de la barra debe poder ser tenue). */
+static pix_t pf_bar_mix(int brightness)
+{
+    int bg_r = RGB_UNPACK_RED(pf_bg_color);
+    int bg_g = RGB_UNPACK_GREEN(pf_bg_color);
+    int bg_b = RGB_UNPACK_BLUE(pf_bg_color);
+    int fg_r = RGB_UNPACK_RED(pf_fg_color);
+    int fg_g = RGB_UNPACK_GREEN(pf_fg_color);
+    int fg_b = RGB_UNPACK_BLUE(pf_fg_color);
+    return LCD_RGBPACK(
+        bg_r + (fg_r - bg_r) * brightness / 255,
+        bg_g + (fg_g - bg_g) * brightness / 255,
+        bg_b + (fg_b - bg_b) * brightness / 255
+    );
+}
+#endif
+
 static void draw_progressbar(int step, int count, char *msg)
 {
-    static int txt_w, txt_h;
-    const int bar_height = 2;
-    int w = LCD_WIDTH - 40;
-    if (w > 240)
-        w = 240;
-    if (w < 80)
-        w = 80;
-    const int x = (LCD_WIDTH - w) / 2;
-    static int y;
+    static long next_draw_tick;
+    const int bar_w = LCD_WIDTH - 80;
+    const int bar_x = 40;
+    const int bar_y = LCD_HEIGHT - 14;
+    int r, fill;
+
+    /* Sin rótulo nuevo y sin llegar al final, 20 fps bastan. */
+    if (msg == NULL && step < count
+        && TIME_BEFORE(*rb->current_tick, next_draw_tick))
+    {
+        rb->yield();   /* el bucle del índice contaba con este yield */
+        return;
+    }
+    next_draw_tick = *rb->current_tick + HZ/20;
+
+#if LCD_DEPTH > 1
+#ifdef HAVE_LCD_COLOR
+    rb->lcd_set_background(pf_bg_color);
+#else
+    rb->lcd_set_background(N_BRIGHT(0));
+#endif
+#else
+    rb->lcd_set_drawmode(PICTUREFLOW_DRMODE);
+#endif
+
     if (msg != NULL)
     {
+        /* Rótulo de fase bajo el título, en tinta secundaria.  Se limpia
+         * la franja porque no todas las fases redibujan la pantalla. */
+        int tw, th, cw, ch;
+        rb->lcd_getstringsize(msg, &tw, &th);
+        rb->lcd_getstringsize("Cover Flow", &cw, &ch);
+        int label_y = (LCD_HEIGHT - ch) / 2 - 10 + ch + 6;
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
-        rb->lcd_set_background(pf_bg_color);
-        rb->lcd_set_foreground(pf_fg_color);
+        rb->lcd_set_foreground(pf_bg_color);
 #else
-        rb->lcd_set_background(N_BRIGHT(0));
-        rb->lcd_set_foreground(N_BRIGHT(255));
+        rb->lcd_set_foreground(N_BRIGHT(0));
 #endif
+#endif
+        rb->lcd_fillrect(0, label_y, LCD_WIDTH, th);
+#if LCD_DEPTH > 1
+#ifdef HAVE_LCD_COLOR
+        rb->lcd_set_foreground(pf_bar_mix(150));
 #else
-        rb->lcd_set_drawmode(PICTUREFLOW_DRMODE);
+        rb->lcd_set_foreground(N_BRIGHT(170));
 #endif
-        rb->lcd_getstringsize(msg, &txt_w, &txt_h);
-
-        y = (LCD_HEIGHT - txt_h) / 2;
-
-        rb->lcd_putsxy((LCD_WIDTH - txt_w) / 2, y, msg);
-        y += (txt_h + 8);
+#endif
+        rb->lcd_putsxy((LCD_WIDTH - tw) / 2, label_y, msg);
     }
+
+    fill = (count > 0) ? (bar_w * step) / count : 0;
+    if (fill < 0)
+        fill = 0;
+    if (fill > bar_w)
+        fill = bar_w;
+
+    for (r = 0; r < 4; r++)
+    {
+        int inset = (r == 0 || r == 3) ? 1 : 0;
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
-    /* Apple2026: rail matches WPS/shell progress track (E5E5EA); fill = tertiary */
-    rb->lcd_set_foreground(N_PIX(229, 229, 234));
+        rb->lcd_set_foreground(pf_bar_mix(45));
 #else
-    rb->lcd_set_foreground(N_BRIGHT(170));
+        rb->lcd_set_foreground(N_BRIGHT(170));
 #endif
 #endif
-    rb->lcd_fillrect(x, y, w, bar_height);
+        rb->lcd_hline(bar_x + inset, bar_x + bar_w - 1 - inset, bar_y + r);
+        if (fill > 2 * inset)
+        {
 #if LCD_DEPTH > 1
-    /* Apple2026: match shell tertiary progress fill (see A26_PROGRESS_FILL) */
-    rb->lcd_set_foreground(N_PIX(60, 60, 67));
+#ifdef HAVE_LCD_COLOR
+            rb->lcd_set_foreground(pf_bar_mix(200));
+#else
+            rb->lcd_set_foreground(N_BRIGHT(255));
 #endif
+#endif
+            rb->lcd_hline(bar_x + inset, bar_x + fill - 1 - inset, bar_y + r);
+        }
+    }
 
-    rb->lcd_fillrect(x, y, (count > 0) ? (step * w / count) : 0, bar_height);
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
     rb->lcd_set_foreground(pf_fg_color);
@@ -2348,7 +2410,10 @@ static void draw_progressbar(int step, int count, char *msg)
     rb->lcd_set_foreground(N_BRIGHT(255));
 #endif
 #endif
-    rb->lcd_update();
+    if (msg != NULL)
+        rb->lcd_update();
+    else
+        rb->lcd_update_rect(bar_x, bar_y, bar_w, 4);
     rb->yield();
 }
 

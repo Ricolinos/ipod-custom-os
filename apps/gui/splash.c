@@ -199,6 +199,34 @@ bool apple2026_progress_page(struct screen *display, const char *text,
     bar_x = 40;
     bar_y = vp.height - 14;
 
+    /* Cápsula de fondo con borde fino: sin ella la pastilla se pierde
+     * cuando flota sobre texto de listas o sobre una carátula. */
+    {
+        static const int cap_inset[6] = { 4, 2, 1, 1, 0, 0 };
+        int cap_x = bar_x - 8;
+        int cap_w = bar_w + 16;
+        int cap_y = bar_y - 4;
+
+        for (r = 0; r < 12; r++)
+        {
+            int inset = cap_inset[r < 6 ? r : 11 - r];
+            int x0 = cap_x + inset, x1 = cap_x + cap_w - 1 - inset;
+
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_SHELL_BG));
+            display->hline(x0, x1, cap_y + r);
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_SHELL_RAIL));
+            if (r == 0 || r == 11)
+                display->hline(x0, x1, cap_y + r);
+            else
+            {
+                display->drawpixel(x0, cap_y + r);
+                display->drawpixel(x1, cap_y + r);
+            }
+        }
+    }
+
     if (total > 0)
     {
         fill = (bar_w * current) / total;
@@ -249,7 +277,7 @@ bool apple2026_progress_page(struct screen *display, const char *text,
     }
 
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
-    display->update_viewport_rect(bar_x, bar_y, bar_w, 4);
+    display->update_viewport_rect(bar_x - 8, bar_y - 4, bar_w + 16, 12);
     display->set_viewport(NULL);
     return true;
 }
