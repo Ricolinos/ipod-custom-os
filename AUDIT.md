@@ -258,6 +258,51 @@ con `diskutil info`, respaldar `.rockbox/config.cfg`, descomprimir encima,
 - Capturas: `F2-reg-profundidad-1.png`, `F2-C08-agregado-claro.png`.
 - Además, en el submenú Historial hay una mayúscula indebida: "Nuevas Favoritas" → "Nuevas favoritas" (`F2-C09-historial-claro.png`).
 
+### H-16 · Deriva del panel a tirones (+ congelación durante precargas)
+- Estado: **diagnosticado, diseño validado** · Lote post-auditoría · Detectado por el usuario en el aparato
+- Síntoma: la deriva de la carátula "se pausa tras cada píxel"; debe ser continua.
+- Causa: `pan_pos_now()` (`apple2026_pane.c:464-509`) mueve run=48 px en 18.75 s → 1 px diagonal cada ~390 ms, con despertares a HZ/6 (`:553-566`): 2 de cada 3 no dibujan (`:675-681`) y el tercero salta (1,1). Sin subpíxel (enteros hasta `bitmap_part` `:1052`). Cada tick repinta la LISTA COMPLETA (`list.c:1088-1092`). EXTRA: la comprobación de deriva es inalcanzable mientras el slot trasero carga (returns en `:623-629` y `:648-657`) → congela y salta.
+- Arreglo (diseño A+B, validado): (1) punto fijo 8.8 `pan_pos_now_fp()` (la fracción es idéntica en ambos ejes por diseño — comentario `:455-463`); (2) composición subpíxel de 2 taps `mix(p[y][x], p[y+1][x+1], frac)` en `pane_draw_music()` espejando el bloque del fade (`:1026-1048`) sobre `pane_workbuf` (mismo hilo, estados excluyentes; `frac==0` → blit directo actual); (3) tick de sólo-panel: nueva `apple2026_pane_draw_pane_only()` (cachear `pane_vp` de la rama música; sólo si lcd_on && música && HOLD && slot listo && !np_audio_active), y en `list.c:1088-1092` caer a `gui_synclist_draw` si devuelve false; (4) reestructurar MUSIC_HOLD para que la comprobación de deriva corra siempre; (5) cadencia `PANE_PAN_FRAME_TICKS = HZ/10` + interruptor `PANE_PAN_SUBPIX` comentados para recalibrar. Presupuesto: mitad por frame que el fade ya probado a 20 fps, sin el redibujo de lista. Puertas `lcd_active()` INTACTAS. Corregir comentarios que mienten HZ/8 (`apple2026_pane.c:551-552`, `list.c:1108`).
+- Verificación pendiente: [~] visual — raíz con Música seleccionada, observar deriva 10 s (2 capturas separadas + a ojo en vivo); riesgo anotado: softness del 2-tap → escalar a bilineal de 3 mezclas.
+
+### H-17 · Iconos del submenú "Control de reproducción" (cierra parte de H-05.4)
+- Estado: **diagnosticado** · Lote post-auditoría
+- `apps/plugins/lib/playback_control.c:93-107`: 7 filas `MENUITEM_FUNCTION(..., Icon_NOICON)`. La macro acepta icono (`menu.h:202-208`); basta el 6º argumento — `apple2026_menu_rows` NO aplica (MT_MENU, filtro `menu.c:222`). Beneficia a los 43 plugins que usan el lib.
+- Iconos: Volumen=`Icon_S_Volume` (`icon.h:291`), Aleatorio=`Icon_S_Shuffle` (`:124`), Repetición=`Icon_S_Repeat` (`:125`). Generar 4 frames nuevos: Anterior `backward.end.fill`, Reproducir/Pausa `playpause.fill`, Detener `stop.fill`, Siguiente `forward.end.fill` — proceso de 4 sitios (ambas tiras: claro tinta 255,46,86/blanco, oscuro 254,69,108/(24,28,24); enum antes de `Icon_Last_Themeable` `icon.h:417`; contrato `apple2026_skin_audit.py:112` hoy (30,10770)=359 frames → 363). De paso H-13 en esas cadenas ("Control de Reproducción" → "Control de reproducción").
+- Verificación pendiente: [~] Cover Flow → menú → Control de reproducción, capturas ambos temas.
+
+### H-18 · Flujo Reconstruir/Actualizar caché de Cover Flow fuera del sistema (enlaza H-09, H-11)
+- Estado: **diagnosticado** · Lote post-auditoría · Detectado por el usuario
+- Flujo compartido `pictureflow.c:4412-4429`. Tres pantallas:
+  1. Confirmación: `gui_syncyesno_run` (`yesno.c:452-461`) con branch Apple2026 a medias — 3 RGB del tema CLARO hardcodeados (`yesno.c:167,174,178`: 0xC6C6C8/0x6E6E73/0xFF2D55 — en oscuro salen mal; migrar a tokens `a26_palette`), texto sin inset 16 px, rótulos de jerga "Otro = No"/"SELECT = Sí" (`LANG_CANCEL_WITH_ANY`/`LANG_CONFIRM_WITH_BUTTON` — retraducir a "Cancelar"/"Aceptar" estilo botones), y al cancelar `splash(LANG_CANCEL)` (anti-patrón nº1 — quitar el splash).
+  2. Progreso: pastilla ya canónica (bien); el fondo debe ser página de símbolo (D4) en vez del literal "Cover Flow" en fuente de sistema (`draw_splashscreen` `:2267-2293`); rótulos de fase `#define` ingleses "1/5 Find <Untagged>" (`:1372-1376`) → frases .lang en español sin fracción ni corchetes (H-11); cancelación a media reconstrucción hardcodeada inglesa (`:813-815`) → lang.
+  3. Errores: `error_wait` + 7 splashes ingleses (`:5482-5560`) = H-09 → resolver junto.
+- Verificación pendiente: [~] flujo completo de Reconstruir caché en ambos temas (confirmar, cancelar, progreso, error simulado).
+
+### H-19 · Franja 0..20 rancia en páginas de carga/símbolo con tema desactivado (regresión de H-04)
+- Estado: **diagnosticado** · Lote post-auditoría · Detectado por el usuario (entrada a Cover Flow desde vista dividida)
+- Causa: la franja 0..20 nunca se vuelca — `plugin.c:990-1002` limpia framebuffer SIN volcar (`lcd-color-common.c:101-110`) y `a26_page_begin` (`splash.c:72-84`) sólo vuelca y=20..240 (`:115`). La pantalla física conserva el render del submenú Música (media barra + cabecera del tile del panel, que pinta y=0 de su columna: `apple2026_pane.c:1108-1111`). Regresión del arreglo B1/B2 de H-04 (commit `d20cb5f060`). Afecta también a la SALIDA del plugin (`plugin.c:1091-1102`) y a todas las páginas de símbolo (llamadores: `root_menu.c:331,369,427`, `usb_screen.c:239`, `misc.c:401-415`, `onplay.c:1054`, `sound_menu.c:171`).
+- Arreglo: variante de **página sin barra** en `a26_page_begin` (y=0, alto completo, un clear+update de 0..240, sin doble repintado) para contextos con tema desactivado (plugin, USB, apagado); los contextos en-tema conservan la variante con barra. Una sola sede; actualizar el comentario de `splash.c:46-47`.
+- Verificación pendiente: [~] entrar/salir de Cover Flow desde raíz y desde Música, ambos temas.
+
+### H-20 · Spinner de carga fuera de marca en ambos temas
+- Estado: **diagnosticado** · Lote post-auditoría · Detectado por el usuario (dientes de sierra en oscuro)
+- Causa: el oscuro sale de la conversión genérica (`apple2026_dark_assets.py:129-144`, sin exención) — aritmética correcta, pero `unmix()` asume tinta negra y los brazos grises se re-mezclan casi blancos (pico 233) sobre casi negro (28): polaridad perceptual invertida y silueta sin rampa contra la clave. NO existe generador (blob binario); el claro también está fuera de marca (brazos casi negros; iOS usa gris).
+- Arreglo: generador nativo `tools/apple2026_spinner.py` (patrón `apple2026_switch.py`): 32×32×12 brazos de cápsula, supermuestreo ≥4, tinta TEXT_SECONDARY por tema desde `tools/apple2026_palette.py`, rampa de opacidad por brazo, **tile OPACO relleno de SHELL_BG sin clave magenta** (la página siempre limpia a SHELL_BG antes, `splash.c:79-83`). Añadir `loading.bmp` a `NATIVE` (`apple2026_dark_assets.py:113`). Regenerar ambos temas.
+- Verificación pendiente: [~] spinner en claro y oscuro (entrada a Cover Flow).
+
+### H-21 · Fotos: enrutado de formatos roto, error crudo, y modos fit/fill
+- Estado: **diagnosticado** · Lote post-auditoría · Detectado por el usuario ("Error al cargar %s" con fotos grandes)
+- Causa raíz (NO es memoria: 17× de holgura, 12 MP pico ≈220 KB vs 3 MiB; IDCT ya decodifica a 1/8): `read_image_file()` (`read_image.c:31-36`) despacha con `strcmp(".bmp")` a 2 ramas — PNG/GIF/PPM/`.BMP` mayúsculas caen al decodificador JPEG y fallan; **JPEG progresivo** → -4 (`jpeg_load.c:1063-1078`), y los exportadores generan progresivo justo en fotos grandes. El 6G usa SÓLO `a26_photo_loop()` (`imageviewer.c:1163-1266`; ruta stock y su keymap = código muerto, `:1365-1377`). El `%s` se imprime literal (`:1205`, `rb->str()` sin snprintf).
+- Arreglos, en orden:
+  1. Enrutar por `get_image_type()` a los decodificadores correctos; para JPEG progresivo (el núcleo no lo implementa): página de símbolo explicando el formato, no error críptico.
+  2. Pantalla de error = página de símbolo 96×96 tinta terciaria (p.ej. `photo.badge.exclamationmark`) con el NOMBRE del archivo sustituido; splashes vecinos ("No file", "Unsupported file", "No photos") → lang + convención.
+  3. Modos fit/fill: fit ya existe (`:1191-1201`, upscaler activo); SELECT está LIBRE (`:1227-1263`) → alterna fit/fill. Fill = max de ratios en `recalc_dimension` + recorte con `lcd_bitmap_part` (exportado `plugin.h:257`); peor caso 273 KB; cambiar de modo re-decodifica. OJO: en 4:3 fit==fill — SELECT sin efecto visible en esas fotos (= OF; documentar).
+  4. Fluidez: `JPEG_READ_BUF_SIZE` 16 → 2048 (`jpeg_common.h:34`; hoy ~262k `read()` por foto de 4 MB; toca núcleo compartido con carátulas — auditar, es a mejor).
+  5. Bug latente: alineación de `bm.data` (`imageviewer.c:1188`) impar en modo directorio CON música → alinear.
+- **Decisión (usuario preguntó): SIN pre-escalado ni caché** — es optimización de velocidad, no de capacidad, y no arregla el bug. Reevaluar caché (opción C) sólo si los tiempos medidos en aparato tras 1+4 siguen mal.
+- Verificación pendiente: [~] añadir a la biblioteca sintética un PNG, un JPEG progresivo y un `.BMP` en mayúsculas; recorrerlas en Fotos; alternar SELECT en una 16:9 y una 3:4. El bug de alineación: sólo con música y en el aparato (razonado-no-observado).
+
 ---
 
 ## Inventario de pantallas por zona
@@ -326,6 +371,7 @@ la pantalla antes de encadenar el siguiente paso.
 
 | Fecha | Fase | Hecho | Quedó a medias | Próxima acción |
 |---|---|---|---|---|
+| 2026-08-07 | lote-2 plan | H-16..H-21 registrados con causa raíz verificada (3 exploradores + diseño de deriva); decisión: Fotos sin pre-escalado (Fable) | ejecución | Opus: H-19→H-20→H-17→H-18→H-21→H-16, SIN simulador (usuario usa la Mac) |
 | 2026-08-07 | plan | Plan maestro + este tracker creados (Fable) | — | Lanzar F0 con Opus 5 |
 | 2026-08-07 | F6-F9 | Zona E capturada en parte; paquete de hardware compilado y verificado; lista de validación manual redactada; resumen ejecutivo escrito | F6/F7 sin barrido exhaustivo: las secuencias largas de teclas se desvían y gastaban capturas sin valor | Retomar F6/F7 con secuencias cortas desde reinicio |
 | 2026-08-07 | F5 | .lrc sintético creado; WPS y modo letra capturados; H-07 NO se reproduce por el camino sospechoso; H-15 nuevo | modos avance/favoritos sin captura propia | F6: zona E |
