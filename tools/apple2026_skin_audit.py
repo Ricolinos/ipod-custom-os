@@ -112,6 +112,9 @@ REQUIRED_BMP_DIMENSIONS = {
     "icons/Apple2026Icons.bmp": (30, 10770),  # +ThemeLight/ThemeDark (sol/luna)
     "wps/Apple2026/albumPlaceholder.bmp": (110, 110),  # matches the 110px art rect
     "wps/Apple2026/art_mask.bmp": (32, 32),
+    # A26_SPIN_PX x A26_SPIN_FRAMES de apps/gui/splash.c: si el generador
+    # cambia de tamaño y el C no, la tira se rechaza y no hay spinner.
+    "wps/Apple2026/loading.bmp": (32, 384),
     "wps/Apple2026/miniplayer_bg.bmp": (320, 50),
     "wps/Apple2026/qs_wheel.bmp": (92, 92),
     "wps/Apple2026/qs_slider_fill.bmp": (20, 132),

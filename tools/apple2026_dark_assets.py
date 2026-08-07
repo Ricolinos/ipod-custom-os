@@ -108,9 +108,14 @@ def convert(px):
 
 
 # Estos no salen de convertir el claro: la conversión supone tinta sobre papel
-# y aquí el dibujo ya es claro sobre oscuro, así que saldría del revés.  Los
-# genera tools/apple2026_switch.py, nativo para cada tema.
-NATIVE = ('a26_switch.bmp',)
+# y aquí el dibujo ya es claro sobre oscuro, así que saldría del revés.  Cada
+# uno tiene su generador nativo, que dibuja los dos temas con la misma
+# geometría y el antialias mezclado contra el fondo que toca:
+#   a26_switch.bmp -> tools/apple2026_switch.py
+#   loading.bmp    -> tools/apple2026_spinner.py
+# El spinner es el caso de manual: sus brazos ya eran grises, así que unmix()
+# los leía como "mucha tinta" y los devolvía casi blancos sobre casi negro.
+NATIVE = ('a26_switch.bmp', 'loading.bmp')
 
 
 def is_artwork(name):

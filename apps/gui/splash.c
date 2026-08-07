@@ -125,12 +125,17 @@ bool apple2026_loading_page(struct screen *display)
 
     a26_page_begin(display, &vp);
     frame = (frame + 1) % A26_SPIN_FRAMES;
-    display->transparent_bitmap_part(a26_spin_px, 0, frame * A26_SPIN_PX,
-                                     STRIDE(display->screen_type, A26_SPIN_PX,
-                                            A26_SPIN_PX * A26_SPIN_FRAMES),
-                                     (vp.width - A26_SPIN_PX) / 2,
-                                     (vp.height - A26_SPIN_PX) / 2,
-                                     A26_SPIN_PX, A26_SPIN_PX);
+    /* Estampado OPACO: la tira la genera tools/apple2026_spinner.py con el
+     * fondo del tema ya mezclado y sin clave magenta, precisamente para que
+     * los bordes curvos de los brazos tengan una rampa de verdad en vez de
+     * recortarse contra la clave.  a26_page_begin acaba de limpiar a ese
+     * mismo SHELL_BG, así que el tile encaja sin costura. */
+    display->bitmap_part(a26_spin_px, 0, frame * A26_SPIN_PX,
+                         STRIDE(display->screen_type, A26_SPIN_PX,
+                                A26_SPIN_PX * A26_SPIN_FRAMES),
+                         (vp.width - A26_SPIN_PX) / 2,
+                         (vp.height - A26_SPIN_PX) / 2,
+                         A26_SPIN_PX, A26_SPIN_PX);
     display->update_viewport();
     display->set_viewport(NULL);
     return true;
