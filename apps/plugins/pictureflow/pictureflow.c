@@ -738,6 +738,24 @@ enum pf_states {
 
 static int pf_state;
 
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+/* La subida de frecuencia se lleva por estado propio: hay que llamar a
+ * cpu_boost() sólo en los cambios, porque el núcleo lleva una cuenta y
+ * desparejarla dejaría el reloj arriba —o abajo— para siempre. */
+static bool pf_boosted;
+static long pf_busy_tick;
+
+static void pf_boost(bool on)
+{
+    if (on == pf_boosted)
+        return;
+    pf_boosted = on;
+    rb->cpu_boost(on);
+}
+#else
+#define pf_boost(on) do { (void)(on); } while (0)
+#endif
+
 #if PF_PLAYBACK_CAPABLE
 static bool insert_whole_album;
 static bool old_shuffle = false;
@@ -2397,7 +2415,13 @@ static void pf_round_corners_raw(pix_t *px, int w, int h, pix_t corner)
 static pix_t pf_corner_color(void)
 {
 #ifdef HAVE_ALBUMART
-    pf_update_dynamic_colors();
+    /* Sólo se LEE el color; no se refresca aquí.  Esta función se llama al
+     * cargar cada diapositiva, y eso pasa en el hilo cargador:
+     * pf_update_dynamic_colors() escribe los globales que el hilo de dibujo
+     * lee en cada fotograma, y por dentro muta un estado compartido del
+     * núcleo.  Llamarlo desde los dos hilos es una carrera.  El hilo de
+     * dibujo ya lo refresca en cada vuelta, así que aquí siempre está al
+     * día. */
     return pf_bg_color;
 #else
     return 0;
@@ -3870,9 +3894,7 @@ static void cleanup(void)
     if (pf_tracks.borrowed > 0)
         free_borrowed_tracks();
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-    rb->cpu_boost(false);
-#endif
+    pf_boost(false);
     end_pf_thread();
 
     /* Turn on backlight timeout (revert to settings) */
@@ -5276,9 +5298,10 @@ static bool init(void)
     void * buf;
     size_t buf_size;
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-    rb->cpu_boost(true); /* revert in cleanup */
-#endif
+    /* Arranca arriba: leer el índice y construir la caché es lo más pesado
+     * de toda la sesión.  El bucle principal la baja en cuanto se queda
+     * quieto. */
+    pf_boost(true);
 
     wants_to_quit = false;
 
@@ -5630,6 +5653,15 @@ static int pictureflow_main(void)
          * wakeup (button event) just processes input below. */
         bool do_render = !instant_update ||
                          !TIME_BEFORE(current_update, next_frame_tick);
+
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+        /* Hay trabajo si se está animando, si el usuario acaba de tocar algo
+         * o si el hilo cargador sigue mirando carátulas. */
+        if (pf_state != pf_idle || button != ACTION_NONE || pf_frame_dirty
+            || aa_cache.inspected < pf_idx.album_ct)
+            pf_busy_tick = current_update;
+        pf_boost(TIME_BEFORE(current_update, pf_busy_tick + HZ));
+#endif
 
         /* Idle with the statusbar hidden: the scene is static, skip
          * rendering entirely unless something marked it dirty. (With the
