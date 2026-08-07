@@ -409,6 +409,10 @@ enum themable_icons {
     /* Cover Flow: sus menús son listas de cadenas, así que el icono lo
      * pone el propio plugin fila a fila. */
     Icon_S_Videos,
+    /* Temas en el navegador de temas: sol para el claro, luna para el
+     * oscuro (sun.max.circle / moon.circle). */
+    Icon_S_ThemeLight,
+    Icon_S_ThemeDark,
 #endif
     Icon_Last_Themeable,
 };

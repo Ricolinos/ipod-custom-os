@@ -343,6 +343,11 @@ int browse_folder(void *param)
         browse.title = str(lang_id);
     }
 
+    /* Navegador de temas: título propio en vez del nombre crudo del
+     * directorio ("themes"), que rompía el idioma de la interfaz. */
+    if (info->show_options == SHOW_CFG && !browse.title)
+        browse.title = str(LANG_A26_THEMES_TITLE);
+
     tree_get_context()->browse = NULL;  /*bugfix - force root dir reload */
     return rockbox_browse(&browse);
 }

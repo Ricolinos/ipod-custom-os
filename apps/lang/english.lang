@@ -17685,3 +17685,17 @@
     *: "Theme Dark"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_THEMES_TITLE
+  desc: Apple2026 title of the theme browser list
+  user: core
+  <source>
+    *: "Themes"
+  </source>
+  <dest>
+    *: "Themes"
+  </dest>
+  <voice>
+    *: "Themes"
+  </voice>
+</phrase>

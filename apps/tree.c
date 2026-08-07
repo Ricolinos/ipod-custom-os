@@ -290,6 +290,16 @@ static enum themable_icons tree_get_fileicon(int selected_item, void * data)
             else
                 return Icon_Album;
         }
+
+        /* Navegador de temas: cada tema con su símbolo (sol/luna).  Se
+         * distingue por nombre de archivo; sólo existen en /themes. */
+        if (!(entry->attr & ATTR_DIRECTORY))
+        {
+            if (!strcmp(entry->name, "Apple2026.cfg"))
+                return Icon_S_ThemeLight;
+            if (!strcmp(entry->name, "Apple2026Dark.cfg"))
+                return Icon_S_ThemeDark;
+        }
 #endif
         return filetype_get_icon(entry->attr);
     }

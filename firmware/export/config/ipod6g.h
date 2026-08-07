@@ -70,8 +70,13 @@
 /* define this if the unit uses a scrollwheel for navigation */
 #define HAVE_SCROLLWHEEL
 #define HAVE_WHEEL_ACCELERATION
-#define WHEEL_ACCEL_START 270
-#define WHEEL_ACCELERATION 3
+/* RockPod: curva v² y arranque más tardío.  La v⁴ de serie multiplicaba
+ * ×11 a 500 º/s y ×75 a 800 º/s: cualquier giro medio saltaba decenas de
+ * elementos y era imposible aterrizar donde uno quería.  Con v² el máximo
+ * útil ronda ×2-3 antes de ceder el relevo al salto por letras (>420 º/s,
+ * apps/gui/list.c). */
+#define WHEEL_ACCEL_START 300
+#define WHEEL_ACCELERATION 1
 
 /* Define this if you can detect headphones */
 #define HAVE_HEADPHONE_DETECTION

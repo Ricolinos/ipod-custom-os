@@ -806,7 +806,11 @@ static bool a26_wheel_is_flicking(void)
 #ifdef HAVE_WHEEL_ACCELERATION
     if (data & (1u << 31))
     {
-        unsigned int v = (data & 0xffffffu) >> 4;   /* -> grados/seg */
+        /* El driver de la rueda (button-clickwheel.c) publica la velocidad
+         * en grados/segundo LISOS en los 24 bits bajos — sin punto fijo.
+         * El >>4 que hubo aquí dejaba el umbral 16 veces más alto y el
+         * modo letras no entraba nunca. */
+        unsigned int v = data & 0xffffffu;
         engaged = v >= (engaged ? 300u : 420u);
         return engaged;
     }
@@ -849,6 +853,17 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
         (action == ACTION_STD_PREVREPEAT || action == ACTION_STD_NEXTREPEAT) &&
         a26_wheel_is_flicking())
     {
+        /* Ritmo legible: un grupo cada décima de segundo aunque los
+         * eventos de la rueda lleguen en ráfaga; los sobrantes se
+         * consumen sin mover para que no se acumulen. */
+        static long a26_next_jump_tick;
+        if (TIME_BEFORE(current_tick, a26_next_jump_tick))
+        {
+            *actionptr = ACTION_NONE;
+            return true;
+        }
+        a26_next_jump_tick = current_tick + HZ/10;
+
         int i = lists->selected_item;
         char cur = a26_item_letter(lists, i);
         if (action == ACTION_STD_NEXTREPEAT)
