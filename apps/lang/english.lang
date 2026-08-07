@@ -17783,3 +17783,87 @@
     *: "Cover Flow could not start"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_MULTIMEDIA
+  desc: Apple2026 USB screen: HID mode 0 name
+  user: core
+  <source>
+    *: "Multimedia"
+  </source>
+  <dest>
+    *: "Multimedia"
+  </dest>
+  <voice>
+    *: "Multimedia"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_PRESENTATION
+  desc: Apple2026 USB screen: HID mode 1 name
+  user: core
+  <source>
+    *: "Presentation"
+  </source>
+  <dest>
+    *: "Presentation"
+  </dest>
+  <voice>
+    *: "Presentation"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_BROWSER
+  desc: Apple2026 USB screen: HID mode 2 name
+  user: core
+  <source>
+    *: "Browser"
+  </source>
+  <dest>
+    *: "Browser"
+  </dest>
+  <voice>
+    *: "Browser"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_MOUSE
+  desc: Apple2026 USB screen: HID mode 3 name
+  user: core
+  <source>
+    *: "Mouse"
+  </source>
+  <dest>
+    *: "Mouse"
+  </dest>
+  <voice>
+    *: "Mouse"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_HINT1
+  desc: Apple2026 USB screen: how to switch mode, line 1
+  user: core
+  <source>
+    *: "Hold the centre button and press"
+  </source>
+  <dest>
+    *: "Hold the centre button and press"
+  </dest>
+  <voice>
+    *: "Hold the centre button and press"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_HINT2
+  desc: Apple2026 USB screen: how to switch mode, line 2
+  user: core
+  <source>
+    *: "next or previous"
+  </source>
+  <dest>
+    *: "next or previous"
+  </dest>
+  <voice>
+    *: "next or previous"
+  </voice>
+</phrase>

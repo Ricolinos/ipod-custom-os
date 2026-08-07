@@ -55,6 +55,15 @@ bool apple2026_symbol_page(struct screen *display, const char *file,
 /* Precargar el bitmap de una página de símbolo mientras el disco aún es
  * nuestro (la pantalla de USB lo necesita antes de ceder el disco). */
 void apple2026_symbol_preload(const char *file);
+/* Pantalla de USB, modo del mando (HID).  La tira de los cuatro símbolos se
+ * precarga entera antes de ceder el disco, porque el modo se puede cambiar
+ * con el cable ya puesto y entonces ya no hay de dónde leer.  `frame` es el
+ * valor de `usb_keypad_mode`; devuelven false si la tira no está, y el
+ * llamante se queda con la página del cable. */
+bool apple2026_usb_modes_preload(void);
+bool apple2026_usb_mode_page(struct screen *display, int frame,
+                             const char *name, const char *hint1,
+                             const char *hint2);
 bool apple2026_progress_page(struct screen *display, const char *text,
                              int current, int total);
 

@@ -120,6 +120,16 @@ REQUIRED_BMP_DIMENSIONS = {
     # A26_SPIN_PX x A26_SPIN_FRAMES de apps/gui/splash.c: si el generador
     # cambia de tamaño y el C no, la tira se rechaza y no hay spinner.
     "wps/Apple2026/loading.bmp": (32, 384),
+    # A26_SYM_PX x A26_USB_MODE_FRAMES: los cuatro modos del mando USB, en el
+    # orden de hid_key_mappings (usb_keymaps.c).  Si Rockbox añadiera un modo
+    # y la tira se quedara con cuatro, el modo nuevo saldría sin símbolo justo
+    # cuando el disco ya es del ordenador y no hay forma de leer otro archivo.
+    "wps/Apple2026/a26_usb_modes.bmp": (96, 384),
+    # La oscura también, y por la misma razón que las tiras de iconos (H-17):
+    # la genera tools/apple2026_dark_assets.py a mano, así que sin contrato un
+    # olvido dejaría el tema oscuro sin símbolos de modo y sólo se vería con el
+    # cable puesto, que es donde peor se diagnostica.
+    "wps/Apple2026Dark/a26_usb_modes.bmp": (96, 384),
     "wps/Apple2026/miniplayer_bg.bmp": (320, 50),
     "wps/Apple2026/qs_wheel.bmp": (92, 92),
     "wps/Apple2026/qs_slider_fill.bmp": (20, 132),

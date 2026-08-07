@@ -222,6 +222,90 @@ bool apple2026_symbol_page(struct screen *display, const char *file,
     return true;
 }
 
+/* ---- pantalla de USB: modo del mando (HID) ----------------------------
+ *
+ * Los cuatro fotogramas viven en UNA tira y se cargan de una sola vez, no en
+ * cuatro archivos: durante el USB el disco es del ordenador y no se puede
+ * leer nada.  Con archivos sueltos, y con la caché de un solo hueco de
+ * `a26_sym_ensure`, cambiar de modo con el cable puesto intentaría leer del
+ * disco cedido y dejaría la pantalla sin símbolo.
+ *
+ * El orden de los fotogramas ES el de `hid_key_mappings` en usb_keymaps.c,
+ * o sea el valor de `usb_keypad_mode`.  Lo garantiza el generador
+ * (tools/apple2026_usb_mode_icons.py), que lleva la misma lista. */
+#define A26_USB_MODE_FRAMES 4
+static fb_data a26_usbmode_px[A26_SYM_PX * A26_SYM_PX * A26_USB_MODE_FRAMES];
+static int a26_usbmode_state;
+static unsigned a26_usbmode_gen;
+
+/* Se llama ANTES de ceder el disco (usb_acknowledge).  Devuelve false si la
+ * tira no está: el llamante se queda con la página del cable de siempre. */
+bool apple2026_usb_modes_preload(void)
+{
+    if (a26_usbmode_gen != apple2026_asset_gen())
+    {
+        a26_usbmode_gen = apple2026_asset_gen();
+        a26_usbmode_state = 0;   /* el tema cambió: la tira anterior no vale */
+    }
+    return a26_load_strip(A26_ASSET("a26_usb_modes.bmp"), a26_usbmode_px,
+                          sizeof(a26_usbmode_px), A26_SYM_PX,
+                          A26_USB_MODE_FRAMES, &a26_usbmode_state);
+}
+
+/* Símbolo del modo + su nombre + dos líneas de ayuda para cambiarlo.
+ * Deliberadamente NO se recarga nada aquí: si la precarga no llegó a tiempo
+ * devolvemos false y no se dibuja media pantalla. */
+bool apple2026_usb_mode_page(struct screen *display, int frame,
+                             const char *name, const char *hint1,
+                             const char *hint2)
+{
+    struct viewport vp;
+    struct font *fnt;
+    int y, lh;
+
+    if (a26_usbmode_state <= 0 || frame < 0 || frame >= A26_USB_MODE_FRAMES)
+        return false;
+
+    a26_page_begin(display, &vp, false);
+
+    /* La altura de línea sale de la FUENTE, no de medir una cadena: esto se
+     * dibuja con el disco ya cedido y los .fnt cerrados por
+     * `font_disable_all()`, y medir texto necesita glifos en caché.  El alto
+     * de la fuente está en su cabecera, que sigue en RAM pase lo que pase. */
+    fnt = font_get(vp.font);
+    lh = fnt ? fnt->height : 0;
+    if (lh <= 0)
+        return false;
+
+    /* El bloque entero (símbolo + tres renglones) se centra como una unidad;
+     * centrar sólo el símbolo dejaba el texto colgando y la página descuadrada
+     * hacia abajo. */
+    y = (vp.height - (A26_SYM_PX + 14 + lh + 4 + lh + lh)) / 2;
+
+    display->transparent_bitmap_part(a26_usbmode_px, 0, frame * A26_SYM_PX,
+            STRIDE(display->screen_type, A26_SYM_PX,
+                   A26_SYM_PX * A26_USB_MODE_FRAMES),
+            (vp.width - A26_SYM_PX) / 2, y, A26_SYM_PX, A26_SYM_PX);
+    y += A26_SYM_PX + 14;
+
+    /* Jerarquía por COLOR, no por tamaño (DESIGN.md): el modo en tinta
+     * principal, la ayuda en secundaria.  Una sola fuente además mantiene
+     * pequeña la caché de glifos, que es todo lo que queda vivo una vez
+     * `font_disable_all()` ha cerrado los .fnt. */
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
+    a26_center_text(display, &vp, y, name);
+    y += lh + 4;
+
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                A26_TEXT_SECONDARY));
+    a26_center_text(display, &vp, y, hint1);
+    a26_center_text(display, &vp, y + lh, hint2);
+
+    display->update_viewport();
+    display->set_viewport(NULL);
+    return true;
+}
+
 bool apple2026_power_page(struct screen *display, bool battery_dead)
 {
     return apple2026_symbol_page(display,
