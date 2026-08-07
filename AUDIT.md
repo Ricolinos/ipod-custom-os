@@ -266,10 +266,19 @@ con `diskutil info`, respaldar `.rockbox/config.cfg`, descomprimir encima,
 - Verificación pendiente: [~] visual — raíz con Música seleccionada, observar deriva 10 s (2 capturas separadas + a ojo en vivo); riesgo anotado: softness del 2-tap → escalar a bilineal de 3 mezclas.
 
 ### H-17 · Iconos del submenú "Control de reproducción" (cierra parte de H-05.4)
-- Estado: **diagnosticado** · Lote post-auditoría
+- Estado: **arreglado, razonado-no-observado** (lote-2, 2026-08-07)
+- Estado previo: **diagnosticado** · Lote post-auditoría
 - `apps/plugins/lib/playback_control.c:93-107`: 7 filas `MENUITEM_FUNCTION(..., Icon_NOICON)`. La macro acepta icono (`menu.h:202-208`); basta el 6º argumento — `apple2026_menu_rows` NO aplica (MT_MENU, filtro `menu.c:222`). Beneficia a los 43 plugins que usan el lib.
 - Iconos: Volumen=`Icon_S_Volume` (`icon.h:291`), Aleatorio=`Icon_S_Shuffle` (`:124`), Repetición=`Icon_S_Repeat` (`:125`). Generar 4 frames nuevos: Anterior `backward.end.fill`, Reproducir/Pausa `playpause.fill`, Detener `stop.fill`, Siguiente `forward.end.fill` — proceso de 4 sitios (ambas tiras: claro tinta 255,46,86/blanco, oscuro 254,69,108/(24,28,24); enum antes de `Icon_Last_Themeable` `icon.h:417`; contrato `apple2026_skin_audit.py:112` hoy (30,10770)=359 frames → 363). De paso H-13 en esas cadenas ("Control de Reproducción" → "Control de reproducción").
-- Verificación pendiente: [~] Cover Flow → menú → Control de reproducción, capturas ambos temas.
+- **Arreglado 2026-08-07 (lote-2).** Los cuatro sitios del proceso, en el mismo commit:
+  1. `tools/apple2026_playback_icons.py` (nuevo) anexa 4 frames al final de **ambas** tiras: `backward.end.fill`, `playpause.fill`, `stop.fill`, `forward.end.fill`, a 96 pt reducidos por cobertura a tinta de 18 px con supermuestreo 4×4. 359 → **363 frames**.
+  2. `Icon_S_PrevTrack/PlayPause/StopPlay/NextTrack` justo antes de `Icon_Last_Themeable` en `icon.h`, en el mismo orden que el script.
+  3. Contrato del auditor a (30, **10890**) — y se añade la tira **oscura**, que no tenía contrato: si una de las dos se queda corta, ese tema sirve el icono equivocado desde el primer frame que falte.
+  4. Las 7 filas de `playback_control.c` con su símbolo; volumen/aleatorio/repetición reutilizan `Icon_S_Volume/Shuffle/Repeat`, que ya existían. Ninguno se repite entre hermanos.
+- Los colores NO se copiaron de la documentación sino que se midieron sobre las tiras: tinta (255,45,85) hacia blanco en claro y (255,69,108) hacia (28,28,30) en oscuro — que son los tokens ACCENT y SHELL_BG de DESIGN.md. CLAUDE.md decía (255,46,86) y (24,28,24); es la documentación la que había derivado.
+- H-13 en las 8 cadenas de este submenú: "Control de Reproducción" → "Control de reproducción", "Pista Anterior", "Detener Reproducción", "Siguiente Pista", "Cambiar Volumen", "Modo Aleatorio" y "Pausar / Reproducir" → "Reproducir o pausar". Además había una **errata**: "Cambiar Modo de Repeteción" → "Cambiar modo de repetición".
+- Comprobado sin simulador: los 4 frames extraídos de ambas tiras y ampliados se ven correctos y sin halo (`scratchpad/pbicons.png`); las tiras de 10890 px llegan al simdisk y al `rockbox.zip`.
+- Verificación pendiente: **[~]** el submenú en pantalla, ambos temas. Secuencia lista: `tools/apple2026_sim_theme.sh claro` · Música→Cover Flow (`36:150 125:30 36:150`), esperar 2 s, `36:150 53:1000` para el menú del plugin, bajar a "Control de reproducción" (`125:30`×3) y `36:150`; repetir con `oscuro`.
 
 ### H-18 · Flujo Reconstruir/Actualizar caché de Cover Flow fuera del sistema (enlaza H-09, H-11)
 - Estado: **diagnosticado** · Lote post-auditoría · Detectado por el usuario

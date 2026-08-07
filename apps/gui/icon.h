@@ -413,6 +413,15 @@ enum themable_icons {
      * oscuro (sun.max.circle / moon.circle). */
     Icon_S_ThemeLight,
     Icon_S_ThemeDark,
+    /* Transporte del submenú "Control de reproducción"
+     * (apps/plugins/lib/playback_control.c, que usan 43 plugins): sus filas
+     * iban sin icono porque estos cuatro símbolos no existían en el juego.
+     * El orden es el de tools/apple2026_playback_icons.py — la tira se
+     * indexa por posición, así que van al final y nunca en medio. */
+    Icon_S_PrevTrack,
+    Icon_S_PlayPause,
+    Icon_S_StopPlay,
+    Icon_S_NextTrack,
 #endif
     Icon_Last_Themeable,
 };

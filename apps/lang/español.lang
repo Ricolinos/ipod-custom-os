@@ -11791,10 +11791,10 @@
     *: "Playback Control"
   </source>
   <dest>
-    *: "Control de Reproducción"
+    *: "Control de reproducción"
   </dest>
   <voice>
-    *: "Control de Reproducción"
+    *: "Control de reproducción"
   </voice>
 </phrase>
 <phrase>
@@ -11805,10 +11805,10 @@
     *: "Previous Track"
   </source>
   <dest>
-    *: "Pista Anterior"
+    *: "Pista anterior"
   </dest>
   <voice>
-    *: "Pista Anterior"
+    *: "Pista anterior"
   </voice>
 </phrase>
 <phrase>
@@ -11819,10 +11819,10 @@
     *: "Pause / Play"
   </source>
   <dest>
-    *: "Pausar / Reproducir"
+    *: "Reproducir o pausar"
   </dest>
   <voice>
-    *: "Pausar / Reproducir"
+    *: "Reproducir o pausar"
   </voice>
 </phrase>
 <phrase>
@@ -11833,10 +11833,10 @@
     *: "Stop Playback"
   </source>
   <dest>
-    *: "Detener Reproducción"
+    *: "Detener reproducción"
   </dest>
   <voice>
-    *: "Detener Reproducción"
+    *: "Detener reproducción"
   </voice>
 </phrase>
 <phrase>
@@ -11847,10 +11847,10 @@
     *: "Next Track"
   </source>
   <dest>
-    *: "Siguiente Pista"
+    *: "Siguiente pista"
   </dest>
   <voice>
-    *: "Siguiente Pista"
+    *: "Siguiente pista"
   </voice>
 </phrase>
 <phrase>
@@ -11861,10 +11861,10 @@
     *: "Change Volume"
   </source>
   <dest>
-    *: "Cambiar Volumen"
+    *: "Cambiar volumen"
   </dest>
   <voice>
-    *: "Cambiar Volumen"
+    *: "Cambiar volumen"
   </voice>
 </phrase>
 <phrase>
@@ -11875,10 +11875,10 @@
     *: "Shuffle Mode"
   </source>
   <dest>
-    *: "Modo Aleatorio"
+    *: "Modo aleatorio"
   </dest>
   <voice>
-    *: "Modo Aleatorio"
+    *: "Modo aleatorio"
   </voice>
 </phrase>
 <phrase>
@@ -13331,10 +13331,10 @@
     *: "Change Repeat Mode"
   </source>
   <dest>
-    *: "Cambiar Modo de Repeteción"
+    *: "Cambiar modo de repetición"
   </dest>
   <voice>
-    *: "Cambiar Modo de Repeteción"
+    *: "Cambiar modo de repetición"
   </voice>
 </phrase>
 <phrase>

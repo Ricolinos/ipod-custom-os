@@ -109,7 +109,12 @@ REQUIRED_RUNTIME_FILES = [
 ]
 
 REQUIRED_BMP_DIMENSIONS = {
-    "icons/Apple2026Icons.bmp": (30, 10770),  # +ThemeLight/ThemeDark (sol/luna)
+    # 363 frames de 30 px: los 359 anteriores + los cuatro de transporte que
+    # añadió tools/apple2026_playback_icons.py (H-17).  Las DOS tiras deben
+    # tener la misma altura: si una se queda corta, el tema afectado sirve el
+    # icono equivocado a partir del primer frame que falte.
+    "icons/Apple2026Icons.bmp": (30, 10890),
+    "icons/Apple2026IconsDark.bmp": (30, 10890),
     "wps/Apple2026/albumPlaceholder.bmp": (110, 110),  # matches the 110px art rect
     "wps/Apple2026/art_mask.bmp": (32, 32),
     # A26_SPIN_PX x A26_SPIN_FRAMES de apps/gui/splash.c: si el generador
