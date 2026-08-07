@@ -1,6 +1,6 @@
 # AUDIT — Auditoría integral de la capa Apple2026
 
-> Estado global: **F0 cerrada · F1 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
+> Estado global: **F0-F1 cerradas · F2 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
 > Ejecuta: Opus 5. Modo por defecto: una fase por sesión. **Modo nocturno
 > (autorizado por el usuario el 2026-08-07): si el prompt lo pide, encadenar
 > F0→F9 en automático**, cerrando cada fase completa (casillas, hallazgos,
@@ -31,8 +31,8 @@
 | Fase | Contenido | Estado |
 |---|---|---|
 | F0 | Línea base: compilar ambos targets, biblioteca sintética, capturas raíz claro/oscuro, arnés verificado | **cerrada** |
-| F1 | Barra de estado: H-01 + H-02 + barrido zona A | en curso |
-| F2 | Clúster tagnavi: H-03 (orden d→b→a) + Agregado/Historial a Música | pendiente |
+| F1 | Barra de estado: H-01 + H-02 + barrido zona A | **cerrada** |
+| F2 | Clúster tagnavi: H-03 (orden d→b→a) + Agregado/Historial a Música | en curso |
 | F3 | Cuadros blancos: H-04 (B1-B5) + barrido zona B | pendiente |
 | F4 | Barrido zona C (navegadores) + H-05 (ajustes Cover Flow) | pendiente |
 | F5 | Barrido zona D (Reproduciendo + modos) + vigilar H-07 | pendiente |
@@ -53,14 +53,25 @@
 ## Hallazgos
 
 ### H-01 · El candado y el play/pause chocan en la barra dividida
-- Estado: **diagnosticado** · Fase: F1 · Detectado por el usuario en el aparato
+- Estado: **verificado-sim** (F1, 2026-08-07) · Fase: F1 · Detectado por el usuario en el aparato
+- Reproducido antes del arreglo: `F1-A06-hold-conmusica-claro-ANTES-zoom.png` muestra el ▶ y NINGÚN candado con el hold puesto.
+- Arreglado: `pp_icon_split` eliminado del SBS; el estado lo dibuja `np_draw_state()` en la tarjeta del panel. Verificado en `F1-A06-hold-conmusica-claro-DESPUES.png` (candado en la barra + ▶ en la tarjeta) y en oscuro (`F1-A06-hold-oscuro`, `F1-A06-hold-conmusica-oscuro`).
+- Decisión propia (reversible): el glifo de la tarjeta se **compone por geometría**, no se reutiliza `statusPlay.bmp`. El fondo de la tarjeta se deriva de la carátula y cambia con cada pista, así que un bitmap con el antialias premezclado dejaría el halo que DESIGN.md prohíbe. Para revertir bastaría cargar el strip y volcarlo con `transparent_bitmap_part`.
 - Síntoma: con hold + música en raíz/Música, el play/pause borra el candado.
 - Causa raíz: `wps/Apple2026.sbs` — `lock_split` x=121..129 (~línea 214) ÍNTEGRO dentro de `pp_icon_split` x=119..130 (~223); ambos con `%Vb(FFFFFF)`; pp se dibuja después (línea 97>96). Sólo 15 px libres entre reloj (fin 117) y batería (133).
 - Arreglo (decisión D2): eliminar `pp_icon_split` de la barra; dibujar el estado play/pause en la tarjeta de reproducción del panel (`apple2026_pane.c`, la tarjeta np ya existe). Replicar geometría en `Apple2026Dark.sbs` (idéntica salvo colores). Actualizar contratos del auditor si cambian cadenas del SBS.
 - Verificación: reproducir música (V-audio: Música→Canciones→SELECT en pista→MENU corto), activar hold (tecla de hold del sim), F5: candado visible en barra corta + estado de reproducción legible en el panel. Ambos temas.
 
 ### H-02 · Clúster derecho de la barra completa: solapes y desalineación
-- Estado: **diagnosticado** · Fase: F1 · Detectado por el usuario (desalineación) + exploración
+- Estado: **verificado-sim** (F1, 2026-08-07), salvo el punto 3 que es razonado · Fase: F1 · Detectado por el usuario (desalineación) + exploración
+- Resolución de cada punto:
+  1. `batterytext` pasa de x=-70 (250..287) a x=-80 (240..278) **y se alinea a la derecha**; con batería numérica el pp usa el nuevo viewport `pp_icon_left` (226..237). Los cinco elementos quedan en fila sin tocarse: busy 202..210 · candado 216..224 · pp 226..237 · texto 240..278 · icono 282..308. Verificado en `F1-A08-bat-numerica-pp-claro-zoom.png` y `F1-A08-bat-numerica-oscuro-zoom.png`; con hold además en `F1-A06-hold-pp-numerica-claro-zoom.png`.
+  2. Líneas base igualadas a y=16 compensando el ascenso de cada fuente (`hdr_clock` y=2 h=18; `hdr_clock_split` y=3 h=17). El salto del temporizador de apagado desaparece: `F1-A07-sleeptimer-oscuro-zoom.png` y `F1-A08-bat-numerica-sleep-claro-zoom.png`. **Se descubrió que el encabezado del quickscreen —copiado de la barra— tenía el mismo defecto**; corregido igual.
+  3. `busyindicator` baja a y=6 para compartir el eje óptico 10 del resto del clúster. `busyindicatorleft`, que tenía coordenadas idénticas, **se elimina**: con el clúster reordenado 202..210 queda libre en los dos casos, así que la variante sobraba. El spinner sólo aparece con disco real → **razonado-no-observado**, lo valida el usuario en el aparato.
+  4. `battery_icon_root` pasa de w=26 a w=27, el ancho real del frame.
+  5. `batterytext_root` eliminado (viewport muerto, 0 referencias `%Vd`).
+  6. Guard `%?if(%cs,=,10)` añadido a las cinco líneas de indicadores. Verificado con música sonando en `F1-A05-quickscreen-musica-claro.png`: el ▶ del shell no se dibuja sobre el overlay. Para candado y busy es el mismo patrón sintáctico → razonado.
+- El auditor gana reglas `forbidden` para que ninguno de los tres viewports retirados vuelva a colarse.
 - Síntomas/causas (todo en `wps/Apple2026.sbs`, replicar en Dark):
   1. `batterytext` (numérica) x=250..287 (~229) contiene a `pp_icon` x=266..277 y solapa 6 px con `battery_icon` x=282..319 (~247).
   2. Líneas base de texto dispares: título slot3 base=16, reloj full slot8 base=14, reloj split slot9 base=13, batería/sleep slot6 base=16. El sleep timer al sustituir al reloj (línea 103) salta 2 px. Arreglo: ajustar `y` de cada VP para igualar líneas base y centrar iconos en eje óptico ~9.5-10.
@@ -119,14 +130,30 @@
 - Del archivo de memoria `split-view-bug-watch`: tras ciclar modos de rueda con SELECT y volver con MENU, los dos primeros niveles salen a ancho completo. Hipótesis: push/pop desbalanceado de `viewportmanager_theme_enable/undo` en los modos con pantalla propia (selector de listas, letras). Ejercitarlo exige canción CON letra (`.lrc`) — la biblioteca sintética no trae; generar una pista con `.lrc` en F5.
 - En TODA fase: si el raíz o Música salen a ancho completo en una captura, documentar la secuencia exacta y marcar aquí.
 
+### H-08 · El título del quickscreen no cabía y se desplazaba
+- Estado: **arreglado, verificado-sim** · Fase: F1 (hallazgo nuevo)
+- Síntoma: la barra del quickscreen mostraba `stes rápidos` — el título a medio recorrido de una marquesina.
+- Causa raíz: `%V(10,0,94,20,3)` con `%s%al%Sx(Quick Settings)`. "Ajustes rápidos" en 16-SFProText-Semibold no cabe en 94 px, y el `%s` lo convierte en marquesina en vez de recortarlo. En iOS un título de barra no se desplaza jamás.
+- Arreglo: viewport a 108 px (10..118, justo hasta el reloj), `%s` retirado y, como con 108 seguía cortándose la "s" final, **el texto español pasa de "Ajustes rápidos" a "Ajustes"** (`español.lang`, `LANG_QUICK_SETTINGS`; la locución de voz conserva "Ajustes rápidos").
+- Decisión propia (reversible): se acortó el texto en lugar de invadir el viewport del reloj, porque los viewports que se solapan se pisan y el reloj se dibuja después. Para recuperar "Ajustes rápidos" habría que mover el reloj de su centro de pantalla, que es peor. Revertir = una línea de `español.lang`.
+- Verificado: `F1-A05-quickscreen-claro.png` y `F1-A05-quickscreen-oscuro.png`.
+
+### H-09 · Cover Flow: error sin traducir dentro de un cuadro de sistema
+- Estado: **detectado** · Fase: F4/F7 · Visto de paso en F1 (A10)
+- Con la biblioteca sintética (sin carátulas) el plugin muestra `Could not create album art cache. Pulsa cualquier botón para continuar.` — inglés y español en la misma frase, dentro de un recuadro de sistema con marco.
+- Doble anti-patrón de DESIGN.md: cuadro de texto de sistema sobre la pantalla, y cromo de Rockbox a la vista. Debería ser una página de símbolo.
+- Captura: `F1-A10-plugin-coverflow-oscuro.png`. Se aborda en su fase.
+
 ---
 
 ## Inventario de pantallas por zona
 
 Secuencias desde el menú raíz con selección en Música (arriba). Capturar SIEMPRE: claro, oscuro, y donde aplique con-audio/hold/vacía.
 
-### Zona A — Barra de estado (F1)
-- A01 raíz dividida `96:30` · A02 Música dividida `36:150 96:30` · A03 lista completa `36:150 36:150 96:30` · A04 WPS (pista sonando) · A05 quickscreen (SELECT largo en lista) · A06 con hold · A07 sleep timer activo · A08 batería numérica (ajuste) · A09 disco girando (busy) · A10 plugin (Cover Flow)
+### Zona A — Barra de estado (F1) — **cerrada 2026-08-07**
+- [x] A01 raíz dividida · [x] A02 Música dividida · [x] A03 lista completa · [x] A04 WPS · [x] A05 quickscreen (con y sin música) · [x] A06 hold (solo y con música) · [x] A07 sleep timer · [x] A08 batería numérica (con y sin pp) · [~] A09 disco girando → **razonado-no-observado** (el simdisk nunca cede ni gira; el spinner sólo se ejercita en el aparato) · [x] A10 plugin → [!] H-09
+- Todas en claro Y oscuro. El quickscreen NO se abre con `36:600` (eso es el menú contextual): es MENU mantenido, `53:800`/`53:1000`, y sólo desde una lista — desde el menú raíz no responde. Con el hold puesto tampoco abre.
+- Aviso para las fases siguientes: la tecla `h` (código 4) **conmuta** el hold, y cada reinicio del simulador lo devuelve a OFF. Llevar la cuenta o reiniciar antes de cada prueba de hold; si no, se capturan barras sin candado creyendo que es un bug.
 
 ### Zona B — Menú raíz y panel (F3)
 - B01-B08 los 8 items del raíz con su tile (rueda ↓ + F5 por item) · B09 slideshow de carátulas (Música seleccionada, esperar 2 ciclos) · B10 tarjeta de reproducción (np) con música · B11 mini-reproductor en listas · B12 deriva del panel (2 capturas separadas 5 s)
@@ -167,4 +194,5 @@ Observación menor (no es hallazgo): en esta sesión `build-sim.sh --install-onl
 | Fecha | Fase | Hecho | Quedó a medias | Próxima acción |
 |---|---|---|---|---|
 | 2026-08-07 | plan | Plan maestro + este tracker creados (Fable) | — | Lanzar F0 con Opus 5 |
+| 2026-08-07 | F1 | H-01 y H-02 arreglados y verificados en ambos temas; H-08 nuevo (título del quickscreen) arreglado; H-09 nuevo anotado; zona A barrida; helpers de tema/ajustes y de zoom versionados | A09 (busy) razonado-no-observado | F2: H-03 en orden d→b→a |
 | 2026-08-07 | F0 | Línea base cerrada: ambos targets, auditor verde, capturas raíz claro/oscuro, arnés probado; helpers `sim_shot.sh` y `sim_theme.sh` versionados | — | F1: H-01 + H-02 + barrido zona A |

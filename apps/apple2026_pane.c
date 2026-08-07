@@ -837,6 +837,65 @@ static void np_center_text(struct screen *display, struct viewport *vp,
     display->set_viewport(vp);
 }
 
+/* Estado de reproducción de la tarjeta (decisión D2 de AUDIT.md).
+ *
+ * En la barra dividida sólo quedan 15 px libres entre el reloj y la
+ * batería, y ahí convivían el candado (lock_split, x=121..129) y el
+ * play/pausa (pp_icon_split, x=119..130): el segundo contiene al primero y
+ * se dibuja después, así que con el hold puesto el candado desaparecía.
+ * El indicador se muda a la tarjeta del panel, donde sobra sitio, y el
+ * candado se queda con el hueco para él solo.
+ *
+ * Se compone por geometría en vez de reutilizar statusPlay.bmp porque el
+ * fondo de la tarjeta (np_bg) se deriva de la carátula y cambia con cada
+ * pista: un bitmap con el antialias ya mezclado —contra blanco en el tema
+ * claro, contra el gris del shell en el oscuro— dejaría justo el halo que
+ * DESIGN.md prohíbe.  A este tamaño, play.fill y pause.fill de SF Symbols
+ * son exactamente un triángulo y dos barras. */
+#define NP_PP_W 11
+#define NP_PP_H 12
+static fb_data np_pp_px[NP_PP_W * NP_PP_H];
+
+static void np_draw_state(struct screen *display, struct viewport *vp,
+                          int y0, bool paused)
+{
+    const fb_data ink = np_mix(LCD_WHITE, np_bg, 210);
+    int x, y;
+
+    for (y = 0; y < NP_PP_H; y++)
+    {
+        /* Triángulo isósceles apuntando a la derecha: en cada fila el borde
+         * cae a (1 - |2y+1-H|/H) * W.  Se lleva en 1/256 de píxel para
+         * sacar la cobertura del píxel del borde en vez de un corte duro,
+         * que a 11 px deja dientes de sierra bien visibles. */
+        int d = 2 * y + 1 - NP_PP_H;
+        int edge256;
+
+        if (d < 0)
+            d = -d;
+        edge256 = ((NP_PP_H - d) * NP_PP_W * 256) / NP_PP_H;
+
+        for (x = 0; x < NP_PP_W; x++)
+        {
+            unsigned cov;
+
+            if (paused)
+                cov = (x < 4 || x >= 7) ? 255u : 0u;   /* 4 + 3 + 4 = 11 */
+            else if ((x + 1) * 256 <= edge256)
+                cov = 255u;
+            else if (x * 256 >= edge256)
+                cov = 0u;
+            else
+                cov = (unsigned)((edge256 - x * 256) * 255 / 256);
+
+            np_pp_px[y * NP_PP_W + x] = np_mix(ink, np_bg, cov);
+        }
+    }
+    display->bitmap_part(np_pp_px, 0, 0,
+                         STRIDE(SCREEN_MAIN, NP_PP_W, NP_PP_H),
+                         (vp->width - NP_PP_W) / 2, y0, NP_PP_W, NP_PP_H);
+}
+
 static void np_draw_card(struct screen *display, struct viewport *vp)
 {
     const struct mp3entry *id3 = audio_current_track();
@@ -892,6 +951,11 @@ static void np_draw_card(struct screen *display, struct viewport *vp)
         display->set_viewport(vp);
         np_last_sec = id3->elapsed / 1000;
     }
+
+    /* Play/pausa justo encima de la barra: es el hueco que dejan el artista
+     * (acaba en 196) y la barra (empieza en 218) con el panel a 240. */
+    np_draw_state(display, vp, vp->height - 40,
+                  (audio_status() & AUDIO_STATUS_PAUSE) != 0);
 }
 
 /* ---- drawing ---------------------------------------------------------- */

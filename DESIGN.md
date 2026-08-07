@@ -94,8 +94,17 @@ oscuro.
 ## Geometría
 
 - **Barra de estado: 20 px.** Título a la izquierda, reloj al centro,
-  batería a la derecha; indicador ▶/⏸ junto a la batería; candado en el
-  clúster derecho (216,4). La barra nunca cambia de forma entre pantallas.
+  batería a la derecha; candado en el clúster derecho (216,4). La barra
+  nunca cambia de forma entre pantallas.
+- **Todo el texto de la barra comparte una línea base: y = 16.** Como el
+  texto arranca en el borde superior de su viewport, la `y` de cada uno
+  compensa el ascenso de su fuente (título 16 px → y=0; reloj completo
+  14 px → y=2; reloj partido 13 px → y=3). Con todos a y=0, el reloj iba
+  2-3 px alto y el temporizador de apagado daba un salto al sustituirlo.
+- El indicador ▶/⏸ vive **junto a la batería sólo en la barra completa**.
+  En vista dividida no cabe —el hueco entre reloj y batería son 15 px y es
+  del candado—, así que lo lleva la tarjeta de reproducción del panel
+  derecho, centrado sobre la barra de progreso.
 - **Vista dividida** en los dos primeros niveles de navegación: lista de
   160 px + panel visual derecho que reacciona a la selección. Del tercer
   nivel en adelante, ancho completo.
