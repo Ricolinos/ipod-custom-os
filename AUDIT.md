@@ -1,6 +1,80 @@
 # AUDIT — Auditoría integral de la capa Apple2026
 
-> Estado global: **F0-F5 cerradas · F6 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
+## Resumen ejecutivo — sesión nocturna del 2026-08-07
+
+Se recorrieron las diez fases. Ocho commits, todos empujados a
+`worktree-split-root-menu`. Ambos targets compilan y el auditor de skin sale
+en verde en cada uno. Más de setenta capturas en `screenshots/audit/`, todas
+en claro **y** oscuro.
+
+### Arreglado y verificado en el simulador
+
+| # | Qué pasaba | Qué se hizo |
+|---|---|---|
+| H-01 | Con el hold puesto y música sonando, el play/pausa **borraba el candado** en la barra dividida | No caben los dos en 15 px: el indicador se muda a la tarjeta del panel derecho (D2) |
+| H-02 | La batería numérica se pintaba **encima** del play/pausa y solapaba 6 px con el icono de la pila; los relojes iban 2 y 3 px altos; el temporizador de apagado **saltaba** al aparecer | Clúster reordenado sin solapes; todo el texto de la barra sobre una sola línea base (y=16); tres viewports muertos o duplicados retirados |
+| H-03 | Al subir un nivel desde Canciones aparecía la **raíz cruda de la base de datos**: lista a ancho completo bajo una barra partida. Sólo en español | Colisión de nombres: el árbol se titulaba "Música" = `LANG_MUSIC_LIBRARY`. Título → "Biblioteca", entrada pendiente arreglada, y esa raíz ya no se muestra nunca |
+| H-04 | Cinco esperas largas sobre **pantalla en blanco** | Indicador en cuatro (B1, B2, B4, B5). B3 se deja a propósito: el remedio crearía un parpadeo |
+| H-05 | "Separación" mostraba `32 px` y editaba un **Sí/No**; "Número de carátulas" mostraba un valor y editaba otro; dos interruptores se conmutaban sin guardar | Filas renombradas y decoradas según lo que editan de verdad; los flips que necesitan el camino largo delegan en el select |
+| H-08 | El título del quickscreen se leía "**stes rápidos**" (marquesina a medias) | Viewport a 108 px, scroll retirado, texto a "Ajustes" |
+| H-10 | La barra mostraba "**uscar por...**" | Título de barra a 108 px |
+| H-06 | Se sospechaba solape entre lista y mini-reproductor en vistas partidas | **No era un defecto**: en vista partida no hay mini-reproductor, su papel lo hace la tarjeta del panel |
+| H-07 | Vista dividida perdida tras ciclar modos | **No se reproduce.** Se creó un `.lrc` para entrar al modo letra, que era el camino sospechoso, y la raíz vuelve partida. Probablemente era H-03 visto desde otro sitio |
+
+Además: dos ítems nuevos en el submenú Música ("Agregado recientemente" e
+"Historial"), que existían en la configuración del árbol pero se habían
+quedado sin puerta al ocultar su raíz.
+
+### Encontrado y NO arreglado — esto es lo que queda sobre la mesa
+
+| # | Qué es | Por qué no se hizo |
+|---|---|---|
+| H-05.4 | Faltan iconos en el menú contextual de pista, en Control de reproducción (7 filas) y en las pantallas de selección de valor | Exige ampliar las dos tiras de iconos, que es el proceso de cuatro sitios a la vez de CLAUDE.md |
+| H-09 | Cover Flow muestra `Could not create album art cache. Pulsa cualquier botón para continuar.` — inglés y español en la misma frase, dentro de un cuadro de sistema con marco | Doble anti-patrón; el arreglo es una página de símbolo y una cadena nueva |
+| H-11 | El árbol enseña `[Todas las pistas]`, `[Aleatorio]`, `[Por álbum]` y `<Untagged>` | Corchetes y ángulos son notación de Rockbox, prohibida por DESIGN.md |
+| H-12 | `Extras → Explorar complementos → Aplicaciones` lista `alarmclock`, `dart_scorer`, `db_commit`… con el **mismo icono de puzle** en todas las filas | Nombres de archivo crudos en inglés; hace falta una tabla de nombres y símbolos |
+| H-13 | Mayúsculas a la inglesa por todo el español: "Ir al Último Álbum", "Control de Reproducción", "Reescalar Carátulas", "Nuevas Favoritas" | Merece un barrido completo de `español.lang`, no parches sueltos |
+| H-14 | Etiqueta y valor recortados a la vez: "Mostrar título …" → "Mostrar album y a…" | No se lee ninguno de los dos; además falta una tilde en "álbum" |
+| H-15 | En la letra, "penúltima" se parte como "pen" + "última" | El ancho se calcula con la fuente normal y se dibuja con la negrita |
+| — | Títulos de barra largos ("Configuración de temas") siguen desplazándose | No caben en 320 px con el reloj centrado; la marquesina es el comportamiento de reserva |
+
+### Lo que tienes que validar tú en el aparato
+
+Nada de esto se puede ver en el simulador, y por eso va etiquetado
+**razonado-no-observado**:
+
+1. **El candado con el hold real.** En el simulador el hold es una tecla que
+   conmuta y no bloquea los botones. Comprueba en la raíz, con música
+   sonando y el interruptor puesto, que el candado se ve y **no** lo tapa
+   nada.
+2. **El spinner del disco** (`busyindicator`). El simdisk nunca gira, así
+   que su nueva posición vertical no se ha visto nunca dibujada. Debería
+   quedar a la misma altura óptica que el candado y la batería.
+3. **Las cinco ventanas en blanco de H-04.** Su duración la marca el disco
+   duro arrancando; el simulador responde al instante. Entra y sal de Cover
+   Flow y de Fotos con el disco parado y mira si hay spinner en lugar de
+   blanco.
+4. **La reconstrucción de la base de datos** (B5): debe arrancar ya con la
+   página de símbolo, sin blanco previo ni salto al pasar al progreso.
+5. **La búsqueda sin resultados** en el visor de listas: la pastilla debe
+   avanzar aunque no encuentre nada.
+6. **H-07**: si la vista dividida vuelve a perderse tras ciclar modos,
+   apunta la secuencia exacta — aquí no ha aparecido ni una vez.
+7. **Un aviso**: si tienes un `tagnavi_user.config` en el iPod, sustituye al
+   de fábrica y anula el renombrado de H-03. Los otros dos pasos siguen
+   protegiendo, pero conviene borrarlo.
+
+### Instalación (NO hecha — el iPod no estaba conectado)
+
+`build-hw-ipod6g/rockbox.zip` está compilado y auditado. El ritual completo
+está en `CLAUDE.md`; en resumen: verificar que `/Volumes/IPOD` **es** el iPod
+con `diskutil info`, respaldar `.rockbox/config.cfg`, descomprimir encima,
+**restaurar el config.cfg respaldado**, comprobar la marca de tiempo de
+`rockbox.ipod`, `sync` y expulsar.
+
+---
+
+> Estado global: **F0-F9 recorridas** (F6-F8 con barrido parcial, ver resumen) · actualizado 2026-08-07 · rama `worktree-split-root-menu`
 > Ejecuta: Opus 5. Modo por defecto: una fase por sesión. **Modo nocturno
 > (autorizado por el usuario el 2026-08-07): si el prompt lo pide, encadenar
 > F0→F9 en automático**, cerrando cada fase completa (casillas, hallazgos,
@@ -36,10 +110,10 @@
 | F3 | Cuadros blancos: H-04 (B1-B5) + barrido zona B | **cerrada** |
 | F4 | Barrido zona C (navegadores) + H-05 (ajustes Cover Flow) | **cerrada** (H-05.4 pendiente) |
 | F5 | Barrido zona D (Reproduciendo + modos) + vigilar H-07 | **cerrada** |
-| F6 | Barrido zona E (Configuración) | en curso |
-| F7 | Barrido zonas F+G (plugins + estados del aparato) | pendiente |
-| F8 | Transiciones entre pantallas | pendiente |
-| F9 | Paquete final + instalación + lista de validación manual | pendiente |
+| F6 | Barrido zona E (Configuración) | **parcial** |
+| F7 | Barrido zonas F+G (plugins + estados del aparato) | **parcial** |
+| F8 | Transiciones entre pantallas | **cubierta de paso** |
+| F9 | Paquete final + instalación + lista de validación manual | **cerrada** (sin instalar: iPod no conectado) |
 
 ## Decisiones tomadas (NO reabrir; si algo las contradice, consultar al usuario)
 
@@ -229,11 +303,31 @@ Herramientas nuevas (versionadas): `tools/apple2026_sim_shot.sh` (teclea+captura
 
 Observación menor (no es hallazgo): en esta sesión `build-sim.sh --install-only` **no** reseteó el tema del sim a claro — arrancó en oscuro, que es lo que dejó la sesión anterior en `config.cfg`. La nota de CLAUDE.md aplica al build completo, no a `--install-only`.
 
+## F6-F9 — barrido parcial y paquete (2026-08-07)
+
+- [x] E01 menú Configuración (claro) · [x] E05 Configuración de temas · [x] E04 Configuraciones de sonido · [ ] E02, E03, E06-E10 sin capturar
+- [x] F02 Cover Flow: arranque, vista principal, tracklist, menú, Configuración, Pantalla (claro y oscuro) · [x] F01 Extras · [x] navegador de complementos → H-12 · [ ] F03 Fotos
+- [x] G01 arranque (toda sesión empieza ahí) · [ ] G02-G10 sin provocar
+- [x] T01 raíz↔Música↔listas y [x] T02 lista↔WPS: verificadas de paso en F2 y F5 con capturas · [ ] T03-T08
+- [x] Paquete `build-hw-ipod6g/rockbox.zip` (11 MB) compilado y auditado, con los cuatro skins, `tagnavi.config` y `español.lng` al día · **NO instalado**: `/Volumes/IPOD` no existe, el iPod no estaba conectado.
+
+**Por qué F6 y F7 quedaron a medias, y cómo retomarlas.** El barrido se hace
+tecleando secuencias largas desde un estado conocido, y a partir de cierto
+punto dejan de ser fiables: si una pantalla intermedia no es la esperada
+—porque hay música y aparece "Reproduciendo" en la raíz, porque un plugin se
+reanuda solo al arrancar, o porque un MENU largo salta más lejos de lo
+previsto— el resto de la secuencia navega a ciegas y la captura sale de otro
+sitio. Ocurrió tres veces seguidas al final de la sesión y se dejó de gastar
+capturas sin valor. Al retomar: **una captura por secuencia corta, partiendo
+siempre de `apple2026_sim_theme.sh` (que reinicia) y sin música**, verificando
+la pantalla antes de encadenar el siguiente paso.
+
 ## Registro de sesiones
 
 | Fecha | Fase | Hecho | Quedó a medias | Próxima acción |
 |---|---|---|---|---|
 | 2026-08-07 | plan | Plan maestro + este tracker creados (Fable) | — | Lanzar F0 con Opus 5 |
+| 2026-08-07 | F6-F9 | Zona E capturada en parte; paquete de hardware compilado y verificado; lista de validación manual redactada; resumen ejecutivo escrito | F6/F7 sin barrido exhaustivo: las secuencias largas de teclas se desvían y gastaban capturas sin valor | Retomar F6/F7 con secuencias cortas desde reinicio |
 | 2026-08-07 | F5 | .lrc sintético creado; WPS y modo letra capturados; H-07 NO se reproduce por el camino sospechoso; H-15 nuevo | modos avance/favoritos sin captura propia | F6: zona E |
 | 2026-08-07 | F4 | H-05 puntos 1-3 arreglados y verificados en ambos temas; H-13 y H-14 nuevos; zona C cubierta por las capturas de F2 | H-05.4 (iconos) sin hacer: exige ampliar las tiras | F5: zona D + H-07 |
 | 2026-08-07 | F3 | H-04 B1/B2/B4/B5 con indicador; B3 dejado a propósito (evitaría una ventana pero crearía un parpadeo); H-06 cerrado como diseño intencional con evidencia; H-12 nuevo; tiles del raíz barridos | las ventanas en sí: razonado-no-observado | F4: zona C + H-05 |
