@@ -113,22 +113,33 @@ def convert(px):
 NATIVE = ('a26_switch.bmp',)
 
 
+def is_artwork(name):
+    """¿Es una ilustración con sus propios colores?
+
+    Los paneles del menú raíz son eso: cubren su mitad de la pantalla enteros,
+    con su degradado y su mosaico, y se ven igual de bien sobre cualquier tema.
+    Pasarlos por la conversión los destroza —da por hecho que todo píxel es
+    tinta sobre papel blanco, así que invierte el dibujo y aplasta el
+    degradado—, y el panel derecho del menú raíz salía plano y con el símbolo
+    en negro.  Se copian tal cual.
+    """
+    return name.startswith('pane_')
+
+
 def main():
     if not os.path.isdir(DST_DIR):
         os.mkdir(DST_DIR)
     n = 0
     for f in sorted(os.listdir(SRC_DIR)):
-        if f in NATIVE:
+        if f in NATIVE or not f.endswith('.bmp'):
             continue
         src = os.path.join(SRC_DIR, f)
         dst = os.path.join(DST_DIR, f)
-        if not f.endswith('.bmp'):
-            continue
         r = read_bmp(src)
         if not r:
             continue
         w, h, px = r
-        write_bmp(dst, convert(px))
+        write_bmp(dst, px if is_artwork(f) else convert(px))
         n += 1
     print('%d bitmaps convertidos a %s' % (n, os.path.basename(DST_DIR)))
 
