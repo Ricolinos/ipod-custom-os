@@ -38,6 +38,7 @@ void tagtree_init(void) INIT_ATTR;
  * root view at the given index (Music submenu direct views). */
 void tagtree_request_initial_entry(int index);
 int tagtree_take_pending_entry(void);
+bool tagtree_has_pending_entry(void);
 int tagtree_enter(struct tree_context* c, bool is_visible);
 void tagtree_exit(struct tree_context* c, bool is_visible);
 int tagtree_load(struct tree_context* c);

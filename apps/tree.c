@@ -1078,7 +1078,22 @@ static int dirbrowse(void)
 
 #ifdef HAVE_TAGCACHE
                 if (id3db)
+                {
                     tagtree_exit(&tc, true);
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                    /* Subir un nivel desde Canciones/Artistas/... deja el
+                     * árbol en su raíz, y esa raíz no es una pantalla de
+                     * este aparato: es la lista cruda de tagnavi, que se
+                     * dibuja a ancho completo bajo una barra partida porque
+                     * root_menu_pane_id_for_list() no la reconoce (H-03).
+                     * El submenú Música del menú raíz ocupa su lugar, así
+                     * que al llegar a nivel 0 se sale directamente allí.
+                     * Los niveles anidados (Buscar, Historial) siguen
+                     * subiendo uno a uno como siempre. */
+                    if (tc.dirlevel == 0)
+                        return exit_to_new_screen(GO_TO_ROOT);
+#endif
+                }
                 else
 #endif
                     if (ft_exit(&tc) == 3)

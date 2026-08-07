@@ -16667,10 +16667,10 @@
     *: "Recently Added"
   </source>
   <dest>
-    *: "Añadidas Recientemente"
+    *: "Agregado recientemente"
   </dest>
   <voice>
-    *: "Añadidas Recientemente"
+    *: "Agregado recientemente"
   </voice>
 </phrase>
 <phrase>
@@ -16681,10 +16681,10 @@
     *: "Playback History"
   </source>
   <dest>
-    *: "Historial de Reproducción"
+    *: "Historial"
   </dest>
   <voice>
-    *: "Historial de Reproducción"
+    *: "Historial de reproducción"
   </voice>
 </phrase>
 <phrase>

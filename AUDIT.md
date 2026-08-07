@@ -1,6 +1,6 @@
 # AUDIT — Auditoría integral de la capa Apple2026
 
-> Estado global: **F0-F1 cerradas · F2 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
+> Estado global: **F0-F2 cerradas · F3 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
 > Ejecuta: Opus 5. Modo por defecto: una fase por sesión. **Modo nocturno
 > (autorizado por el usuario el 2026-08-07): si el prompt lo pide, encadenar
 > F0→F9 en automático**, cerrando cada fase completa (casillas, hallazgos,
@@ -32,8 +32,8 @@
 |---|---|---|
 | F0 | Línea base: compilar ambos targets, biblioteca sintética, capturas raíz claro/oscuro, arnés verificado | **cerrada** |
 | F1 | Barra de estado: H-01 + H-02 + barrido zona A | **cerrada** |
-| F2 | Clúster tagnavi: H-03 (orden d→b→a) + Agregado/Historial a Música | en curso |
-| F3 | Cuadros blancos: H-04 (B1-B5) + barrido zona B | pendiente |
+| F2 | Clúster tagnavi: H-03 (orden d→b→a) + Agregado/Historial a Música | **cerrada** |
+| F3 | Cuadros blancos: H-04 (B1-B5) + barrido zona B | en curso |
 | F4 | Barrido zona C (navegadores) + H-05 (ajustes Cover Flow) | pendiente |
 | F5 | Barrido zona D (Reproduciendo + modos) + vigilar H-07 | pendiente |
 | F6 | Barrido zona E (Configuración) | pendiente |
@@ -82,7 +82,17 @@
 - Verificación: capturas de barra en: lista completa sin música / con música / batería numérica / hold / sleep timer activo / disco girando / quickscreen. Ambos temas.
 
 ### H-03 · Caída a la raíz cruda de tagnavi con interfaz descompuesta
-- Estado: **diagnosticado** (orden de arreglo validado) · Fase: F2 · Detectado por el usuario ("tangvi")
+- Estado: **verificado-sim** (F2, 2026-08-07) · Fase: F2 · Detectado por el usuario ("tangvi")
+- Reproducido antes del arreglo durante F1: `F1-A06-hold-conmusica-claro-DESPUES.png` (primer intento) muestra la lista cruda a ancho completo bajo una barra partida titulada "Música".
+- Los tres pasos aplicados y verificados:
+  - (d) `tagnavi.config` → título "Biblioteca". Deja de colisionar con `LANG_MUSIC_LIBRARY`.
+  - (b) `tagtree_has_pending_entry()` nuevo (peek sin consumir) + `browser()` arranca de cero (`dirlevel=0 selected_item=0 currtable=0`) cuando hay entrada pendiente, y **consume la pendiente también cuando la base de datos no es usable**, que era la fuga que la disparaba en la apertura siguiente.
+  - (a) `tree.c`: tras `tagtree_exit`, si el árbol queda en `dirlevel==0` se sale con `GO_TO_ROOT`. La raíz del árbol ya no se muestra nunca; su lugar lo ocupa el submenú Música.
+  - D1: `db_recent_item` (índice 5) y `db_history_item` (6) añadidos a `music_submenu`, con `Icon_Queued` y `Icon_A26_Clock` — los mismos que `tagtree_get_icon` daba a esas destinaciones, y sin repetir icono entre hermanos.
+- Verificaciones: V1 `F2-V1-paso2-vuelta-claro.png` / `-oscuro` (salir de Canciones aterriza en el submenú partido) · V2 `F2-V2-artistas-claro.png` (tras pasar por el WPS, Artistas abre ARTISTAS, no Canciones) · V3 `F2-V3-paso1-claro.png` · V5 `F2-V5-paso4-vuelta-claro.png` (cancelar el teclado vuelve al submenú) · regresión de profundidad `F2-reg-profundidad-2.png` (desde un álbum se sube nivel a nivel, el paso (a) sólo actúa en el nivel 0).
+- V4 (raíz forzada por `RELOAD_TAGTREE` durante una reconstrucción) → **razonado-no-observado**: el paso (a) hace que cualquier aterrizaje en nivel 0 salga a la raíz del menú, así que el síntoma no puede manifestarse, pero la carrera concreta no se ha provocado en el simulador.
+- Traducciones corregidas de paso: "Añadidas Recientemente" → "Agregado recientemente" y "Historial de Reproducción" → "Historial" (en español sólo se capitaliza la primera palabra; además "Historial" cabe en la fila de 160 px de la vista partida).
+- Riesgo residual sin cambios: un `tagnavi_user.config` en el aparato sustituiría al de fábrica y anularía (d). Los pasos (a) y (b) seguirían protegiendo.
 - Causa raíz: la raíz de tagnavi se titula "Música" (`apps/tagnavi.config:100`) = `LANG_MUSIC_LIBRARY` español (`español.lang:16957`); `%?LM` decide la vista dividida por strcmp del título (`skin_tokens.c:1141-1150`); el SBS parte la pantalla pero `root_menu_pane_id_for_list()` (`root_menu.c:1019-1026`) no reconoce la lista del árbol → mitad derecha con píxeles rancios. **Sólo se manifiesta en español.** Nota: probablemente es el mismo fenómeno del viejo pendiente "pantalla Biblioteca redundante".
 - Caminos: A1 atrás desde Canciones/etc SIEMPRE para en la raíz (`tree.c:1070-1081`); A2 `last_db_dirlevel` restaurado + `a26_pending_entry` armado (`root_menu.c:426-439`, `tree.c:957`, fuga extra en `root_menu.c:424-425`); A3 salida WPS-BD standalone (aceptada, D3); A4 `RELOAD_TAGTREE` fuerza raíz (`tagtree.c:2094-2107`, no determinista); A5 cancelar teclado en Buscar (coherente per se; su problema es el A1 posterior).
 - Arreglo en ORDEN (cada paso deja el árbol mejor):
@@ -144,6 +154,20 @@
 - Doble anti-patrón de DESIGN.md: cuadro de texto de sistema sobre la pantalla, y cromo de Rockbox a la vista. Debería ser una página de símbolo.
 - Captura: `F1-A10-plugin-coverflow-oscuro.png`. Se aborda en su fase.
 
+### H-10 · Títulos fijos de la barra convertidos en marquesina
+- Estado: **arreglado, verificado-sim** · Fase: F2 (hallazgo nuevo, hermano de H-08)
+- Síntoma: la barra mostraba `uscar por...` — el título "Buscar por..." a medio desplazar.
+- Causa raíz: `hdr_title` medía 94 px y lleva `%s`; cualquier título fijo que no quepa se convierte en marquesina en vez de encajar.
+- Arreglo: `hdr_title` a 108 px (10..118, justo hasta el reloj). El `%s` **se conserva** a propósito: en el tercer nivel el título es un nombre de álbum o artista de longitud arbitraria y ahí desplazar es la única salida.
+- Verificado: `F2-H10-buscarpor-claro-zoom.png`.
+- Límite conocido (decisión: no tocar): "Agregado recientemente" sigue desplazándose porque son 22 caracteres — ningún ancho razonable lo mete en una barra de 320 px. Si molesta, se acorta el texto en `español.lang`; se ha preferido no inventar un nombre nuevo. Captura: `F2-C08-agregado-claro.png`.
+
+### H-11 · Entradas del árbol con corchetes: cromo de Rockbox a la vista
+- Estado: **detectado** · Fase: F4 (zona C)
+- Las vistas de la base de datos muestran `[Todas las pistas]`, `[Aleatorio]`, `[Por álbum]`. Los corchetes son notación de Rockbox para "entrada especial"; DESIGN.md los prohíbe explícitamente (nombres crudos / jerga).
+- Capturas: `F2-reg-profundidad-1.png`, `F2-C08-agregado-claro.png`.
+- Además, en el submenú Historial hay una mayúscula indebida: "Nuevas Favoritas" → "Nuevas favoritas" (`F2-C09-historial-claro.png`).
+
 ---
 
 ## Inventario de pantallas por zona
@@ -194,5 +218,6 @@ Observación menor (no es hallazgo): en esta sesión `build-sim.sh --install-onl
 | Fecha | Fase | Hecho | Quedó a medias | Próxima acción |
 |---|---|---|---|---|
 | 2026-08-07 | plan | Plan maestro + este tracker creados (Fable) | — | Lanzar F0 con Opus 5 |
+| 2026-08-07 | F2 | H-03 cerrado con los tres pasos (d/b/a) + D1; H-10 nuevo arreglado; H-11 nuevo anotado para F4; traducciones de Agregado/Historial corregidas | V4 razonado-no-observado | F3: H-04 (B1-B5) + zona B |
 | 2026-08-07 | F1 | H-01 y H-02 arreglados y verificados en ambos temas; H-08 nuevo (título del quickscreen) arreglado; H-09 nuevo anotado; zona A barrida; helpers de tema/ajustes y de zoom versionados | A09 (busy) razonado-no-observado | F2: H-03 en orden d→b→a |
 | 2026-08-07 | F0 | Línea base cerrada: ambos targets, auditor verde, capturas raíz claro/oscuro, arnés probado; helpers `sim_shot.sh` y `sim_theme.sh` versionados | — | F1: H-01 + H-02 + barrido zona A |

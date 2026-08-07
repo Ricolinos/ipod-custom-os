@@ -135,7 +135,7 @@ CLAIM_CONTRACTS = {
             ("%?if(%bl, =, 100)<100%%|%bl%%>", "battery percentage must not contain a space before '%'"),
             ("%Vl(lock,216,4,9,12,-)", "lock icon must live in the right-side status cluster"),
             ("%Vl(lock_split,121,4,9,12,-)", "split bars need their own lock slot"),
-            ("%Vl(hdr_title,10,0,94,20,3)", "full-screen header title must stop short of the clock viewport"),
+            ("%Vl(hdr_title,10,0,108,20,3)", "full-screen header title needs 108px so fixed titles do not scroll (H-10)"),
             ("%Vl(hdr_title_split,10,0,64,20,3)", "split header title is left aligned in the left column"),
             ("%s%al%?Lo<iPod|%Lt>", "root header must read iPod through a dynamic tag, never a static literal"),
             ("%Vl(hdr_clock,120,2,80,18,8)", "full-width clock must sit on the title baseline (y=2 for slot 8)"),

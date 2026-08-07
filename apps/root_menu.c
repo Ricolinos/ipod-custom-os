@@ -422,10 +422,30 @@ static int browser(void* param)
                 }
             }
             if (!tagcache_is_usable())
+            {
+                /* Sin base de datos no hay navegación que hacer, pero la
+                 * entrada pendiente hay que consumirla igual: si se queda
+                 * armada, se dispara sola en la siguiente apertura del
+                 * árbol y abre una vista que nadie pidió (H-03, A2). */
+                tagtree_take_pending_entry();
                 return GO_TO_PREVIOUS;
+            }
             filter = SHOW_ID3DB;
             last_ft_dirlevel = tc->dirlevel;
-            if (last_screen == GO_TO_WPS &&
+            if (tagtree_has_pending_entry())
+            {
+                /* El submenú Música pide entrar en una vista concreta por
+                 * índice, y ese índice es relativo a la RAÍZ del árbol.
+                 * Restaurar aquí el dirlevel de la última visita dejaba la
+                 * auto-entrada apuntando a otra lista —se pedía Artistas y
+                 * se abría Canciones—, así que se arranca de cero.
+                 * currtable=0 es lo que hace que tagtree_load vuelva a
+                 * cargar TABLE_ROOT. */
+                tc->dirlevel = 0;
+                tc->selected_item = 0;
+                tc->currtable = 0;
+            }
+            else if (last_screen == GO_TO_WPS &&
                 global_status.playback_context == PLAYBACK_CONTEXT_DATABASE)
             {
                 tc->dirlevel = global_status.playback_context_dirlevel;
@@ -954,9 +974,21 @@ MENUITEM_FUNCTION_W_PARAM(db_genres_item, MENU_FUNC_CHECK_RETVAL,
 MENUITEM_FUNCTION_W_PARAM(db_search_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_SEARCH), db_view_fn, (void *)4,
                   NULL, Icon_Preset);
+/* Índices 5 y 6: las dos últimas entradas de la raíz de tagnavi.  Estaban
+ * definidas en tagnavi.config pero no había forma de llegar a ellas sin
+ * aflorar esa raíz cruda, que es justo lo que H-03 elimina.  Los símbolos
+ * son los mismos que tagtree_get_icon da a esas destinaciones, y ninguno se
+ * repite entre los hermanos de este submenú. */
+MENUITEM_FUNCTION_W_PARAM(db_recent_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_RECENTLY_ADDED), db_view_fn, (void *)5,
+                  NULL, Icon_Queued);
+MENUITEM_FUNCTION_W_PARAM(db_history_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_PLAYBACK_HISTORY), db_view_fn, (void *)6,
+                  NULL, Icon_A26_Clock);
 MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_MusicApp,
           &db_songs_item, &pictureflow_item, &playlists, &db_artists_item,
-          &db_albums_item, &db_genres_item, &db_search_item, &music_library);
+          &db_albums_item, &db_genres_item, &db_recent_item, &db_history_item,
+          &db_search_item, &music_library);
 #else
 MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_MusicApp,
           &music_library, &playlists);

@@ -125,7 +125,12 @@
 # classed as static, drawn only on a full refresh and never restored after
 # anything else repaints the bar - that is why "iPod" used to disappear.
 # Font slot 3 RB12 height = 20px; VP height must be >= 20 to avoid clipping.
-%Vl(hdr_title,10,0,94,20,3)
+# 108 px (10..118, justo hasta el reloj) y no 94: con 94, "Buscar por..." no
+# cabía y el %s lo convertía en marquesina — la barra mostraba "uscar por...".
+# El %s se conserva porque en el tercer nivel el título es un nombre de
+# álbum o de artista, de longitud arbitraria, y ahí desplazar es la única
+# salida; lo que se arregla es que los títulos FIJOS de la interfaz quepan.
+%Vl(hdr_title,10,0,108,20,3)
 %Vf(FFFFFF)
 %Vb(1C1C1E)
 %s%al%?Lo<iPod|%?cs<%Lt|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>>

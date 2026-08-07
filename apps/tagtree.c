@@ -2137,6 +2137,15 @@ int tagtree_take_pending_entry(void)
     return v;
 }
 
+/* Mirar sin consumir.  browser() necesita saber que va a auto-entrar ANTES
+ * de decidir desde dónde arranca el árbol: si restaura el dirlevel de la
+ * última visita, la auto-entrada se aplica sobre la lista equivocada y se
+ * abre Canciones cuando se pidió Artistas (camino A2 de H-03). */
+bool tagtree_has_pending_entry(void)
+{
+    return a26_pending_entry >= 0;
+}
+
 int tagtree_enter(struct tree_context* c, bool is_visible)
 {
     logf( "%s", __func__);
