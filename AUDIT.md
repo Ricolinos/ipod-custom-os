@@ -1,6 +1,6 @@
 # AUDIT — Auditoría integral de la capa Apple2026
 
-> Estado global: **F0-F3 cerradas · F4 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
+> Estado global: **F0-F4 cerradas · F5 en curso** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
 > Ejecuta: Opus 5. Modo por defecto: una fase por sesión. **Modo nocturno
 > (autorizado por el usuario el 2026-08-07): si el prompt lo pide, encadenar
 > F0→F9 en automático**, cerrando cada fase completa (casillas, hallazgos,
@@ -34,8 +34,8 @@
 | F1 | Barra de estado: H-01 + H-02 + barrido zona A | **cerrada** |
 | F2 | Clúster tagnavi: H-03 (orden d→b→a) + Agregado/Historial a Música | **cerrada** |
 | F3 | Cuadros blancos: H-04 (B1-B5) + barrido zona B | **cerrada** |
-| F4 | Barrido zona C (navegadores) + H-05 (ajustes Cover Flow) | en curso |
-| F5 | Barrido zona D (Reproduciendo + modos) + vigilar H-07 | pendiente |
+| F4 | Barrido zona C (navegadores) + H-05 (ajustes Cover Flow) | **cerrada** (H-05.4 pendiente) |
+| F5 | Barrido zona D (Reproduciendo + modos) + vigilar H-07 | en curso |
 | F6 | Barrido zona E (Configuración) | pendiente |
 | F7 | Barrido zonas F+G (plugins + estados del aparato) | pendiente |
 | F8 | Transiciones entre pantallas | pendiente |
@@ -129,14 +129,22 @@
 - Captura: `F3-tmp-apps.png`.
 
 ### H-05 · Ajustes de Cover Flow: filas mentirosas, flips divergentes, iconos faltantes
-- Estado: **diagnosticado** · Fase: F4 · Detectado por el usuario ("Separación 32px→Sí/No")
-- Causas (en `apps/plugins/pictureflow/pictureflow.c`; NO hay off-by-one — es deriva semántica del commit heredado `8990d52c31` que renombró sólo el inglés):
-  1. "Separación" (Pantalla fila 4): muestra `slide_spacing` " px" (~4023) — ajuste MUERTO (el render usa `auto_slide_spacing` ~3310; 32=DISPLAY_WIDTH/4) — pero edita `set_bool parallel_slides` (~4097). Inglés ya es "Parallel Slides" (`english.lang:14567`); español obsoleto (`español.lang:11689`). Arreglo: español → "Carátulas paralelas", decorar como TOGGLE (no value), case en `pf_display_flip`, purgar la decoración muerta.
-  2. "Número de carátulas" (fila 2): muestra `num_slides` (~4021) pero edita `slide_tuck` 0..64 (~4084). Inglés "Slide Tuck" (`english.lang:14595`); español obsoleto (`español.lang:11563`). Arreglo: retraducir ("Solape de carátulas"), mostrar `slide_tuck`, icono acorde.
-  3. Flip ≠ select: "Redimensionar" flip (~4036) invierte sin reconstruir caché ni guardar (select ~4103 sí); "Barra de estado" flip (~4038) sin `configfile_save` ni re-init (~4120). Arreglo: esas filas devuelven false en el flip (camino del select) o delegan en él.
-  4. Iconos faltantes: menú contextual de pista (~5085, 3 filas, sin `apple2026_menu_rows`); "Control de reproducción" (`apps/plugins/lib/playback_control.c:89-109`, 7 filas Icon_NOICON); pantallas de opciones con `Icon_Questionmark` (`option_select.c:518`).
-- Mecanismo de referencia: `apple2026_menu_rows` en `apps/menu.c:195-361,643,938-960`; dibujo del valor en `apps/gui/bitmap/list.c:806-817` (toggle≥0 suprime el valor).
-- Verificación: recorrer los 3 menús del plugin fila a fila con capturas; alternar cada toggle rápido y comprobar persistencia tras salir/entrar del plugin (el de Redimensionar debe reconstruir caché).
+- Estado: **puntos 1-3 arreglados y verificados-sim; punto 4 (iconos) PENDIENTE** · Fase: F4 · Detectado por el usuario ("Separación 32px→Sí/No")
+- 1 y 2 arreglados: la fila "Separación" pasa a **"Carátulas paralelas"** y se decora como interruptor (`out->toggle = parallel_slides`), que es lo que el select editaba de verdad; la fila "Número de carátulas" pasa a **"Solape de carátulas"** y muestra `slide_tuck`, que es el ajuste que se edita. Se retira la decoración de `slide_spacing`, que ningún render lee (el dibujo usa `auto_slide_spacing`).
+- 3 arreglado: `PF_D_RESIZE` y `PF_D_STATUSBAR` salen de `pf_display_flip` (devuelve false → delega en el select). El camino del select hace mucho más que invertir el booleano —confirmar, borrar `EMPTY_SLIDE`, reconstruir caché, guardar el config, re-iniciar—, así que el flip dejaba el ajuste cambiado en memoria, sin guardar y sin efecto hasta la siguiente entrada. `PF_D_SPACING` entra al flip, que ahora sí tiene sentido porque es un interruptor.
+- Verificado: `F4-H05-pantalla-claro.png` y `F4-H05-pantalla-oscuro.png` — "Solape de carátulas 32 px" y "Carátulas paralelas" con interruptor.
+- **Punto 4 (iconos que faltan) queda sin hacer**: menú contextual de pista (3 filas), `playback_control.c` (7 filas `Icon_NOICON`) y las pantallas de `option_select.c` con `Icon_Questionmark`. Es trabajo de iconografía que exige ampliar las dos tiras (proceso de cuatro sitios a la vez de CLAUDE.md) y no cabía en esta fase.
+
+### H-13 · Mayúsculas a la inglesa en el español de los menús
+- Estado: **detectado** · Fase: F6 (revisión de textos)
+- En español sólo se capitaliza la primera palabra, pero hay menús enteros con mayúscula en cada una: "Mostrar Pistas Mientras Navega", "Ir al Último Álbum", "Ir a Pantalla de Reproducción", "Control de Reproducción", "Reescalar Carátulas", "Nuevas Favoritas". También falta una tilde: "Mostrar album y a…" → "álbum".
+- Es el mismo criterio que ya obligó a corregir "Añadidas Recientemente" en F2. Conviene un barrido completo de `español.lang`, no parche a parche.
+- Capturas: `F4-F02-cf-menu-claro.png`, `F4-H05-pantalla-claro.png`, `F2-C09-historial-claro.png`.
+
+### H-14 · Etiquetas de ajuste que no caben junto a su valor
+- Estado: **detectado** · Fase: F6 (zona E, punto E10)
+- En Configuración de Cover Flow: "Mostrar título …" con el valor "Mostrar album y a…" recortado, "Integración en …" con "A través de la list…". La etiqueta se acorta con puntos suspensivos Y el valor también, así que no se lee ninguno de los dos.
+- Captura: `F4-tmp-cfajustes.png`.
 
 ### H-07 · [VIGILAR] Vista dividida perdida tras ciclar modos con SELECT en el reproductor
 - Estado: **detectado, sin reproducir** · Fase: F5 (y toda captura de cualquier fase)
@@ -221,6 +229,7 @@ Observación menor (no es hallazgo): en esta sesión `build-sim.sh --install-onl
 | Fecha | Fase | Hecho | Quedó a medias | Próxima acción |
 |---|---|---|---|---|
 | 2026-08-07 | plan | Plan maestro + este tracker creados (Fable) | — | Lanzar F0 con Opus 5 |
+| 2026-08-07 | F4 | H-05 puntos 1-3 arreglados y verificados en ambos temas; H-13 y H-14 nuevos; zona C cubierta por las capturas de F2 | H-05.4 (iconos) sin hacer: exige ampliar las tiras | F5: zona D + H-07 |
 | 2026-08-07 | F3 | H-04 B1/B2/B4/B5 con indicador; B3 dejado a propósito (evitaría una ventana pero crearía un parpadeo); H-06 cerrado como diseño intencional con evidencia; H-12 nuevo; tiles del raíz barridos | las ventanas en sí: razonado-no-observado | F4: zona C + H-05 |
 | 2026-08-07 | F2 | H-03 cerrado con los tres pasos (d/b/a) + D1; H-10 nuevo arreglado; H-11 nuevo anotado para F4; traducciones de Agregado/Historial corregidas | V4 razonado-no-observado | F3: H-04 (B1-B5) + zona B |
 | 2026-08-07 | F1 | H-01 y H-02 arreglados y verificados en ambos temas; H-08 nuevo (título del quickscreen) arreglado; H-09 nuevo anotado; zona A barrida; helpers de tema/ajustes y de zoom versionados | A09 (busy) razonado-no-observado | F2: H-03 en orden d→b→a |

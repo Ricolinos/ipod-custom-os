@@ -11567,10 +11567,10 @@
     *: "Number of slides"
   </source>
   <dest>
-    *: "Número de carátulas"
+    *: "Solape de carátulas"
   </dest>
   <voice>
-    *: "Número de carátulas"
+    *: "Solape de carátulas"
   </voice>
 </phrase>
 <phrase>
@@ -11693,10 +11693,10 @@
     *: "Spacing"
   </source>
   <dest>
-    *: "Separación"
+    *: "Carátulas paralelas"
   </dest>
   <voice>
-    *: "Separación"
+    *: "Carátulas paralelas"
   </voice>
 </phrase>
 <phrase>

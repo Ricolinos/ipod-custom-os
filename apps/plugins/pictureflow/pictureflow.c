@@ -4018,9 +4018,17 @@ static void pf_display_row(int row, struct a26_menu_row *out)
         case PF_D_STATUSBAR:  out->toggle = pf_cfg.show_statusbar; break;
         case PF_D_TEXTFADE:   out->toggle = pf_cfg.text_crossfade; break;
         case PF_D_MARGIN:     pf_int(out, pf_cfg.center_margin, " px"); break;
-        case PF_D_SLIDES:     pf_int(out, pf_cfg.num_slides, ""); break;
+        /* H-05.2: la fila enseñaba num_slides mientras el select editaba
+         * slide_tuck.  No es un off-by-one: el commit heredado 8990d52c31
+         * cambió el significado del ajuste y sólo retocó el inglés. */
+        case PF_D_SLIDES:     pf_int(out, pf_cfg.slide_tuck, " px"); break;
         case PF_D_ZOOM:       pf_int(out, pf_cfg.zoom, " %"); break;
-        case PF_D_SPACING:    pf_int(out, pf_cfg.slide_spacing, " px"); break;
+        /* H-05.1: aquí se pintaba slide_spacing seguido de " px" —un ajuste
+         * que ya no lee nadie, porque el render usa auto_slide_spacing—
+         * mientras el select conmutaba parallel_slides.  La fila prometía
+         * un número y devolvía un Sí/No.  Es un interruptor: se decora como
+         * tal, y con toggle >= 0 la lista suprime el valor. */
+        case PF_D_SPACING:    out->toggle = pf_cfg.parallel_slides; break;
         case PF_D_SCROLL:     pf_int(out, pf_cfg.scroll_speed, " %"); break;
         case PF_D_TRANSITION: pf_int(out, pf_cfg.transition_speed, " %"); break;
     }
@@ -4033,12 +4041,16 @@ static bool pf_display_flip(int row)
         case PF_D_FPS:       pf_cfg.show_fps = !pf_cfg.show_fps;
                              reset_track_list();
                              return true;
-        case PF_D_RESIZE:    pf_cfg.resize = !pf_cfg.resize;
-                             return true;
-        case PF_D_STATUSBAR: pf_cfg.show_statusbar = !pf_cfg.show_statusbar;
+        case PF_D_SPACING:   pf_cfg.parallel_slides = !pf_cfg.parallel_slides;
                              return true;
         case PF_D_TEXTFADE:  pf_cfg.text_crossfade = !pf_cfg.text_crossfade;
                              return true;
+        /* H-05.3: PF_D_RESIZE y PF_D_STATUSBAR NO se conmutan aquí.  El
+         * camino del select hace bastante más que invertir el booleano
+         * —confirmar, borrar EMPTY_SLIDE, reconstruir la caché, guardar el
+         * config y re-iniciar el plugin—, así que un flip rápido dejaba el
+         * ajuste cambiado en memoria, sin guardar y sin efecto real hasta
+         * la siguiente entrada.  Devolver false delega en el select. */
     }
     return false;
 }
