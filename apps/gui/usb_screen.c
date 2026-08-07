@@ -42,9 +42,11 @@
 #include "playlist.h"
 #include "misc.h"
 #include "icons.h"
-#ifdef ROCKPOD_APPLE2026_IPOD
+/* Sin condición: es esta cabecera la que define ROCKPOD_APPLE2026_IPOD, así
+ * que tras un #ifdef de esa macro no se incluía nunca y todo lo de la capa se
+ * compilaba fuera en silencio.  Ella misma se apaga en otros objetivos. */
 #include "apple2026_shell.h"
-#endif
+#include "splash.h"
 
 #include "bitmaps/usblogo.h"
 
@@ -228,43 +230,25 @@ static void usb_screens_draw(struct usb_screen_vps_t *usb_screen_vps_ar)
         screen->clear_viewport();
         screen->backlight_on();
 
-        screen->set_viewport(logo);
-        screen->bmp(logos[i], 0, 0);
+#if ROCKPOD_APPLE2026_IPOD
+        /* La misma página que el apagado o la base de datos: símbolo
+         * centrado y el estado debajo.  El logotipo de serie sobre un panel
+         * vacío no se parecía a ninguna otra pantalla del aparato. */
+        if (i == SCREEN_MAIN && screen->depth >= 16
+            && apple2026_theme_selected()
+            && apple2026_symbol_page(screen, A26_ASSET("a26_usb.bmp"),
+                                     str(LANG_A26_MEDIA_MODE), 1))
+        {
+            /* la página ya se ha pintado entera */
+        }
+        else
+#endif
+        {
+            screen->set_viewport(logo);
+            screen->bmp(logos[i], 0, 0);
+        }
         if (i == SCREEN_MAIN)
         {
-#if ROCKPOD_APPLE2026_IPOD
-            /* Apple2026: the stock screen is a bare logo over an empty
-             * panel, with two English strings under it.  Dressed like the
-             * rest of the shell it is just the status strip —clock and the
-             * charging battery, which is what the device is doing— plus a
-             * single line naming the state. */
-            if (screen->depth >= 16)
-            {
-                struct viewport label_vp = *parent;
-                int char_h = font_get(logo->font)->height;
-
-                /* La barra superior ya la pinta el SBS del tema en esta
-                 * pantalla, con su reloj y su batería; aquí sólo falta
-                 * nombrar el estado. */
-                int tw = 0, th = 0;
-
-                label_vp = *parent;
-                label_vp.y = logo->y + logo->height + 14;
-                label_vp.height = char_h + 4;
-                screen->set_viewport(&label_vp);
-                screen->setfont(FONT_UI);
-                screen->getstringsize((const unsigned char *)
-                                      str(LANG_A26_MEDIA_MODE), &tw, &th);
-                screen->set_drawmode(DRMODE_FG);
-                screen->set_foreground(SCREEN_COLOR_TO_NATIVE(screen,
-                                            A26_TEXT_SECONDARY));
-                screen->putsxy((label_vp.width - tw) / 2, 0,
-                               (const unsigned char *)
-                               str(LANG_A26_MEDIA_MODE));
-                screen->set_drawmode(DRMODE_SOLID);
-                screen->set_viewport(parent);
-            }
-#endif
 #ifdef USB_ENABLE_HID
             if (usb_hid)
             {
