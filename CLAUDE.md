@@ -52,7 +52,14 @@ sube y baja entre dos sondeos y **es invisible**. Hay que **mantener la tecla**
 instantánea porque no pasan por el sondeo.
 
 Mapa (códigos de tecla de macOS): rueda arriba `126`, abajo `125`,
-izquierda `123`, derecha `124`, SELECT `36`, MENU `53`, PLAY `49`, volcado `96`.
+izquierda `123`, derecha `124`, SELECT `36`, MENU `53`, PLAY `49`, volcado `96`,
+**USB `32`** (la `u`).
+
+El USB **conmuta**: una pulsación conecta, la siguiente desconecta, y el
+simulador arranca siempre desconectado. No pasa por el sondeo (se atiende al
+soltar la tecla), pero con 60 ms no entra: usar `32:200` y esperar ~2 s a que
+salga la pantalla. Confirmarlo en `build-sim/sim.log`: `All threads have
+acknowledged the connect`.
 
 **Arnés versionado en `tools/`:**
 - `swift tools/apple2026_sim_keys.swift 125:30 36:150` — secuencia de teclas
@@ -61,6 +68,15 @@ izquierda `123`, derecha `124`, SELECT `36`, MENU `53`, PLAY `49`, volcado `96`.
   cada 50 ms. **Los CGEvents sintéticos NO auto-repiten**: mantener una tecla
   produce UN solo evento; para emular la rueda girando (probar salto por
   letras, aceleración) hay que usar la ráfaga.
+- `python3 tools/apple2026_sim_covers.py [n]` — n álbumes con `cover.bmp` de
+  288×288 (= `COVER_SIZE`, así no hay reescalado) en `simdisk/Music/`. **Sin
+  carátulas el panel del menú raíz no tiene pase que animar**: la biblioteca
+  sintética no trae ninguna. El dibujo es de frecuencia alta a propósito
+  (rejilla y diagonales de 1 px) para juzgar filtros de resampleo; para juzgar
+  nitidez "de verdad" hace falta además una carátula fotográfica.
+  Ojo: la deriva del panel dura **18,75 s** y luego se queda clavada, y en el
+  simulador la carátula casi no rota porque `storage_disk_is_active()` nunca da
+  true. Capturar la deriva **dentro de los primeros 18 s tras reiniciar**.
 - `python3 tools/apple2026_sim_library.py` — biblioteca sintética de 104 mp3
   (4 títulos por letra A-Z) si el simdisk no trae música. Tras crearla:
   borrar `simdisk/.rockbox/database_*.tcd`, iniciar la base desde Canciones

@@ -362,6 +362,19 @@ con `diskutil info`, respaldar `.rockbox/config.cfg`, descomprimir encima,
 - Arreglo propuesto para B (**no ejecutado**): en `ly_load()`, imitar a `lrcplayer`: `.lrc8` → UTF-8; BOM UTF-8/UTF-16 → decodificar; resto → `iso_decode` con el codepage por defecto. Es un cambio contenido a una función y sin efecto sobre archivos ya UTF-8.
 - Nota de paso (menor, no es H-22): en Carpetas los `.lrc` salen listados con el icono de **"?" (tipo desconocido)** junto al mp3 — dos filas por canción. Ver `T1-08-sel-latin1.png`.
 
+### H-23 · Pantalla USB (G04): el rótulo puede salir en blanco en el aparato — glifos sin precargar
+- Estado: **arreglado, razonado-no-observado** · el resto de G04 **verificado-sim** (2026-08-07)
+- La pantalla en sí está **bien** en los dos temas: página de símbolo canónica (cable + "Modo multimedia" en tinta secundaria), centrada, sin parpadeo (`blinks=1`), con la barra de estado repintada sin título por `toggle_theme` al entrar. Capturas: `USB-05-claro-final.png`, `USB-04-oscuro.png`, barra ampliada en `USB-04-barra-zoom.png`.
+- El precargado del símbolo **ya estaba bien colocado**: `apple2026_symbol_preload(A26_ASSET("a26_usb.bmp"))` corre antes de `usb_acknowledge()`, y la caché de `a26_sym_ensure` indexa por `strcmp` de la ruta, no por puntero.
+- **Lo que faltaba, y es el mismo tipo de trampa**: tres líneas después del precargado va `font_disable_all()`, que cierra el descriptor de cada `.fnt` y deja únicamente la caché de glifos en RAM (`font.c:654-673`). A partir de ahí, un glifo que no esté cacheado **no se puede dibujar: no hay de dónde leerlo**. Rockbox ya se cuida de esto con sus propias cadenas de USB (`usb_screen.c:201-206`, con el comentario "ensure the USB mode strings get cached"), pero ese bucle vive bajo `#ifdef USB_ENABLE_HID` **y** dentro de `if (usb_hid)`, así que con el modo teclado apagado —el caso normal— no corre, y "Modo multimedia" nunca pasaba por él.
+- Arreglo: `font_getstringsize(str(LANG_A26_MEDIA_MODE), NULL, NULL, FONT_UI)` junto al precargado del símbolo, antes de `font_disable_all()`. Medir la cadena la mete en la caché — es exactamente el truco del bucle de serie.
+- **Riesgo real pero no confirmado**: las letras de "Modo multimedia" son comunes y los `.gc` del tema precargan la caché al abrir la fuente, así que lo más probable es que ya estuvieran dentro. El arreglo cuesta una línea y quita la duda; el fallo, si se diera, sería un rótulo en blanco imposible de diagnosticar desde el simulador.
+- **Lo que el simulador estructuralmente NO puede decir de esta pantalla** (etiquetado, no dado por bueno):
+  - Nada de lo anterior: su disco nunca se cede y los `.fnt` siguen abiertos, así que el rótulo se ve igual con arreglo o sin él.
+  - El **indicador de carga** de la barra: en el simulador el estado de carga lo inventa `powermgmt-sim`, y de hecho aparece el rayo en pantallas sin USB y no aparece en la de USB. No se puede juzgar aquí.
+  - El **reloj se congela** durante el USB en el aparato: el bucle de dibujo sólo manda `GUI_EVENT_ACTIONUPDATE` en la rama `#ifdef SIMULATOR` (`usb_screen.c:337`); en la rama del aparato (`handle_usb_events()`) no. No se ha tocado — el iPod original no muestra reloj en esta pantalla, así que un reloj parado no es peor que ninguno, pero conviene saberlo antes de "arreglarlo".
+- **Pregunta abierta para el usuario, sin tocar**: el rótulo dice **"Modo multimedia"** (`LANG_A26_MEDIA_MODE`, "Media mode"), que describe el modo USB, no lo que el usuario necesita saber ahí — que está conectado y que no tire del cable. El iPod original decía "No desconectar". Cambiarlo es una decisión de producto, no un bug, y no se ha tomado por cuenta propia.
+
 ---
 
 ## Inventario de pantallas por zona
@@ -411,7 +424,7 @@ Observación menor (no es hallazgo): en esta sesión `build-sim.sh --install-onl
 
 - [x] E01 menú Configuración (claro) · [x] E05 Configuración de temas · [x] E04 Configuraciones de sonido · [ ] E02, E03, E06-E10 sin capturar
 - [x] F02 Cover Flow: arranque, vista principal, tracklist, menú, Configuración, Pantalla (claro y oscuro) · [x] F01 Extras · [x] navegador de complementos → H-12 · [ ] F03 Fotos
-- [x] G01 arranque (toda sesión empieza ahí) · [ ] G02-G10 sin provocar
+- [x] G01 arranque (toda sesión empieza ahí) · [x] G04 USB, claro y oscuro (2026-08-07 → H-23; la tecla `u` del simulador conmuta el USB) · [ ] G02, G03, G05-G10 sin provocar
 - [x] T01 raíz↔Música↔listas y [x] T02 lista↔WPS: verificadas de paso en F2 y F5 con capturas · [ ] T03-T08
 - [x] Paquete `build-hw-ipod6g/rockbox.zip` (11 MB) compilado y auditado, con los cuatro skins, `tagnavi.config` y `español.lng` al día · **NO instalado**: `/Volumes/IPOD` no existe, el iPod no estaba conectado.
 
@@ -430,6 +443,7 @@ la pantalla antes de encadenar el siguiente paso.
 
 | Fecha | Fase | Hecho | Quedó a medias | Próxima acción |
 |---|---|---|---|---|
+| 2026-08-07 | lote-3 (CON pantalla) | **H-16 ejecutado y verificado en simulador** (subpíxel 8.8 + tap por eje + repintado de sólo-panel; cadencia BAJA de HZ/6 a HZ/10; el "ablandamiento" medido y descartado sobre carátula real). **H-22 nuevo**: las etiquetas ID3 latin-1 y los `.lrc` latin-1 pierden los acentos — dos causas independientes, diagnosticadas y ancladas, **sin ejecutar** (el default es de upstream y toca a toda la biblioteca). **H-23 / G04**: pantalla USB auditada en ambos temas; precarga de glifos del rótulo antes de `font_disable_all()`. Ambos targets compilan. | H-22 espera decisión: el arreglo estrecho (respetar el 0x00 del frame) frente a devolver el default a iso8859-1, y si se convierte también el `.lrc`. La redacción de "Modo multimedia" es decisión de producto, no se ha tocado. | Decidir H-22 y ejecutarlo; seguir con las `[~]` de H-17/H-18/H-19/H-20/H-21 |
 | 2026-08-07 | lote-2 | **H-19, H-20, H-17 completos; H-18 y H-21 parciales; H-16 no ejecutado.** Seis commits empujados. Sin simulador en toda la sesión (el usuario estaba en la Mac): verificado por compilación de ambos targets, auditor en verde y, donde se pudo, inspeccionando los bitmaps generados. `build-hw-ipod6g/rockbox.zip` recién compilado y listo para instalar. | **Todo lo visual queda `[~]`** con su secuencia anotada en cada hallazgo. Tres cosas chocan con el mismo muro —`apple2026_symbol_page` no está en el API de plugins— y una (H-16) es un cambio de movimiento que no se puede aceptar sin verlo. | Próxima sesión CON pantalla: ejecutar H-16 y recorrer las cinco verificaciones `[~]` |
 | 2026-08-07 | lote-2 plan | H-16..H-21 registrados con causa raíz verificada (3 exploradores + diseño de deriva); decisión: Fotos sin pre-escalado (Fable) | ejecución | Opus: H-19→H-20→H-17→H-18→H-21→H-16, SIN simulador (usuario usa la Mac) |
 | 2026-08-07 | plan | Plan maestro + este tracker creados (Fable) | — | Lanzar F0 con Opus 5 |

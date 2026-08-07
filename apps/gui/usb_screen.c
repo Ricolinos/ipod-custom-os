@@ -318,6 +318,20 @@ void gui_usb_screen_run(bool early_usb, intptr_t seqnum)
      * en usb_screens_draw() fallaba siempre en el aparato (y en el
      * simulador nunca se notó, porque su disco no se cede). */
     apple2026_symbol_preload(A26_ASSET("a26_usb.bmp"));
+
+    /* Y lo mismo con los GLIFOS del rótulo.  `font_disable_all()`, tres
+     * líneas más abajo, cierra el descriptor de cada .fnt y deja sólo la
+     * caché en RAM: a partir de ahí un glifo que no esté cacheado no se
+     * puede dibujar, porque no hay de dónde leerlo.  Rockbox ya tiene este
+     * cuidado con sus cadenas de USB (`usb_screen_fix_viewports`), pero ese
+     * bucle vive bajo `USB_ENABLE_HID` y sólo corre con el modo teclado
+     * activo, así que "Modo multimedia" no pasaba por él.  Medir la cadena
+     * la mete en la caché, que es el mismo truco que usa el bucle de serie.
+     *
+     * En el simulador esto NO se puede comprobar: su disco nunca se cede y
+     * los .fnt siguen abiertos.  Igual que la precarga del símbolo de
+     * arriba, que fallaba siempre en el aparato y nunca aquí. */
+    font_getstringsize(str(LANG_A26_MEDIA_MODE), NULL, NULL, FONT_UI);
 #endif
 
     if(!early_usb)
