@@ -59,11 +59,19 @@ stage_repo_theme_payload_for_zip() {
     local tempdir="$1"
     local repowps="../wps"
 
-    mkdir -p "$tempdir/.rockbox/wps/Apple2026"
-    cp "$repowps/Apple2026.sbs" "$tempdir/.rockbox/wps/"
-    cp "$repowps/Apple2026.wps" "$tempdir/.rockbox/wps/"
-    cp "$repowps/Apple2026"/*.bmp "$tempdir/.rockbox/wps/Apple2026/"
-    echo "RockPod: staged Apple2026 theme payload for rockbox.zip."
+    # wpsbuild sólo empaqueta los bitmaps que el skin nombra; el resto los
+    # carga el código C y hay que ponerlos aquí.  Las dos variantes, o el tema
+    # oscuro sale en el dispositivo sin interruptores, sin teclado y sin
+    # paneles: los archivos no estarían.
+    local variant
+    for variant in Apple2026 Apple2026Dark; do
+        [ -f "$repowps/$variant.sbs" ] || continue
+        mkdir -p "$tempdir/.rockbox/wps/$variant"
+        cp "$repowps/$variant.sbs" "$tempdir/.rockbox/wps/"
+        cp "$repowps/$variant.wps" "$tempdir/.rockbox/wps/"
+        cp "$repowps/$variant"/*.bmp "$tempdir/.rockbox/wps/$variant/"
+        echo "RockPod: staged $variant theme payload for rockbox.zip."
+    done
 }
 
 prepare_core_generated_headers() {
@@ -260,9 +268,15 @@ ROCKPOD_THEME
     zip -q -u "$OLDPWD/rockbox.zip" ".rockbox/themes/Apple2026.cfg"
     zip -q -u "$OLDPWD/rockbox.zip" ".rockbox/.apple2026_version"
     zip -q -u -r "$OLDPWD/rockbox.zip" ".rockbox/fonts"
-    zip -q -u "$OLDPWD/rockbox.zip" ".rockbox/wps/Apple2026.sbs"
-    zip -q -u "$OLDPWD/rockbox.zip" ".rockbox/wps/Apple2026.wps"
-    zip -q -u -r "$OLDPWD/rockbox.zip" ".rockbox/wps/Apple2026"
+    # Las dos variantes: el paso de arriba las prepara, pero si aquí sólo se
+    # nombra la clara, la oscura se queda fuera del paquete y en el iPod le
+    # faltan los bitmaps que carga el código C.
+    for variant in Apple2026 Apple2026Dark; do
+        [ -f ".rockbox/wps/$variant.sbs" ] || continue
+        zip -q -u "$OLDPWD/rockbox.zip" ".rockbox/wps/$variant.sbs"
+        zip -q -u "$OLDPWD/rockbox.zip" ".rockbox/wps/$variant.wps"
+        zip -q -u -r "$OLDPWD/rockbox.zip" ".rockbox/wps/$variant"
+    done
     cd "$OLDPWD" || exit 1
     rm -rf "$TMPDIR_CFG"
     echo "RockPod: config.cfg injected."
