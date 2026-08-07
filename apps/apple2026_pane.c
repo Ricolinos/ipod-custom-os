@@ -521,8 +521,25 @@ static void pan_pick_diagonal(void)
 /* music_active is maintained by apple2026_pane_draw(): any list draw that
  * is not the music pane clears it, so ticks stop as soon as another list
  * takes the screen.  Screens without lists (WPS, plugins) never tick. */
+/* Con la pantalla dormida no hay nada que animar: sin esta puerta, el
+ * menú raíz (y cualquier lista con el mini-reproductor) seguía despertando
+ * la CPU 6-12 veces por segundo y redibujando entero con la luz apagada —
+ * el firmware original duerme profundo ahí, y de esa diferencia se va la
+ * pila.  Al volver la luz, la animación se reanuda con el primer redibujo
+ * (la pulsación que enciende la pantalla ya lo provoca). */
+static bool a26_pane_lcd_on(void)
+{
+#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
+    return lcd_active();
+#else
+    return true;
+#endif
+}
+
 bool apple2026_pane_animating(void)
 {
+    if (!a26_pane_lcd_on())
+        return false;
     if (!music_active)
         return false;
     if (music_state == MUSIC_FADING)
@@ -535,6 +552,8 @@ bool apple2026_pane_animating(void)
  * only moves ~4px/s, so HZ/8 wakeups are plenty (device battery). */
 int apple2026_pane_anim_timeout(void)
 {
+    if (!a26_pane_lcd_on())
+        return 0;
     if (np_visible)
         return (np_scroll_max[0] > 0 || np_scroll_max[1] > 0) ? HZ / 12 : 0;
     if (!music_active)
@@ -549,6 +568,12 @@ int apple2026_pane_anim_timeout(void)
 bool apple2026_pane_tick(void)
 {
     int back;
+
+    /* Pantalla dormida: ni la tarjeta de reproducción ni el pase avanzan.
+     * El tick llega igualmente con el timeout normal del menú (1 s); sin
+     * esta puerta seguiría redibujando cada segundo a oscuras. */
+    if (!a26_pane_lcd_on())
+        return false;
 
     /* now-playing card: one redraw per second (progress bar), plus one
      * when the track changes or when playback just stopped. */
