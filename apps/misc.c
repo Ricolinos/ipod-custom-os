@@ -238,8 +238,12 @@ bool show_search_progress(bool init, int display_count, int current, int total)
                 talk_id(LANG_PLAYLIST_SEARCH_MSG, true);
             }
             /* (voiced above) */
-            splashf(0, str(LANG_PLAYLIST_SEARCH_MSG),
-                    display_count, str(LANG_OFF_ABORT));
+            /* Sin total conocido: la pastilla indeterminada sobre la
+             * pantalla que ya está a la vista, no un cuadro de texto que
+             * tapa el menú. */
+            if (!apple2026_progress_page(&screens[SCREEN_MAIN], NULL, 0, 0))
+                splashf(0, str(LANG_PLAYLIST_SEARCH_MSG),
+                        display_count, str(LANG_OFF_ABORT));
         }
 
         if (action_userabort(TIMEOUT_NOBLOCK))

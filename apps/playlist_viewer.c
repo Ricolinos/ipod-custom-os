@@ -1263,8 +1263,12 @@ bool search_playlist(void)
                 talk_id(LANG_PLAYLIST_SEARCH_MSG, true);
             }
             /* (voiced above) */
-            splashf(0, str(LANG_PLAYLIST_SEARCH_MSG), found_indicies_count,
-                       str(LANG_OFF_ABORT));
+            /* Aquí sí se sabe el total: pastilla con progreso real en vez
+             * del cuadro de texto que tapa la lista. */
+            if (!apple2026_progress_page(&screens[SCREEN_MAIN], NULL,
+                                         i, playlist_count))
+                splashf(0, str(LANG_PLAYLIST_SEARCH_MSG),
+                        found_indicies_count, str(LANG_OFF_ABORT));
             last_found_count = found_indicies_count;
         }
 

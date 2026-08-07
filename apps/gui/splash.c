@@ -43,18 +43,15 @@
 #if ROCKPOD_APPLE2026_IPOD && !defined(BOOTLOADER)
 /* ---- Apple2026 loading screens ---------------------------------------
  * "Loading..." becomes a clean white page (the status bar stays) with a
- * centred iOS-style spinner; long jobs (database commit) get an Apple
- * Music-ish progress page: turning gear + label + percentage + bar. */
+ * centred iOS-style spinner; long jobs draw a slim floating bar over the
+ * bottom of whatever screen is already showing (see
+ * apple2026_progress_page). */
 #define A26_SPIN_PX      32
 #define A26_SPIN_FRAMES  12
-#define A26_GEAR_PX      26
-#define A26_GEAR_FRAMES  12
 #define A26_TOPBAR_H     20
 
 static fb_data a26_spin_px[A26_SPIN_PX * A26_SPIN_PX * A26_SPIN_FRAMES];
-static fb_data a26_gear_px[A26_GEAR_PX * A26_GEAR_PX * A26_GEAR_FRAMES];
 static int a26_spin_state;   /* 0 untried, 1 ok, -1 failed */
-static int a26_gear_state;
 
 static bool a26_load_strip(const char *name, fb_data *dst, size_t sz,
                            int px, int frames, int *state)
@@ -179,50 +176,80 @@ bool apple2026_power_page(struct screen *display, bool battery_dead)
             NULL, battery_dead ? 6 : 1);
 }
 
-/* Progress page: gear + label + percentage + Apple-style bar. */
+/* Barra de progreso flotante: una pastilla fina sobre el borde inferior de
+ * la pantalla que ya está dibujada.  Antes esto era una página completa con
+ * un engrane que tapaba el menú; ahora la carga convive con la pantalla
+ * anterior hasta que toque cambiar de vista.  Con total <= 0 (no se sabe
+ * cuánto queda) la pastilla corre sola de lado a lado. */
 bool apple2026_progress_page(struct screen *display, const char *text,
                              int current, int total)
 {
     struct viewport vp;
-    static int frame;
-    char pct[8];
-    int cy, bar_x, bar_w, bar_y, fill;
+    int bar_x, bar_w, bar_y, r, fill;
 
-    if (!a26_load_strip(A26_ASSET("gear.bmp"), a26_gear_px,
-                        sizeof(a26_gear_px), A26_GEAR_PX, A26_GEAR_FRAMES,
-                        &a26_gear_state))
-        return false;
+    (void)text;   /* sin texto: sólo la barra, sobre la pantalla previa */
 
-    a26_page_begin(display, &vp);
-    cy = vp.height / 2;
-    frame = (frame + 1) % A26_GEAR_FRAMES;
-    display->transparent_bitmap_part(a26_gear_px, 0, frame * A26_GEAR_PX,
-                                     STRIDE(display->screen_type, A26_GEAR_PX,
-                                            A26_GEAR_PX * A26_GEAR_FRAMES),
-                                     (vp.width - A26_GEAR_PX) / 2,
-                                     cy - 62, A26_GEAR_PX, A26_GEAR_PX);
-    a26_center_text(display, &vp, cy - 22, text);
+    if (!apple2026_theme_selected())
+        return false;   /* el llamador cae al splash de serie */
+
+    viewport_set_defaults(&vp, display->screen_type);
+    display->set_viewport(&vp);
 
     bar_w = vp.width - 80;
     bar_x = 40;
-    bar_y = cy + 10;
-    fill = (total > 0) ? (bar_w * current) / total : 0;
-    if (fill < 0)
-        fill = 0;
-    if (fill > bar_w)
-        fill = bar_w;
-    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_PROGRESS_TRACK));
-    display->fillrect(bar_x, bar_y, bar_w, 4);
-    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_PROGRESS_FILL));
-    display->fillrect(bar_x, bar_y, fill, 4);
-    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_SECONDARY));
+    bar_y = vp.height - 14;
+
     if (total > 0)
     {
-        snprintf(pct, sizeof(pct), "%d%%", (100 * current) / total);
-        a26_center_text(display, &vp, bar_y + 12, pct);
+        fill = (bar_w * current) / total;
+        if (fill < 0)
+            fill = 0;
+        if (fill > bar_w)
+            fill = bar_w;
     }
+    else
+    {
+        /* indeterminado: un segmento que recorre el carril en bucle */
+        int seg = bar_w / 4;
+        int pos = ((current_tick % (2 * HZ)) * (bar_w - seg)) / (2 * HZ);
+        fill = -1;                    /* señal: pintar segmento suelto */
+        bar_x += 0;
+        /* pinta el carril entero y luego el segmento */
+        for (r = 0; r < 4; r++)
+        {
+            int inset = (r == 0 || r == 3) ? 1 : 0;
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_PROGRESS_TRACK));
+            display->hline(bar_x + inset, bar_x + bar_w - 1 - inset,
+                           bar_y + r);
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_PROGRESS_FILL));
+            display->hline(bar_x + pos + inset, bar_x + pos + seg - 1 - inset,
+                           bar_y + r);
+        }
+    }
+
+    if (fill >= 0)
+    {
+        for (r = 0; r < 4; r++)
+        {
+            int inset = (r == 0 || r == 3) ? 1 : 0;
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_PROGRESS_TRACK));
+            display->hline(bar_x + inset, bar_x + bar_w - 1 - inset,
+                           bar_y + r);
+            if (fill > 2 * inset)
+            {
+                display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_PROGRESS_FILL));
+                display->hline(bar_x + inset, bar_x + fill - 1 - inset,
+                               bar_y + r);
+            }
+        }
+    }
+
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
-    display->update_viewport();
+    display->update_viewport_rect(bar_x, bar_y, bar_w, 4);
     display->set_viewport(NULL);
     return true;
 }
