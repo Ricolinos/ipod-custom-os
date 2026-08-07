@@ -27,6 +27,7 @@
 #endif
 #include "font.h"
 #include "viewport.h"
+#include "apple2026_shell.h"
 #include "screen_access.h"
 #include "settings.h"
 #include "misc.h"
@@ -197,7 +198,17 @@ void viewportmanager_theme_enable(enum screen_type screen, bool enable,
 {
     int top = ++theme_stack_top[screen];
     if (top >= VPSTACK_DEPTH-1)
+    {
+#if ROCKPOD_APPLE2026_IPOD
+        /* Apple2026: never take the device down for this.  An unbalanced
+         * enable is a UI bug, not a fatal condition: log it, pin the
+         * stack at the top entry and carry on. */
+        DEBUGF("A26 viewportmanager stack full (leak in a screen handler)\n");
+        theme_stack_top[screen] = top = VPSTACK_DEPTH - 2;
+#else
         panicf("Stack overflow... viewportmanager");
+#endif
+    }
     theme_stack[screen][top].enabled = enable;
     theme_stack[screen][top].vp = viewport;
     toggle_theme(screen, false);
@@ -222,6 +233,14 @@ static bool is_theme_enabled(enum screen_type screen)
 {
     int top = theme_stack_top[screen];
     return theme_stack[screen][top].enabled;
+}
+
+/* Con el tema desactivado no hay barra de estado dibujada, así que una
+ * página de pantalla completa no puede dejar sin tocar la franja 0..20:
+ * ahí sigue lo que hubiera antes.  Lo consulta apple2026 en splash.c. */
+bool viewportmanager_theme_is_enabled(enum screen_type screen)
+{
+    return is_theme_enabled(screen);
 }
 
 int viewport_get_nb_lines(const struct viewport *vp)

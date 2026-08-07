@@ -738,6 +738,24 @@ enum pf_states {
 
 static int pf_state;
 
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+/* La subida de frecuencia se lleva por estado propio: hay que llamar a
+ * cpu_boost() sólo en los cambios, porque el núcleo lleva una cuenta y
+ * desparejarla dejaría el reloj arriba —o abajo— para siempre. */
+static bool pf_boosted;
+static long pf_busy_tick;
+
+static void pf_boost(bool on)
+{
+    if (on == pf_boosted)
+        return;
+    pf_boosted = on;
+    rb->cpu_boost(on);
+}
+#else
+#define pf_boost(on) do { (void)(on); } while (0)
+#endif
+
 #if PF_PLAYBACK_CAPABLE
 static bool insert_whole_album;
 static bool old_shuffle = false;
@@ -801,7 +819,8 @@ static bool progress_cancel(int step, int count, char *msg)
     {
         if (rb->gui_syncyesno_run(&prompt, NULL, NULL) == YESNO_YES)
             return true;
-        rb->lcd_clear_display();
+        /* el diálogo tapó la página: se restaura título y fondo */
+        draw_splashscreen(NULL, 0);
     }
     else
         msg = NULL;
@@ -1806,7 +1825,7 @@ static int load_album_index(void){
     }
 
 failure:
-    rb->splash(HZ/2, "Failed to load index");
+    rb->splash(HZ/2, rb->str(LANG_A26_PF_NO_INDEX));
     if (fr >= 0)
         rb->close(fr);
 
@@ -2003,7 +2022,7 @@ static int id3_get_index(struct mp3entry *id3)
         }
 
     }
-    rb->splash(HZ/2, "Album Not Found!");
+    rb->splash(HZ/2, rb->str(LANG_A26_PF_NO_ALBUM));
     return pf_cfg.last_album;
 }
 
@@ -2275,54 +2294,115 @@ static void draw_splashscreen(unsigned char * buf_tmp, size_t buf_tmp_size)
 
 
 /**
-  Draw a simple progress bar
+  Barra de progreso del arranque: la misma pastilla flotante del resto de
+  la interfaz, sobre el borde inferior, con el rótulo de fase debajo del
+  título "Cover Flow" (antes se pintaba encima y lo tapaba).  Limitada a
+  20 fps y con volcado parcial del LCD: cada iteración del índice hacía
+  un lcd_update() de pantalla completa sin límite, y construir el índice
+  se iba en repintados.
  */
+#ifdef HAVE_LCD_COLOR
+/* Mezcla fondo->tinta sin el recorte de pf_color_mix (eso es para texto;
+ * el carril de la barra debe poder ser tenue). */
+static pix_t pf_bar_mix(int brightness)
+{
+    int bg_r = RGB_UNPACK_RED(pf_bg_color);
+    int bg_g = RGB_UNPACK_GREEN(pf_bg_color);
+    int bg_b = RGB_UNPACK_BLUE(pf_bg_color);
+    int fg_r = RGB_UNPACK_RED(pf_fg_color);
+    int fg_g = RGB_UNPACK_GREEN(pf_fg_color);
+    int fg_b = RGB_UNPACK_BLUE(pf_fg_color);
+    return LCD_RGBPACK(
+        bg_r + (fg_r - bg_r) * brightness / 255,
+        bg_g + (fg_g - bg_g) * brightness / 255,
+        bg_b + (fg_b - bg_b) * brightness / 255
+    );
+}
+#endif
+
 static void draw_progressbar(int step, int count, char *msg)
 {
-    static int txt_w, txt_h;
-    const int bar_height = 2;
-    int w = LCD_WIDTH - 40;
-    if (w > 240)
-        w = 240;
-    if (w < 80)
-        w = 80;
-    const int x = (LCD_WIDTH - w) / 2;
-    static int y;
+    static long next_draw_tick;
+    const int bar_w = LCD_WIDTH - 80;
+    const int bar_x = 40;
+    const int bar_y = LCD_HEIGHT - 14;
+    int r, fill;
+
+    /* Sin rótulo nuevo y sin llegar al final, 20 fps bastan. */
+    if (msg == NULL && step < count
+        && TIME_BEFORE(*rb->current_tick, next_draw_tick))
+    {
+        rb->yield();   /* el bucle del índice contaba con este yield */
+        return;
+    }
+    next_draw_tick = *rb->current_tick + HZ/20;
+
+#if LCD_DEPTH > 1
+#ifdef HAVE_LCD_COLOR
+    rb->lcd_set_background(pf_bg_color);
+#else
+    rb->lcd_set_background(N_BRIGHT(0));
+#endif
+#else
+    rb->lcd_set_drawmode(PICTUREFLOW_DRMODE);
+#endif
+
     if (msg != NULL)
     {
+        /* Rótulo de fase bajo el título, en tinta secundaria.  Se limpia
+         * la franja porque no todas las fases redibujan la pantalla. */
+        int tw, th, cw, ch;
+        rb->lcd_getstringsize(msg, &tw, &th);
+        rb->lcd_getstringsize("Cover Flow", &cw, &ch);
+        int label_y = (LCD_HEIGHT - ch) / 2 - 10 + ch + 6;
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
-        rb->lcd_set_background(pf_bg_color);
-        rb->lcd_set_foreground(pf_fg_color);
+        rb->lcd_set_foreground(pf_bg_color);
 #else
-        rb->lcd_set_background(N_BRIGHT(0));
-        rb->lcd_set_foreground(N_BRIGHT(255));
+        rb->lcd_set_foreground(N_BRIGHT(0));
 #endif
+#endif
+        rb->lcd_fillrect(0, label_y, LCD_WIDTH, th);
+#if LCD_DEPTH > 1
+#ifdef HAVE_LCD_COLOR
+        rb->lcd_set_foreground(pf_bar_mix(150));
 #else
-        rb->lcd_set_drawmode(PICTUREFLOW_DRMODE);
+        rb->lcd_set_foreground(N_BRIGHT(170));
 #endif
-        rb->lcd_getstringsize(msg, &txt_w, &txt_h);
-
-        y = (LCD_HEIGHT - txt_h) / 2;
-
-        rb->lcd_putsxy((LCD_WIDTH - txt_w) / 2, y, msg);
-        y += (txt_h + 8);
+#endif
+        rb->lcd_putsxy((LCD_WIDTH - tw) / 2, label_y, msg);
     }
+
+    fill = (count > 0) ? (bar_w * step) / count : 0;
+    if (fill < 0)
+        fill = 0;
+    if (fill > bar_w)
+        fill = bar_w;
+
+    for (r = 0; r < 4; r++)
+    {
+        int inset = (r == 0 || r == 3) ? 1 : 0;
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
-    /* Apple2026: rail matches WPS/shell progress track (E5E5EA); fill = tertiary */
-    rb->lcd_set_foreground(N_PIX(229, 229, 234));
+        rb->lcd_set_foreground(pf_bar_mix(45));
 #else
-    rb->lcd_set_foreground(N_BRIGHT(170));
+        rb->lcd_set_foreground(N_BRIGHT(170));
 #endif
 #endif
-    rb->lcd_fillrect(x, y, w, bar_height);
+        rb->lcd_hline(bar_x + inset, bar_x + bar_w - 1 - inset, bar_y + r);
+        if (fill > 2 * inset)
+        {
 #if LCD_DEPTH > 1
-    /* Apple2026: match shell tertiary progress fill (see A26_PROGRESS_FILL) */
-    rb->lcd_set_foreground(N_PIX(60, 60, 67));
+#ifdef HAVE_LCD_COLOR
+            rb->lcd_set_foreground(pf_bar_mix(200));
+#else
+            rb->lcd_set_foreground(N_BRIGHT(255));
 #endif
+#endif
+            rb->lcd_hline(bar_x + inset, bar_x + fill - 1 - inset, bar_y + r);
+        }
+    }
 
-    rb->lcd_fillrect(x, y, (count > 0) ? (step * w / count) : 0, bar_height);
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
     rb->lcd_set_foreground(pf_fg_color);
@@ -2330,7 +2410,10 @@ static void draw_progressbar(int step, int count, char *msg)
     rb->lcd_set_foreground(N_BRIGHT(255));
 #endif
 #endif
-    rb->lcd_update();
+    if (msg != NULL)
+        rb->lcd_update();
+    else
+        rb->lcd_update_rect(bar_x, bar_y, bar_w, 4);
     rb->yield();
 }
 
@@ -2364,19 +2447,10 @@ static unsigned int mfnv(char *str)
  *
  * NOTE: pfraw slides are stored TRANSPOSED (column-major, see
  * output_row_32_transposed): pixel (x, y) lives at data[x * height + y]. */
-static void pf_round_slide_corners(struct bitmap *bm)
+static void pf_round_corners_raw(pix_t *px, int w, int h, pix_t corner)
 {
     const int rad = 7;
-    pix_t *px = (pix_t *)bm->data;
-    int w = bm->width, h = bm->height, x, y;
-    pix_t corner;
-
-#ifdef HAVE_ALBUMART
-    pf_update_dynamic_colors();
-    corner = pf_bg_color;
-#else
-    corner = 0;
-#endif
+    int x, y;
 
     if (w < 2 * rad || h < 2 * rad)
         return;
@@ -2399,6 +2473,30 @@ static void pf_round_slide_corners(struct bitmap *bm)
                 px[x * h + y] = corner;
         }
     }
+}
+
+/* El color de la esquina es el del fondo actual, no el que hubiera cuando se
+ * construyó la caché: si no, al cambiar de tema quedaban del color viejo. */
+static pix_t pf_corner_color(void)
+{
+#ifdef HAVE_ALBUMART
+    /* Sólo se LEE el color; no se refresca aquí.  Esta función se llama al
+     * cargar cada diapositiva, y eso pasa en el hilo cargador:
+     * pf_update_dynamic_colors() escribe los globales que el hilo de dibujo
+     * lee en cada fotograma, y por dentro muta un estado compartido del
+     * núcleo.  Llamarlo desde los dos hilos es una carrera.  El hilo de
+     * dibujo ya lo refresca en cada vuelta, así que aquí siempre está al
+     * día. */
+    return pf_bg_color;
+#else
+    return 0;
+#endif
+}
+
+static void pf_round_slide_corners(struct bitmap *bm)
+{
+    pf_round_corners_raw((pix_t *)bm->data, bm->width, bm->height,
+                         pf_corner_color());
 }
 
 static bool save_pfraw(char* filename, struct bitmap *bm)
@@ -2465,7 +2563,7 @@ static bool incremental_albumart_cache(bool verbose)
                           aa_cache.buf_sz, format, &format_transposed);
     if (ret <= 0) {
         if (verbose) {
-            rb->splashf(HZ, "Album art is bad: %s", get_album_name(idx));
+            rb->splashf(HZ, rb->str(LANG_A26_PF_BAD_ART), get_album_name(idx));
         }
 
         goto aa_failure;
@@ -2893,6 +2991,9 @@ static int read_pfraw(char* filename, int prio)
 
     rb->read( fh, data , sizeof( pix_t ) * bm->width * bm->height );
     rb->close( fh );
+    /* La caché se escribió con el fondo de su día; se vuelven a recortar con
+     * el de ahora para que el redondeo no se vea al cambiar de tema. */
+    pf_round_corners_raw(data, bm->width, bm->height, pf_corner_color());
     return hid;
 }
 
@@ -3858,9 +3959,7 @@ static void cleanup(void)
     if (pf_tracks.borrowed > 0)
         free_borrowed_tracks();
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-    rb->cpu_boost(false);
-#endif
+    pf_boost(false);
     end_pf_thread();
 
     /* Turn on backlight timeout (revert to settings) */
@@ -3885,6 +3984,78 @@ static void adjust_album_display_for_setting(int old_val, int new_val)
         skip_animation_to_show_tracks();
 }
 
+#if ROCKPOD_APPLE2026_IPOD
+/* Los tres menús son listas de cadenas, donde el núcleo no tiene un ajuste
+ * del que deducir icono ni valor: los describe el propio plugin. */
+enum {
+    PF_D_FPS, PF_D_MARGIN, PF_D_SLIDES, PF_D_ZOOM, PF_D_SPACING,
+    PF_D_RESIZE, PF_D_STATUSBAR, PF_D_SCROLL, PF_D_TRANSITION, PF_D_TEXTFADE,
+};
+
+static char pf_val[16];
+
+static void pf_int(struct a26_menu_row *out, int v, const char *unit)
+{
+    rb->snprintf(pf_val, sizeof(pf_val), "%d%s", v, unit);
+    out->value = pf_val;
+    out->value_active = (v != 0);
+}
+
+static void pf_display_row(int row, struct a26_menu_row *out)
+{
+    static const int icons[] = {
+        Icon_S_PfFps, Icon_S_PfMargin, Icon_S_PfSlides, Icon_S_PfZoom,
+        Icon_S_PfSpacing, Icon_S_PfResize, Icon_S_PfStatusbar,
+        Icon_S_PfScrollSpd, Icon_S_PfTransSpd, Icon_S_PfTextFade,
+    };
+
+    if (row >= 0 && row < (int)(sizeof(icons) / sizeof(*icons)))
+        out->icon = icons[row];
+    switch (row)
+    {
+        case PF_D_FPS:        out->toggle = pf_cfg.show_fps; break;
+        case PF_D_RESIZE:     out->toggle = pf_cfg.resize; break;
+        case PF_D_STATUSBAR:  out->toggle = pf_cfg.show_statusbar; break;
+        case PF_D_TEXTFADE:   out->toggle = pf_cfg.text_crossfade; break;
+        case PF_D_MARGIN:     pf_int(out, pf_cfg.center_margin, " px"); break;
+        /* H-05.2: la fila enseñaba num_slides mientras el select editaba
+         * slide_tuck.  No es un off-by-one: el commit heredado 8990d52c31
+         * cambió el significado del ajuste y sólo retocó el inglés. */
+        case PF_D_SLIDES:     pf_int(out, pf_cfg.slide_tuck, " px"); break;
+        case PF_D_ZOOM:       pf_int(out, pf_cfg.zoom, " %"); break;
+        /* H-05.1: aquí se pintaba slide_spacing seguido de " px" —un ajuste
+         * que ya no lee nadie, porque el render usa auto_slide_spacing—
+         * mientras el select conmutaba parallel_slides.  La fila prometía
+         * un número y devolvía un Sí/No.  Es un interruptor: se decora como
+         * tal, y con toggle >= 0 la lista suprime el valor. */
+        case PF_D_SPACING:    out->toggle = pf_cfg.parallel_slides; break;
+        case PF_D_SCROLL:     pf_int(out, pf_cfg.scroll_speed, " %"); break;
+        case PF_D_TRANSITION: pf_int(out, pf_cfg.transition_speed, " %"); break;
+    }
+}
+
+static bool pf_display_flip(int row)
+{
+    switch (row)
+    {
+        case PF_D_FPS:       pf_cfg.show_fps = !pf_cfg.show_fps;
+                             reset_track_list();
+                             return true;
+        case PF_D_SPACING:   pf_cfg.parallel_slides = !pf_cfg.parallel_slides;
+                             return true;
+        case PF_D_TEXTFADE:  pf_cfg.text_crossfade = !pf_cfg.text_crossfade;
+                             return true;
+        /* H-05.3: PF_D_RESIZE y PF_D_STATUSBAR NO se conmutan aquí.  El
+         * camino del select hace bastante más que invertir el booleano
+         * —confirmar, borrar EMPTY_SLIDE, reconstruir la caché, guardar el
+         * config y re-iniciar el plugin—, así que un flip rápido dejaba el
+         * ajuste cambiado en memoria, sin guardar y sin efecto real hasta
+         * la siguiente entrada.  Devolver false delega en el select. */
+    }
+    return false;
+}
+#endif
+
 static int display_settings_menu(void)
 {
     int selection = 0;
@@ -3897,12 +4068,15 @@ static int display_settings_menu(void)
                         ID2P(LANG_ZOOM),
                         ID2P(LANG_SPACING),
                         ID2P(LANG_RESIZE_COVERS),
-                        "Show Statusbar",
-                        "Scroll Speed %",
-                        "Transition Speed %",
-                        "Text Crossfade");
+                        ID2P(LANG_A26_PF_STATUSBAR),
+                        ID2P(LANG_A26_PF_SCROLL_SPEED),
+                        ID2P(LANG_A26_PF_TRANS_SPEED),
+                        ID2P(LANG_A26_PF_TEXT_FADE));
 
     do {
+#if ROCKPOD_APPLE2026_IPOD
+        rb->apple2026_menu_rows(pf_display_row, pf_display_flip);
+#endif
         selection=rb->do_menu(&display_menu, &selection, NULL, false);
         switch(selection) {
             case 0:
@@ -3956,7 +4130,7 @@ static int display_settings_menu(void)
                 return -3; /* re-init */
             case 6:
                 old_val = pf_cfg.show_statusbar;
-                rb->set_bool("Show Statusbar", &pf_cfg.show_statusbar);
+                rb->set_bool(ID2P(LANG_A26_PF_STATUSBAR), &pf_cfg.show_statusbar);
                 if (old_val != pf_cfg.show_statusbar)
                 {
                     configfile_save(CONFIG_FILE, config,
@@ -3965,17 +4139,17 @@ static int display_settings_menu(void)
                 }
                 break;
             case 7:
-                rb->set_int("Scroll Speed %", "", 1,
+                rb->set_int(ID2P(LANG_A26_PF_SCROLL_SPEED), "", 1,
                             &pf_cfg.scroll_speed,
                             NULL, 25, 100, 400, NULL );
                 break;
             case 8:
-                rb->set_int("Transition Speed %", "", 1,
+                rb->set_int(ID2P(LANG_A26_PF_TRANS_SPEED), "", 1,
                             &pf_cfg.transition_speed,
                             NULL, 25, 100, 400, NULL );
                 break;
             case 9:
-                rb->set_bool("Text Crossfade", &pf_cfg.text_crossfade);
+                rb->set_bool(ID2P(LANG_A26_PF_TEXT_FADE), &pf_cfg.text_crossfade);
                 break;
             case MENU_ATTACHED_USB:
                 return PLUGIN_USB_CONNECTED;
@@ -3988,12 +4162,64 @@ static int display_settings_menu(void)
 /**
   Shows the settings menu
  */
+#if ROCKPOD_APPLE2026_IPOD
+static void pf_settings_row(int row, struct a26_menu_row *out)
+{
+    static const int icons[] = {
+        Icon_S_PfAlbumName, Icon_S_PfYear, Icon_S_PfYearOrder,
+        Icon_S_PfWpsInt, Icon_S_PfDisplay,
+    };
+
+    static const int album_names[] = {
+        LANG_HIDE_ALBUM_TITLE_NEW, LANG_SHOW_AT_THE_BOTTOM_NEW,
+        LANG_SHOW_AT_THE_TOP_NEW, LANG_SHOW_ALL_AT_THE_TOP,
+        LANG_SHOW_ALL_AT_THE_BOTTOM,
+    };
+    static const int year_names[] = { LANG_ASCENDING, LANG_DESCENDING };
+    static const int wps_names[] = {
+        LANG_OFF, LANG_DIRECT, LANG_VIA_TRACK_LIST,
+    };
+    const int *names = NULL;
+    int val = 0, count = 0;
+
+    if (row >= 0 && row < (int)(sizeof(icons) / sizeof(*icons)))
+        out->icon = icons[row];
+    switch (row)
+    {
+        case 0: names = album_names; val = pf_cfg.show_album_name;
+                count = sizeof(album_names) / sizeof(*album_names); break;
+        case 1: out->toggle = pf_cfg.show_year; return;
+        case 2: names = year_names; val = pf_cfg.year_sort_order;
+                count = sizeof(year_names) / sizeof(*year_names); break;
+        case 3: names = wps_names; val = pf_cfg.auto_wps;
+                count = sizeof(wps_names) / sizeof(*wps_names); break;
+        default: return;
+    }
+    if (val >= 0 && val < count)
+    {
+        out->value = rb->str(names[val]);
+        /* "Apagado" y "Ocultar" no están haciendo nada: se atenúan igual que
+         * en el resto de Ajustes. */
+        out->value_active = !(names == wps_names && val == 0)
+                         && !(names == album_names && val == 0);
+    }
+}
+
+static bool pf_settings_flip(int row)
+{
+    if (row != 1)
+        return false;
+    pf_cfg.show_year = !pf_cfg.show_year;
+    return true;
+}
+#endif
+
 static int settings_menu(void)
 {
     int selection = 0;
     int old_val, result;
 
-    MENUITEM_STRINGLIST(settings_menu, "PictureFlow Settings", NULL,
+    MENUITEM_STRINGLIST(settings_menu, ID2P(LANG_SETTINGS), NULL,
                         ID2P(LANG_SHOW_ALBUM_TITLE),
                         ID2P(LANG_SHOW_YEAR_IN_ALBUM_TITLE),
                         ID2P(LANG_YEAR_SORT_ORDER),
@@ -4018,6 +4244,9 @@ static int settings_menu(void)
     };
 
     do {
+#if ROCKPOD_APPLE2026_IPOD
+        rb->apple2026_menu_rows(pf_settings_row, pf_settings_flip);
+#endif
         selection=rb->do_menu(&settings_menu,&selection, NULL, false);
         switch(selection) {
             case 0:
@@ -4070,6 +4299,34 @@ enum {
     PF_MENU_QUIT,
 };
 
+#if ROCKPOD_APPLE2026_IPOD
+static void pf_main_row(int row, struct a26_menu_row *out)
+{
+    static const int icons[] = {
+        Icon_S_PfSort, Icon_S_PfTracks, Icon_S_PfLast, Icon_S_PfWps,
+#if PF_PLAYBACK_CAPABLE
+        Icon_S_PfPlayback,
+#endif
+        Icon_S_PfRebuild, Icon_S_PfUpdate, Icon_S_PfSettings, Icon_S_PfQuit,
+    };
+
+    static const int sort_names[] = {
+        LANG_ARTIST_PLUS_NAME, LANG_ARTIST_PLUS_YEAR, LANG_ID3_YEAR, LANG_NAME,
+    };
+
+    if (row >= 0 && row < (int)(sizeof(icons) / sizeof(*icons)))
+        out->icon = icons[row];
+    if (row == PF_SORT_ALBUMS_BY
+        && pf_cfg.sort_albums_by >= 0
+        && pf_cfg.sort_albums_by < (int)(sizeof(sort_names)
+                                         / sizeof(*sort_names)))
+    {
+        out->value = rb->str(sort_names[pf_cfg.sort_albums_by]);
+        out->value_active = true;
+    }
+}
+#endif
+
 static int main_menu(void)
 {
     int selection = 0;
@@ -4083,7 +4340,7 @@ static int main_menu(void)
 #endif
 #endif
 
-    MENUITEM_STRINGLIST(main_menu, "PictureFlow", NULL,
+    MENUITEM_STRINGLIST(main_menu, "Cover Flow", NULL,
                         ID2P(LANG_SORT_ALBUMS_BY),
                         ID2P(LANG_SHOW_TRACKS_WHILE_BROWSING),
                         ID2P(LANG_GOTO_LAST_ALBUM),
@@ -4103,6 +4360,9 @@ static int main_menu(void)
         { STR(LANG_NAME) }};
 
     while (1)  {
+#if ROCKPOD_APPLE2026_IPOD
+        rb->apple2026_menu_rows(pf_main_row, NULL);
+#endif
         switch (rb->do_menu(&main_menu,&selection, NULL, false)) {
             case PF_SORT_ALBUMS_BY:
                 old_val = pf_cfg.sort_albums_by;
@@ -5103,7 +5363,7 @@ static void draw_album_text(void)
 */
 static void error_wait(const char *message)
 {
-    rb->splashf(0, "%s. Press any button to continue.", message);
+    rb->splashf(0, rb->str(LANG_A26_PF_ANY_KEY), message);
     while (rb->get_action(CONTEXT_STD, 1) == ACTION_NONE)
         rb->yield();
     rb->sleep(2 * HZ);
@@ -5115,9 +5375,10 @@ static bool init(void)
     void * buf;
     size_t buf_size;
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-    rb->cpu_boost(true); /* revert in cleanup */
-#endif
+    /* Arranca arriba: leer el índice y construir la caché es lo más pesado
+     * de toda la sesión.  El bucle principal la baja en cuanto se queda
+     * quieto. */
+    pf_boost(true);
 
     wants_to_quit = false;
 
@@ -5187,7 +5448,7 @@ static bool init(void)
     if (!grey_init(buf, buf_size, GREY_BUFFERED|GREY_ON_COP,
                    LCD_WIDTH, LCD_HEIGHT, &grey_buf_used))
     {
-        error_wait("Greylib init failed!");
+        error_wait(rb->str(LANG_A26_PF_ERR_INTERNAL));
         return false;
     }
     grey_setfont(FONT_UI);
@@ -5218,7 +5479,7 @@ static bool init(void)
     {
         if (rb->mkdir( CACHE_PREFIX ) < 0)
         {
-            error_wait("Could not create directory " CACHE_PREFIX);
+            error_wait(rb->str(LANG_A26_PF_ERR_ART_CACHE));
             return false;
         }
     }
@@ -5243,12 +5504,12 @@ static bool init(void)
 
     if (ret == ERROR_BUFFER_FULL)
     {
-        error_wait("Not enough memory for album names");
+        error_wait(rb->str(LANG_A26_PF_ERR_MEMORY));
         return false;
     }
     else if (ret == ERROR_NO_ALBUMS)
     {
-        error_wait("No albums found. Please enable database");
+        error_wait(rb->str(LANG_A26_PF_ERR_NO_ALBUMS));
         return false;
     }
     else if (ret == ERROR_USER_ABORT)
@@ -5265,7 +5526,7 @@ static bool init(void)
     size_t aa_bufsz = ALIGN_DOWN(aa_min * 3, sizeof(long));
     if (aa_bufsz < aa_min)
     {
-        error_wait("Not enough memory for album art cache");
+        error_wait(rb->str(LANG_A26_PF_ERR_MEMORY));
         return false;
     }
 
@@ -5282,14 +5543,14 @@ static bool init(void)
     if (!create_empty_slide(pf_cfg.cache_version != CACHE_VERSION))
     {
         config_save(CACHE_REBUILD, false);
-        error_wait("Could not load the empty slide");
+        error_wait(rb->str(LANG_A26_PF_ERR_SLIDE));
         return false;
     }
 
     if ((pf_cfg.cache_version != CACHE_VERSION) && !create_albumart_cache())
     {
         config_save(CACHE_REBUILD, false);
-        error_wait("Could not create album art cache");
+        error_wait(rb->str(LANG_A26_PF_ERR_ART_CACHE));
     }
 
     if (pf_cfg.cache_version != CACHE_VERSION)
@@ -5297,13 +5558,13 @@ static bool init(void)
 
     if ((empty_slide_hid = read_pfraw(EMPTY_SLIDE, 0)) < 0)
     {
-        error_wait("Unable to load empty slide image");
+        error_wait(rb->str(LANG_A26_PF_ERR_SLIDE));
         return false;
     }
 
     if (!create_pf_thread())
     {
-        error_wait("Cannot create thread!");
+        error_wait(rb->str(LANG_A26_PF_ERR_INTERNAL));
         return false;
     }
 
@@ -5469,6 +5730,15 @@ static int pictureflow_main(void)
          * wakeup (button event) just processes input below. */
         bool do_render = !instant_update ||
                          !TIME_BEFORE(current_update, next_frame_tick);
+
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+        /* Hay trabajo si se está animando, si el usuario acaba de tocar algo
+         * o si el hilo cargador sigue mirando carátulas. */
+        if (pf_state != pf_idle || button != ACTION_NONE || pf_frame_dirty
+            || aa_cache.inspected < pf_idx.album_ct)
+            pf_busy_tick = current_update;
+        pf_boost(TIME_BEFORE(current_update, pf_busy_tick + HZ));
+#endif
 
         /* Idle with the statusbar hidden: the scene is static, skip
          * rendering entirely unless something marked it dirty. (With the
@@ -5861,7 +6131,7 @@ enum plugin_status plugin_start(const void *parameter)
 
     if (!check_database())
     {
-        error_wait("Please enable database");
+        error_wait(rb->str(LANG_A26_PF_ERR_NEED_DB));
         return PLUGIN_OK;
     }
     atexit(cleanup);

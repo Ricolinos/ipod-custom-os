@@ -928,11 +928,20 @@ static int update_fat_entry16(struct bpb *fat_bpb, unsigned long entry,
 
     DEBUGF("%s(entry:%lx,val:%lx)\n", __func__, entry, val);
 
+    /* Números de clúster así sólo salen de una FAT corrupta (apagones
+     * bruscos).  Colgar el aparato obliga a otro reinicio forzado, que es
+     * justo lo que corrompe más: se devuelve error y la operación falla. */
     if (entry == val)
-        panicf("Creating FAT16 loop: %lx,%lx\n", entry, val);
+    {
+        DEBUGF("Refusing FAT16 loop: %lx,%lx\n", entry, val);
+        return -1;
+    }
 
     if (entry < 2)
-        panicf("Updating reserved FAT16 entry %lu\n", entry);
+    {
+        DEBUGF("Refusing reserved FAT16 entry %lu\n", entry);
+        return -1;
+    }
 
     dc_lock_cache();
 
@@ -1085,11 +1094,20 @@ static int update_fat_entry32(struct bpb *fat_bpb, unsigned long entry,
 
     DEBUGF("%s(entry:%lx,val:%lx)\n", __func__, entry, val);
 
+    /* Números de clúster así sólo salen de una FAT corrupta (apagones
+     * bruscos).  Colgar el aparato obliga a otro reinicio forzado, que es
+     * justo lo que corrompe más: se devuelve error y la operación falla. */
     if (entry == val)
-        panicf("Creating FAT32 loop: %lx,%lx\n", entry, val);
+    {
+        DEBUGF("Refusing FAT32 loop: %lx,%lx\n", entry, val);
+        return -1;
+    }
 
     if (entry < 2)
-        panicf("Updating reserved FAT32 entry %lu\n", entry);
+    {
+        DEBUGF("Refusing reserved FAT32 entry %lu\n", entry);
+        return -1;
+    }
 
     dc_lock_cache();
 
@@ -1663,11 +1681,13 @@ static int write_longname(struct bpb *fat_bpb, struct fat_filestr *parentstr,
         /* verify this entry is free */
         if (ent->name[0] && ent->name[0] != 0xe5)
         {
-            panicf("Dir entry %d in sector %x is not free! "
-                   "%02x %02x %02x %02x",
-                   i + firstentry, (unsigned)parentstr->lastsector,
-                   (unsigned)ent->data[0], (unsigned)ent->data[1],
-                   (unsigned)ent->data[2], (unsigned)ent->data[3]);
+            /* El directorio dice libre pero la entrada está ocupada: FAT
+             * corrupta por apagones bruscos.  Nada se ha escrito aún en esta
+             * entrada; se aborta la creación con error de E/S en vez de
+             * colgar el aparato, que exigiría otro reinicio forzado. */
+            DEBUGF("Dir entry %d in sector %x is not free\n",
+                   i + firstentry, (unsigned)parentstr->lastsector);
+            FAT_ERROR(-2);
         }
 
         memset(ent->data, 0, DIR_ENTRY_SIZE);
@@ -1942,7 +1962,12 @@ static int update_short_entry(struct bpb *fat_bpb, struct fat_file *file,
         FAT_ERROR(-1);
 
     if (!ent->name[0] || ent->name[0] == 0xe5)
-        panicf("Updating size on empty dir entry %d\n", file->e.entry);
+    {
+        /* La entrada del archivo abierto ya no existe: directorio corrupto.
+         * Error en vez de pánico, por lo mismo que arriba. */
+        DEBUGF("Updating size on empty dir entry %d\n", file->e.entry);
+        FAT_ERROR(-1);
+    }
 
     /* basic file data */
     raw_dirent_set_fstclus(ent, file->firstcluster);

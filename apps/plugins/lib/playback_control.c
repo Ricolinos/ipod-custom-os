@@ -90,20 +90,26 @@ static bool repeat_mode(void)
   
     return false;
 }
+/* H-17: las siete filas iban con Icon_NOICON, así que este submenú —que
+ * comparten 43 plugins— era la única lista del aparato sin iconos.  La macro
+ * ya aceptaba el símbolo en su sexto argumento; lo que faltaba eran cuatro
+ * glifos de transporte en las tiras (tools/apple2026_playback_icons.py).
+ * Los otros tres destinos reutilizan los símbolos que el juego ya tenía para
+ * lo mismo, y ninguno se repite entre hermanos. */
 MENUITEM_FUNCTION(prevtrack_item, 0, ID2P(LANG_PREVTRACK),
-                  prevtrack, NULL, Icon_NOICON);
+                  prevtrack, NULL, Icon_S_PrevTrack);
 MENUITEM_FUNCTION(playpause_item, 0, ID2P(LANG_PLAYPAUSE),
-                  play, NULL, Icon_NOICON);
+                  play, NULL, Icon_S_PlayPause);
 MENUITEM_FUNCTION(stop_item, 0, ID2P(LANG_STOP_PLAYBACK),
-                  stop, NULL, Icon_NOICON);
+                  stop, NULL, Icon_S_StopPlay);
 MENUITEM_FUNCTION(nexttrack_item, 0, ID2P(LANG_NEXTTRACK),
-                  nexttrack, NULL, Icon_NOICON);
+                  nexttrack, NULL, Icon_S_NextTrack);
 MENUITEM_FUNCTION(volume_item, 0, ID2P(LANG_CHANGE_VOLUME),
-                  volume, NULL, Icon_NOICON);
+                  volume, NULL, Icon_S_Volume);
 MENUITEM_FUNCTION(shuffle_item, 0, ID2P(LANG_CHANGE_SHUFFLE_MODE),
-                  shuffle, NULL, Icon_NOICON);
+                  shuffle, NULL, Icon_S_Shuffle);
 MENUITEM_FUNCTION(repeat_mode_item, 0, ID2P(LANG_CHANGE_REPEAT_MODE),
-                  repeat_mode, NULL, Icon_NOICON);
+                  repeat_mode, NULL, Icon_S_Repeat);
 MAKE_MENU(playback_control_menu, ID2P(LANG_PLAYBACK_CONTROL), NULL, Icon_NOICON,
             &prevtrack_item, &playpause_item, &stop_item, &nexttrack_item,
             &volume_item, &shuffle_item, &repeat_mode_item);

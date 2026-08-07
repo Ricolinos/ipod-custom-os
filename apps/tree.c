@@ -77,6 +77,7 @@
 #include "appevents.h"
 
 #include "root_menu.h"
+#include "apple2026_shell.h"
 
 static struct gui_synclist tree_lists;
 
@@ -203,6 +204,25 @@ static const char* tree_get_filename(int selected_item, void *data,
     const char *display = name;
     char strip_buf[AVERAGE_FILENAME_LENGTH];
 
+    /* Los dos temas de la capa se enseñan con su nombre traducido.  El
+     * archivo no se puede renombrar: la puerta de la capa compara ese nombre
+     * y las configuraciones guardadas lo llevan dentro. */
+    if (!(attr & ATTR_DIRECTORY))
+    {
+        /* strmemccpy devuelve un puntero pasado el terminador, no el
+         * destino: devolverlo daba una cadena vacía. */
+        if (!strcasecmp(name, A26_THEME_LIGHT_STEM ".cfg"))
+        {
+            strmemccpy(buffer, str(LANG_A26_THEME_LIGHT), buffer_len);
+            return buffer;
+        }
+        if (!strcasecmp(name, A26_THEME_DARK_STEM ".cfg"))
+        {
+            strmemccpy(buffer, str(LANG_A26_THEME_DARK), buffer_len);
+            return buffer;
+        }
+    }
+
     if (!(attr & ATTR_DIRECTORY)
         && (attr & FILE_ATTR_MASK) == FILE_ATTR_AUDIO)
     {
@@ -226,7 +246,11 @@ static const char* tree_get_filename(int selected_item, void *data,
     }
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
     if (display != name)
-        return strmemccpy(buffer, display, buffer_len);
+    {
+        /* mismo motivo: el nombre es `buffer`, no lo que devuelve la copia */
+        strmemccpy(buffer, display, buffer_len);
+        return buffer;
+    }
 #endif
     return display;
 }
@@ -249,7 +273,7 @@ static enum themable_icons tree_get_fileicon(int selected_item, void * data)
 #ifdef HAVE_TAGCACHE
     bool id3db = *(local_tc->dirfilter) == SHOW_ID3DB;
     if (id3db) {
-        return tagtree_get_icon(&tc);
+        return tagtree_get_icon(&tc, selected_item);
     }
     else
 #endif
@@ -265,6 +289,16 @@ static enum themable_icons tree_get_fileicon(int selected_item, void * data)
                 return Icon_Artist;
             else
                 return Icon_Album;
+        }
+
+        /* Navegador de temas: cada tema con su símbolo (sol/luna).  Se
+         * distingue por nombre de archivo; sólo existen en /themes. */
+        if (!(entry->attr & ATTR_DIRECTORY))
+        {
+            if (!strcmp(entry->name, "Apple2026.cfg"))
+                return Icon_S_ThemeLight;
+            if (!strcmp(entry->name, "Apple2026Dark.cfg"))
+                return Icon_S_ThemeDark;
         }
 #endif
         return filetype_get_icon(entry->attr);
@@ -1044,7 +1078,22 @@ static int dirbrowse(void)
 
 #ifdef HAVE_TAGCACHE
                 if (id3db)
+                {
                     tagtree_exit(&tc, true);
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+                    /* Subir un nivel desde Canciones/Artistas/... deja el
+                     * árbol en su raíz, y esa raíz no es una pantalla de
+                     * este aparato: es la lista cruda de tagnavi, que se
+                     * dibuja a ancho completo bajo una barra partida porque
+                     * root_menu_pane_id_for_list() no la reconoce (H-03).
+                     * El submenú Música del menú raíz ocupa su lugar, así
+                     * que al llegar a nivel 0 se sale directamente allí.
+                     * Los niveles anidados (Buscar, Historial) siguen
+                     * subiendo uno a uno como siempre. */
+                    if (tc.dirlevel == 0)
+                        return exit_to_new_screen(GO_TO_ROOT);
+#endif
+                }
                 else
 #endif
                     if (ft_exit(&tc) == 3)

@@ -32,6 +32,10 @@
 %Fl(7,35-SFProDisplay-Bold.fnt)
 # Slot 8: compact secondary labels + mini-player title â€” 14pt SF Pro Text Regular (RB12 h=18px)
 %Fl(8,14-SFProText-Regular.fnt)
+# Slot 4: tiny badge face (A-B repeat tag) - 7pt SF Pro
+%Fl(4,07-SFPro-Rail.fnt)
+# Slot 9: compact clock for the 160px split bar
+%Fl(9,13-SFCompactText-Regular.fnt)
 
 # â”€â”€ Asset preloads â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # playerStatus: 16x18 per tile, 4 frames â€” Pa=stop Pb=pause-bars Pc=play-fill Pd=ff
@@ -51,6 +55,13 @@
 %xl(W,qs_bar_track.bmp,0,0)
 %xl(X,qs_sun_max.bmp,0,0)
 %xl(R,qs_sun_min.bmp,0,0)
+%xl(K,speaker_loud.bmp,0,0)
+# Quickscreen side sliders + the speaker that follows the volume
+%xl(U,qs_slider_fill.bmp,0,0)
+%xl(G,qs_slider_track.bmp,0,0)
+%xl(C,volIcons.bmp,0,0,5)
+%xl(D,shuffleLarge.bmp,0,0,2)
+%xl(E,repeatLarge.bmp,0,0,4)
 %xl(J,statusPlay.bmp,0,0,2)
 
 # â”€â”€ Shell routing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -77,20 +88,19 @@
 #
 # Header background: split screens (root %Lo / Music submenu %LM) get a
 # 160px-wide 20px bar on the left only; full screens get the full-width bar.
-%?Lo<%Vd(hdr_split)|%?LM<%Vd(hdr_split)|%Vd(hdr_full)>>
+%?if(%cs, =, 10)<|%?Lo<%Vd(hdr_split)|%?LM<%Vd(hdr_split)|%Vd(hdr_full)>>>
 #
 # Header indicators â€” split screens use the left-bar battery variants
-%?Lo<%Vd(battery_icon_root)|%?LM<%Vd(battery_icon_root)|%Vd(battery_icon)>>
-%?if(%St(battery display), =, numeric)<%?Lo<|%?LM<|%Vd(batterytext)>>>
-%?mh<%?Lo<%Vd(lock_split)|%?LM<%Vd(lock_split)|%Vd(lock)>>|>
-%?mp<|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>>
-%?bs<%?Lo<|%?LM<|%Vd(sleeptimertext)>>|>
-%?lh<%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>>>|>
+%?if(%cs, =, 10)<|%?Lo<%Vd(battery_icon_root)|%?LM<%Vd(battery_icon_root)|%Vd(battery_icon)>>>
+%?if(%cs, =, 10)<|%?if(%St(battery display), =, numeric)<%?Lo<|%?LM<|%Vd(batterytext)>>>>
+%?if(%cs, =, 10)<|%?mh<%?Lo<%Vd(lock_split)|%?LM<%Vd(lock_split)|%Vd(lock)>>|>>
+%?if(%cs, =, 10)<|%?mp<|%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(pp_icon_left)|%Vd(pp_icon)>>>|%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(pp_icon_left)|%Vd(pp_icon)>>>|%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(pp_icon_left)|%Vd(pp_icon)>>>|%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(pp_icon_left)|%Vd(pp_icon)>>>>>
+%?if(%cs, =, 10)<|%?lh<%?Lo<|%?LM<|%Vd(busyindicator)>>|>>
 #
 # Header title â€” full screens center it; split screens use the small
 # left-bar titles (large_title at root, lm_title in the Music submenu)
-%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(title)|%Vd(titlewide)>>>
-%?Lo<%Vd(large_title)|%?LM<%Vd(lm_title)|>>
+%?if(%cs, =, 10)<|%?Lo<%Vd(hdr_title_split)|%?LM<%Vd(hdr_title_split)|%Vd(hdr_title)>>>
+%?if(%cs, =, 10)<|%?Lo<%Vd(hdr_clock_split)|%?LM<%Vd(hdr_clock_split)|%?bs<%Vd(sleeptimertext)|%Vd(hdr_clock)>>>>
 %?if(%cs, =, 10)<|%?mv(1.2)<%?mp<|%Vd(mp_volume_bg)%Vd(mp_volume_clip)||%Vd(mp_volume_bg)%Vd(mp_volume_clip)|%Vd(mp_volume_bg)%Vd(mp_volume_clip)>>|>
 #
 # USB backdrop
@@ -110,31 +120,52 @@
 %Vb(FFFFFF)
 %dr(0,0,160,20,FFFFFF,FFFFFF)
 
-# â”€â”€ Header title (when battery % shown â€” shorter to leave room for numbers) â”€â”€
+# -- Header title: left aligned everywhere; the root band reads "iPod" ----
+# The line has to carry a dynamic tag (%Lo/%Lt).  A purely literal line is
+# classed as static, drawn only on a full refresh and never restored after
+# anything else repaints the bar - that is why "iPod" used to disappear.
 # Font slot 3 RB12 height = 20px; VP height must be >= 20 to avoid clipping.
-%Vl(title,74,0,-74,20,3)
+# 108 px (10..118, justo hasta el reloj) y no 94: con 94, "Buscar por..." no
+# cabía y el %s lo convertía en marquesina — la barra mostraba "uscar por...".
+# El %s se conserva porque en el tercer nivel el título es un nombre de
+# álbum o de artista, de longitud arbitraria, y ahí desplazar es la única
+# salida; lo que se arregla es que los títulos FIJOS de la interfaz quepan.
+%Vl(hdr_title,10,0,108,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%ac%?cs<|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
+%s%al%?Lo<iPod|%?cs<%Lt|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>>
 
-# â”€â”€ Header title (when battery % not shown â€” wide) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(titlewide,56,0,-56,20,3)
+# -- Header title on split screens (left 160 column only) -----------------
+# Root: "iPod"; Music submenu: the live list title.  Font slot 8 (14pt) so a
+# longer section name still fits beside the clock.
+%Vl(hdr_title_split,10,0,64,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%ac%?cs<|%Sx(of)|%Sx(Recording)|%Sx(FM Radio)|%Lt|%Lt|%Lt|%Lt|%Lt|%?cf<%cH:%cM|%cl:%cM %cP> - %?if(%bl, =, 100)<100%%|%bl%%>|%Lt|%Lt|%Lt|%Lt|%?if(%Lt, =,Context Menu)<Perform Action...|%Lt>|%Lt|%Lt|%Lt|%Lt|%Lt|>
+%s%al%?Lo<iPod|%Lt>
 
-# â”€â”€ Split-screen titles (20px iPod-scale bar, left 160 column only) â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# Root: "Biblioteca"; Music submenu: the live list title (%Lt).
-# Battery shares the bar at x>=124 (see battery_*_root).
-%Vl(large_title,10,0,84,20,3)
+# -- Clock: centred on the screen (full) or on the left panel (split) -----
+# Follows the 12/24h setting, like every other clock in the shell.
+#
+# Las y de estos dos viewports NO son 0: igualan la línea base con la del
+# título, que es la referencia de la barra.  El texto de un viewport arranca
+# en su borde superior, así que la base cae en y + ascent de la fuente:
+#   título      slot 3 (16-SFProText-Semibold, ascent 16) → y=0 → base 16
+#   reloj full  slot 8 (14-SFProText-Regular,  ascent 14) → y=2 → base 16
+#   reloj split slot 9 (13-SFCompactText,      ascent 13) → y=3 → base 16
+#   batería/sleep slot 6 (ascent 16)                      → y=0 → base 16
+# Con y=0 en todos, el reloj completo iba 2 px alto y el partido 3, y el
+# temporizador de apagado —que sustituye al reloj y usa el slot 6— saltaba
+# esos 2 px al aparecer.  La altura baja a la de la fuente para no invadir
+# la franja de encima; hdr_full ya deja la barra pintada de fondo.
+%Vl(hdr_clock,120,2,80,18,8)
 %Vf(000000)
 %Vb(FFFFFF)
-%s%aliPod
+%ac%?cf<%cH:%cM|%cl:%cM %cP>
 
-%Vl(lm_title,10,0,84,20,3)
-%Vf(000000)
+%Vl(hdr_clock_split,76,3,42,17,9)
+%Vf(6E6E73)
 %Vb(FFFFFF)
-%s%al%Lt
+%ar%?cf<%cH:%cM|%cl:%cM>
 
 # â”€â”€ Content viewports (selector + list dividers edge-to-edge; 16px row
 #    inset is applied in apps/gui/bitmap/list.c for Apple2026 iPod targets)
@@ -147,7 +178,7 @@
 # remove them:
 # (pane_music.bmp) (pane_videos.bmp) (pane_photos.bmp) (pane_podcasts.bmp)
 # (pane_extras.bmp) (pane_settings.bmp) (pane_shuffle.bmp) (pane_nowplaying.bmp)
-# (pane_bg.bmp) (wps_stars.bmp)
+# (pane_bg.bmp) (wps_stars.bmp) (np_noart.bmp) (loading.bmp) (gear.bmp)
 # mainlarge: used when playing/paused (content area above 50px mini-player)
 %Vi(-,0,20,-,-50,5)
 %Vf(000000)
@@ -193,61 +224,68 @@
 %Vb(FFFFFF)
 
 # â”€â”€ Lock icon (SF lock.fill; reserved slot, shown whenever hold is on) â”€â”€â”€â”€â”€â”€
-%Vl(lock,-66,4,9,12,-)
+%Vl(lock,216,4,9,12,-)
 %Vb(FFFFFF)
 %xd(Ab)
 
-%Vl(lock_split,98,4,9,12,-)
+%Vl(lock_split,121,4,9,12,-)
 %Vb(FFFFFF)
 %xd(Ab)
 
 # â”€â”€ Playback state (SF play/pause.fill; shown whenever audio is active) â”€â”€â”€â”€â”€
-%Vl(pp_icon,-50,4,12,12,-)
+# Sólo en barra COMPLETA.  En la barra dividida el hueco entre el reloj y la
+# batería es de 15 px y lo ocupa el candado: pp_icon_split (119..130) contenía
+# entero a lock_split (121..129) y, al dibujarse después, lo borraba con el
+# hold puesto.  El estado de reproducción vive ahora en la tarjeta del panel
+# derecho (apple2026_pane.c, np_draw_state) — decisión D2 de AUDIT.md.
+%Vl(pp_icon,-54,4,12,12,-)
 %Vb(FFFFFF)
 %?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 
-%Vl(pp_icon_split,112,4,12,12,-)
+# Variante para cuando la batería numérica ocupa el sitio del icono: el texto
+# se corre a 240..278 y el indicador tiene que apartarse a su izquierda.
+%Vl(pp_icon_left,226,4,12,12,-)
 %Vb(FFFFFF)
 %?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 
 # â”€â”€ Battery percentage text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Font slot 6 RB12 h=20px; VP height = 20 to prevent clipping.
-%Vl(batterytext,-70,0,38,20,6)
+# x=-80 (240..278): en -70 (250..287) el texto se comía el pp_icon entero
+# (266..277) y solapaba 6 px con el icono de batería (282..308).  Alineado a
+# la derecha para colgar del icono en vez de flotar a media distancia.
+%Vl(batterytext,-80,0,38,20,6)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%bl, =, 100)<100%%|%bl%%>
-
-# â”€â”€ Battery text within large-title band (root only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(batterytext_root,88,0,38,20,6)
-%Vf(000000)
-%Vb(FFFFFF)
-%?if(%bl, =, 100)<100%%|%bl%%>
+%ar%?if(%bl, =, 100)<100%%|%bl%%>
 
 # â”€â”€ Sleep timer text countdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(sleeptimertext,-100,0,58,20,6)
+%Vl(sleeptimertext,120,0,80,20,6)
 %Vf(8E8E93)
 %Vb(FFFFFF)
-%bs
+%ac%bs
 
 # â”€â”€ Battery icon (upper-right â€” moved up 2px from prior position) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon,-32,2,-,16,3)
+%Vl(battery_icon,-38,2,-,16,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
 
 # â”€â”€ Battery icon aligned within large-title band (root only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(battery_icon_root,128,2,28,16,3)
+# w=27, el ancho real del frame de batteryStatus.bmp: con 26 se recortaba la
+# columna del borne derecho de la pila.
+%Vl(battery_icon_root,133,2,27,16,3)
 %Vf(000000)
 %Vb(FFFFFF)
 %?bp<%?bl<%xd(Ba)|%xd(Ba)|%xd(Ba)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bb)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bc)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Bd)|%xd(Be)|%xd(Be)>|%?bl<%xd(Bf)|%xd(Bf)|%xd(Bf)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bg)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bh)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bi)|%xd(Bj)|%xd(Bj)>>
 
-# â”€â”€ Busy indicator â€” right side (no battery %) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(busyindicator,-50,8,9,9,-)
-%Vb(FFFFFF)
-%t(0.1)%xd(La);%t(0.1)%xd(Lb);%t(0.1)%xd(Lc);%t(0.1)%xd(Ld);%t(0.1)%xd(Le);%t(0.1)%xd(Lf);%t(0.1)%xd(Lg);%t(0.1)%xd(Lh);%t(0.1)%xd(Li);%t(0.1)%xd(Lj);%t(0.1)%xd(Lk);%t(0.1)%xd(Ll);%t(0.1)%xd(Lm);%t(0.1)%xd(Ln);%t(0.1)%xd(Lo);%t(0.1)%xd(Lp)
-
-# â”€â”€ Busy indicator â€” left side (when battery % shown) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-%Vl(busyindicatorleft,58,8,9,9,-)
+# â”€â”€ Busy indicator (disk activity) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# y=6 (6..14): con y=8 el spinner centraba en 12,5 mientras el candado
+# (4..15) y la batería (2..17) centran en 10 — se veía caído.
+# Había un segundo viewport, busyindicatorleft, con coordenadas IDÉNTICAS a
+# éste: la variante "apartada por la batería numérica" nunca llegó a
+# desplazarse.  Con el clúster ya reordenado, 202..210 queda libre en los dos
+# casos, así que la variante sobra y se elimina en vez de duplicarse.
+%Vl(busyindicator,202,6,9,9,-)
 %Vb(FFFFFF)
 %t(0.1)%xd(La);%t(0.1)%xd(Lb);%t(0.1)%xd(Lc);%t(0.1)%xd(Ld);%t(0.1)%xd(Le);%t(0.1)%xd(Lf);%t(0.1)%xd(Lg);%t(0.1)%xd(Lh);%t(0.1)%xd(Li);%t(0.1)%xd(Lj);%t(0.1)%xd(Lk);%t(0.1)%xd(Ll);%t(0.1)%xd(Lm);%t(0.1)%xd(Ln);%t(0.1)%xd(Lo);%t(0.1)%xd(Lp)
 
@@ -318,96 +356,87 @@
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%dr(0,0,320,240,FFFFFF,FFFFFF)|>
 
-# Top strip: title
-%V(80,8,160,18,8)
+# Top strip - laid out exactly like the shell status bar so the chrome does
+# not change shape when the quickscreen opens: title left, clock centred,
+# battery right.  No divider: no other screen has one.
+# "Ajustes rápidos" no cabía en 94 px: al llevar %s se convertía en una
+# marquesina y la barra mostraba el título a medio desplazar ("stes rápidos").
+# En iOS un título de barra no se desplaza nunca.  El ancho sube a 108 px
+# (10..118, justo hasta el reloj) y se retira el scroll.
+%V(10,0,108,20,3)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%ac%Sx(Quick Settings)|>
+%?if(%cs, =, 10)<%al%Sx(Quick Settings)|>
 
-# Top strip: battery
-%V(248,8,56,18,8)
+# y=2 / y=2: misma corrección de línea base que en la barra del shell — este
+# encabezado se copió de ella y tiene que seguir cuadrando con el título.
+%V(120,2,80,18,8)
+%Vf(000000)
+%Vb(FFFFFF)
+%?if(%cs, =, 10)<%ac%?cf<%cH:%cM|%cl:%cM %cP>|>
+
+%V(250,2,56,18,8)
 %Vf(6E6E73)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%ar%bl%%|>
 
-# Top divider
-%V(16,29,288,1,-)
-%Vf(E5E5EA)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%dr(0,0,288,1,E5E5EA,E5E5EA)|>
-
-# Main quickscreen focus: top brightness state
-%V(153,38,14,14,-)
+# Brightness cue above the wheel (up on the wheel raises it)
+%V(153,50,14,14,-)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%xd(X)|>
 
-%V(104,52,112,16,8)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%ac%Sx(Brightness)|>
-
-%V(112,66,96,20,3)
-%Vf(000000)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%ac%Qt|>
-
-# Center wheel surface
+# Click wheel with its legends, the way the hardware is labelled
 %V(114,84,92,92,-)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%xd(Q)|>
 
-# Wheel side states
-%V(20,112,72,16,8)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%ar%Sx(Shuffle)|>
 
-%V(20,130,72,20,3)
+# Shuffle and repeat as icons: accent when on, muted when off
+%V(56,126,15,15,-)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%ar%Ql|>
+%?if(%cs, =, 10)<%?ps<%xd(Db)|%xd(Da)>|>
 
-%V(228,112,72,16,8)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%al%Sx(Repeat)|>
-
-%V(228,130,72,20,3)
+%V(249,124,15,15,-)
 %Vf(000000)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%al%Qr|>
+%?if(%cs, =, 10)<%?mm<%xd(Ea)|%xd(Eb)|%xd(Ed)|%xd(Eb)|%xd(Eb)>|>
 
-# Bottom brightness-down cue
-%V(153,186,14,14,-)
+# Same idea as the player screen: name the one mode without its own glyph.
+%V(242,140,30,12,4)
+%Vf(FF2E56)
+%Vb(FFFFFF)
+%?if(%cs, =, 10)<%?mm<||||%acA-B>|>
+
+# Brightness cue below the wheel (down on the wheel lowers it)
+%V(153,190,14,14,-)
 %Vf(000000)
 %Vb(FFFFFF)
 %?if(%cs, =, 10)<%xd(R)|>
 
-# Brightness row
-%V(46,206,30,16,8)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%?if(%cs, =, 10)<%alBRT|>
-
-%V(84,211,176,6,-)
+# Volume: vertical slider on the left, with a speaker that gains waves as
+# it fills and shows the mute slash at the bottom of its travel
+%V(12,52,20,132,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%?if(%cs, =, 10)<%St(0,0,176,6,image,V,backdrop,W,setting,brightness)|>
+%?if(%cs, =, 10)<%pv(0,0,20,132,image,U,backdrop,G,vertical)|>
 
-# Volume row
-%V(46,224,30,16,8)
+%V(12,196,20,14,-)
 %Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%alVOL|>
+%?if(%cs, =, 10)<%?pv<%xd(Ca)|%xd(Cb)|%xd(Cc)|%xd(Cd)|%xd(Ce)>|>
 
-%V(84,229,176,6,-)
+# Brightness: vertical slider on the right
+%V(288,52,20,132,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%?if(%cs, =, 10)<%pv(0,0,176,6,image,V,backdrop,W)|>
+%?if(%cs, =, 10)<%St(0,0,20,132,image,U,backdrop,G,vertical,setting,brightness)|>
 
-%V(266,220,38,18,8)
-%Vf(000000)
+%V(291,196,14,14,-)
+%Vf(6E6E73)
 %Vb(FFFFFF)
-%?if(%cs, =, 10)<%ar%pv|>
+%?if(%cs, =, 10)<%xd(X)|>
+
+

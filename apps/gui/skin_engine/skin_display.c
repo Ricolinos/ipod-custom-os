@@ -89,8 +89,17 @@ void skin_update(enum skinnable_screens skin, enum screen_type screen,
     if (cuesheet_update)
         skin_request_full_update(skin);
 
-    skin_render(gwps, skin_do_full_update(skin, screen) ?
-                        SKIN_REFRESH_ALL : update_type);
+    /* La barra de estado nunca debe escalar a SKIN_REFRESH_ALL crudo: sus
+     * bits extra (statusbar, picos) la dejan en blanco hasta el siguiente
+     * tic — al mover el hold se veía parpadeo, barra vacía y otro parpadeo
+     * antes del candado.  No hace falta: %mh es DYNAMIC, el refresco normal
+     * ya detecta el cambio de rama y el renderizador limpia y repinta los
+     * viewports afectados por su cuenta. */
+    unsigned int full = (skin == CUSTOM_STATUSBAR)
+                            ? (SKIN_REFRESH_STATIC | SKIN_REFRESH_NON_STATIC |
+                               SKIN_REFRESH_SCROLL)
+                            : SKIN_REFRESH_ALL;
+    skin_render(gwps, skin_do_full_update(skin, screen) ? full : update_type);
 }
 
 #ifdef AB_REPEAT_ENABLE

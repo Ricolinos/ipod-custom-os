@@ -881,6 +881,9 @@ static const struct plugin_api rockbox_api = {
 #if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
     dynamic_colors_resolve,
 #endif
+#if ROCKPOD_APPLE2026_IPOD
+    apple2026_menu_rows,
+#endif
 };
 
 static int plugin_buffer_handle;
@@ -986,7 +989,17 @@ int plugin_load(const char* plugin, const void* parameter)
     *(p_hdr->api) = &rockbox_api;
     lcd_set_viewport(NULL);
     if (!theme_enabled)
+    {
         lcd_clear_display();
+        /* B2 de H-04: este clear se lleva por delante el splash de espera
+         * de unas líneas más arriba, y deja la pantalla en blanco hasta que
+         * el plugin pinte su primer cuadro.  Con el disco parado eso puede
+         * pasar del segundo.  Según D4, aquí la pantalla ya cambió de
+         * contexto, así que el indicador correcto es el spinner de página,
+         * no la pastilla flotante (que necesita un fondo que siga a la
+         * vista). */
+        apple2026_loading_page(&screens[SCREEN_MAIN], true);
+    }
 
 #ifdef HAVE_REMOTE_LCD
     lcd_remote_set_viewport(NULL);
@@ -1080,6 +1093,12 @@ int plugin_load(const char* plugin, const void* parameter)
         lcd_clear_display();
         FOR_NB_SCREENS(i)
             viewportmanager_theme_undo(i, true);
+        /* B1 de H-04, la peor de las cinco ventanas: entre este clear y el
+         * do_menu del menú raíz nadie repinta la lista —theme_undo sólo
+         * restituye el deadspace y la barra—, y salir de un plugin implica
+         * descargar código y tocar disco.  El spinner ocupa esa espera en
+         * lugar de una pantalla en blanco. */
+        apple2026_loading_page(&screens[SCREEN_MAIN], true);
     }
     else
         /* fix dangling sbs_title pointer */

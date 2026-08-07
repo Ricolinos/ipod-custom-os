@@ -27,6 +27,7 @@
 #include "lang.h"
 #include "action.h"
 #include "settings.h"
+#include "apple2026_shell.h"
 #include "menu.h"
 #include "sound_menu.h"
 #include "exported_menus.h"
@@ -152,7 +153,7 @@ MENUITEM_SETTING(power_mode, &global_settings.power_mode, NULL);
                      &global_settings.crossfeed_hf_attenuation, lowlatency_callback);
     MENUITEM_SETTING(crossfeed_hf_cutoff,
                      &global_settings.crossfeed_hf_cutoff, lowlatency_callback);
-    MAKE_MENU(crossfeed_menu,ID2P(LANG_CROSSFEED), NULL, Icon_NOICON,
+    MAKE_MENU(crossfeed_menu,ID2P(LANG_CROSSFEED), NULL, Icon_A26_Crossfeed,
               &crossfeed, &crossfeed_direct_gain, &crossfeed_cross_gain,
               &crossfeed_hf_attenuation, &crossfeed_hf_cutoff);
 
@@ -166,7 +167,14 @@ static int timestretch_callback(int action,
     {
         case ACTION_EXIT_MENUITEM: /* on exit */
             if (global_settings.timestretch_enabled && !dsp_timestretch_available())
-                splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
+                {
+                    if (!apple2026_symbol_page(&screens[SCREEN_MAIN],
+                                A26_ASSET("a26_reboot.bmp"),
+                                str(LANG_PLEASE_REBOOT), 1))
+                        splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
+                    else
+                        sleep(HZ*2);
+                }
             break;
     }
     lowlatency_callback(action, this_item, NULL);
@@ -184,7 +192,7 @@ static int timestretch_callback(int action,
                      &global_settings.pbe, lowlatency_callback);
     MENUITEM_SETTING(pbe_precut,
                      &global_settings.pbe_precut, lowlatency_callback);
-    MAKE_MENU(pbe_menu,ID2P(LANG_PBE), NULL, Icon_NOICON,
+    MAKE_MENU(pbe_menu,ID2P(LANG_PBE), NULL, Icon_A26_PBE,
               &pbe,&pbe_precut);
     MENUITEM_SETTING(surround_enabled,
                      &global_settings.surround_enabled, lowlatency_callback);
@@ -198,7 +206,7 @@ static int timestretch_callback(int action,
                      &global_settings.surround_method2, lowlatency_callback);
     MENUITEM_SETTING(surround_mix,
                      &global_settings.surround_mix, lowlatency_callback);
-    MAKE_MENU(surround_menu,ID2P(LANG_SURROUND), NULL, Icon_NOICON,
+    MAKE_MENU(surround_menu,ID2P(LANG_SURROUND), NULL, Icon_A26_Surround,
               &surround_enabled,&surround_balance,&surround_fx1,&surround_fx2,&surround_method2,&surround_mix);
 
     /* compressor submenu */
@@ -220,7 +228,7 @@ static int timestretch_callback(int action,
     MENUITEM_SETTING(compressor_release,
                      &global_settings.compressor_settings.release_time,
                      lowlatency_callback);
-    MAKE_MENU(compressor_menu,ID2P(LANG_COMPRESSOR), NULL, Icon_NOICON,
+    MAKE_MENU(compressor_menu,ID2P(LANG_COMPRESSOR), NULL, Icon_A26_Compressor,
               &compressor_threshold, &compressor_gain, &compressor_ratio,
               &compressor_knee, &compressor_attack, &compressor_release);
 
@@ -231,7 +239,7 @@ static int timestretch_callback(int action,
 #ifdef AUDIOHW_HAVE_EQ
 #endif /* AUDIOHW_HAVE_EQ */
 
-MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_Audio,
+MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_A26_SoundDial,
           &volume
           ,&volume_limit
 #ifdef AUDIOHW_HAVE_BASS

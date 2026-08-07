@@ -122,6 +122,9 @@ void lcd_update(void)
 
 void lcd_update_rect(int x_start, int y_start, int width, int height)
 {
+#if A26_LCD_CORNERS
+    a26_lcd_stamp_corners(x_start, y_start, width, height);
+#endif
     sdl_update_rect(lcd_surface, x_start, y_start, width, height,
                     LCD_WIDTH, LCD_HEIGHT, get_lcd_pixel);
     sdl_gui_update(lcd_surface, x_start, y_start, width,

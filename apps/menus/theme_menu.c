@@ -64,7 +64,7 @@ static int clear_main_backdrop(void)
     return 0;
 }
 MENUITEM_FUNCTION(clear_main_bd, 0, ID2P(LANG_CLEAR_BACKDROP),
-                  clear_main_backdrop, NULL, Icon_NOICON);
+                  clear_main_backdrop, NULL, Icon_S_ClearBd);
 #endif
 #ifdef HAVE_LCD_COLOR
 
@@ -143,28 +143,28 @@ static int reset_color(void)
     return 0;
 }
 MENUITEM_FUNCTION_W_PARAM(set_bg_col, 0, ID2P(LANG_BACKGROUND_COLOR),
-                          set_color_func, (void*)COLOR_BG, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_BG, NULL, Icon_S_ColBg);
 MENUITEM_FUNCTION_W_PARAM(set_fg_col, 0, ID2P(LANG_FOREGROUND_COLOR),
-                          set_color_func, (void*)COLOR_FG, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_FG, NULL, Icon_S_ColFg);
 MENUITEM_FUNCTION_W_PARAM(set_lss_col, 0, ID2P(LANG_SELECTOR_START_COLOR),
-                          set_color_func, (void*)COLOR_LSS, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_LSS, NULL, Icon_S_ColLss);
 MENUITEM_FUNCTION_W_PARAM(set_lse_col, 0, ID2P(LANG_SELECTOR_END_COLOR),
-                          set_color_func, (void*)COLOR_LSE, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_LSE, NULL, Icon_S_ColLse);
 MENUITEM_FUNCTION_W_PARAM(set_lst_col, 0, ID2P(LANG_SELECTOR_TEXT_COLOR),
-                          set_color_func, (void*)COLOR_LST, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_LST, NULL, Icon_S_ColLst);
 MENUITEM_FUNCTION_W_PARAM(set_sep_col, 0, ID2P(LANG_LIST_SEPARATOR_COLOR),
-                          set_color_func, (void*)COLOR_SEP, NULL, Icon_NOICON);
+                          set_color_func, (void*)COLOR_SEP, NULL, Icon_S_ColSep);
 MENUITEM_FUNCTION(reset_colors, 0, ID2P(LANG_RESET_COLORS),
-                  reset_color, NULL, Icon_NOICON);
+                  reset_color, NULL, Icon_S_ColReset);
 
 MAKE_MENU(lss_settings, ID2P(LANG_SELECTOR_COLOR_MENU),
-            NULL, Icon_NOICON,
+            NULL, Icon_A26_SelColor,
             &set_lss_col, &set_lse_col, &set_lst_col
          );
 
 /* now the actual menu */
 MAKE_MENU(colors_settings, ID2P(LANG_COLORS_MENU),
-            NULL, Icon_Display_menu,
+            NULL, Icon_A26_Colors,
             &lss_settings,  &set_sep_col,
             &set_bg_col, &set_fg_col, &reset_colors
          );
@@ -227,7 +227,7 @@ MENUITEM_SETTING(volume_type, &global_settings.volume_type, NULL);
 #if (CONFIG_BATTERY_MEASURE != 0)
 MENUITEM_SETTING(battery_display, &global_settings.battery_display, NULL);
 #endif
-MAKE_MENU(bars_menu, ID2P(LANG_BARS_MENU), 0, Icon_NOICON,
+MAKE_MENU(bars_menu, ID2P(LANG_BARS_MENU), 0, Icon_A26_StatusBar,
           &scrollbar_item, &scrollbar_width, &statusbar,
 #ifdef HAVE_REMOTE_LCD
           &remote_statusbar,
@@ -343,6 +343,11 @@ int browse_folder(void *param)
         browse.title = str(lang_id);
     }
 
+    /* Navegador de temas: título propio en vez del nombre crudo del
+     * directorio ("themes"), que rompía el idioma de la interfaz. */
+    if (info->show_options == SHOW_CFG && !browse.title)
+        browse.title = str(LANG_A26_THEMES_TITLE);
+
     tree_get_context()->browse = NULL;  /*bugfix - force root dir reload */
     return rockbox_browse(&browse);
 }
@@ -351,7 +356,7 @@ MENUITEM_FUNCTION_W_PARAM(browse_fonts, 0, ID2P(LANG_CUSTOM_FONT),
                           browse_folder, (void*)&fonts, NULL, Icon_Font);
 
 MENUITEM_FUNCTION_W_PARAM(browse_sbs, 0, ID2P(LANG_BASE_SKIN),
-                          browse_folder, (void*)&sbs, NULL, Icon_Wps);
+                          browse_folder, (void*)&sbs, NULL, Icon_S_BrowseSbs);
 #if CONFIG_TUNER
 MENUITEM_FUNCTION_W_PARAM(browse_fms, 0, ID2P(LANG_RADIOSCREEN),
                           browse_folder, (void*)&fms, NULL, Icon_Wps);
@@ -391,7 +396,7 @@ static int showicons_callback(int action,
 
 MENUITEM_SETTING(show_icons, &global_settings.show_icons, showicons_callback);
 MENUITEM_FUNCTION_W_PARAM(browse_themes, 0, ID2P(LANG_CUSTOM_THEME),
-                          browse_folder, (void*)&themes, NULL, Icon_Config);
+                          browse_folder, (void*)&themes, NULL, Icon_S_BrowseThemes);
 MENUITEM_SETTING(cursor_style, &global_settings.cursor_style, NULL);
 #if LCD_DEPTH > 1
 MENUITEM_SETTING(sep_menu, &global_settings.list_separator_height, NULL);
@@ -401,7 +406,7 @@ MENUITEM_SETTING(dynamic_colors, &global_settings.dynamic_colors, NULL);
 #endif
 
 MAKE_MENU(theme_menu, ID2P(LANG_THEME_MENU),
-            NULL, Icon_Wps,
+            NULL, Icon_A26_Themes,
             &browse_themes,
             &browse_fonts,
             &browse_wps,

@@ -298,7 +298,7 @@ MENUITEM_SETTING(rec_split_type, &global_settings.rec_split_type, NULL);
 MENUITEM_SETTING(rec_split_method, &global_settings.rec_split_method, NULL);
 MENUITEM_SETTING(rec_timesplit, &global_settings.rec_timesplit, NULL);
 MENUITEM_SETTING(rec_sizesplit, &global_settings.rec_sizesplit, NULL);
-MAKE_MENU(filesplitoptionsmenu, ID2P(LANG_RECORD_TIMESPLIT), NULL, Icon_NOICON,
+MAKE_MENU(filesplitoptionsmenu, ID2P(LANG_RECORD_TIMESPLIT), NULL, Icon_A26_FileSplit,
             &rec_split_method, &rec_split_type, &rec_timesplit, &rec_sizesplit);
 
 

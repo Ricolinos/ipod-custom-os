@@ -182,22 +182,22 @@ MENUITEM_SETTING(tagcache_ram, &global_settings.tagcache_ram, NULL);
 #endif
 MENUITEM_SETTING(tagcache_autoupdate, &global_settings.tagcache_autoupdate, NULL);
 MENUITEM_FUNCTION(tc_init, 0, ID2P(LANG_TAGCACHE_FORCE_UPDATE),
-                  (int(*)(void))tagcache_rebuild_with_splash, NULL, Icon_NOICON);
+                  (int(*)(void))tagcache_rebuild_with_splash, NULL, Icon_S_DbInit);
 MENUITEM_FUNCTION(tc_update, 0, ID2P(LANG_TAGCACHE_UPDATE),
-                  (int(*)(void))tagcache_update_with_splash, NULL, Icon_NOICON);
+                  (int(*)(void))tagcache_update_with_splash, NULL, Icon_S_DbUpdate);
 MENUITEM_SETTING(runtimedb, &global_settings.runtimedb, NULL);
 
 MENUITEM_FUNCTION(tc_export, 0, ID2P(LANG_TAGCACHE_EXPORT),
                   tagtree_export,
-                  NULL, Icon_NOICON);
+                  NULL, Icon_S_DbExport);
 
 MENUITEM_FUNCTION(tc_import, 0, ID2P(LANG_TAGCACHE_IMPORT),
                   tagtree_import,
-                  NULL, Icon_NOICON);
+                  NULL, Icon_S_DbImport);
 MENUITEM_FUNCTION(tc_paths, 0, ID2P(LANG_SELECT_DATABASE_DIRS),
-                  dirs_to_scan, db_folder_select_menu_cb, Icon_NOICON);
+                  dirs_to_scan, db_folder_select_menu_cb, Icon_S_DbPaths);
 
-MAKE_MENU(tagcache_menu, ID2P(LANG_TAGCACHE), 0, Icon_NOICON,
+MAKE_MENU(tagcache_menu, ID2P(LANG_TAGCACHE), 0, Icon_A26_Database,
 #ifdef HAVE_TC_RAMCACHE
                 &tagcache_ram,
 #endif
@@ -235,7 +235,7 @@ MENUITEM_FUNCTION(clear_start_directory_item, 0, ID2P(LANG_RESET_START_DIR),
 static int filemenu_callback(int action,
                              const struct menu_item_ex *this_item,
                              struct gui_synclist *this_list);
-MAKE_MENU(file_menu, ID2P(LANG_FILE), filemenu_callback, Icon_file_view_menu,
+MAKE_MENU(file_menu, ID2P(LANG_FILE), filemenu_callback, Icon_A26_FileView,
                 &sort_case, &sort_dir, &sort_file, &interpret_numbers,
                 &dirfilter, &show_filename_ext, &browse_current,
                 &show_path_in_browser,
@@ -291,7 +291,7 @@ static int usbcharging_callback(int action,
 }
 MENUITEM_SETTING(usb_charging, &global_settings.usb_charging, usbcharging_callback);
 #endif /* HAVE_USB_CHARGING_ENABLE */
-MAKE_MENU(battery_menu, ID2P(LANG_BATTERY_MENU), 0, Icon_NOICON,
+MAKE_MENU(battery_menu, ID2P(LANG_BATTERY_MENU), 0, Icon_A26_Battery,
 #if BATTERY_CAPACITY_INC > 0
             &battery_capacity,
 #endif
@@ -336,7 +336,7 @@ static int dircache_callback(int action,
 MENUITEM_SETTING(dircache, &global_settings.dircache, dircache_callback);
 #endif
 #if defined(HAVE_DIRCACHE) || defined(HAVE_DISK_STORAGE)
-MAKE_MENU(disk_menu, ID2P(LANG_DISK_MENU), 0, Icon_NOICON,
+MAKE_MENU(disk_menu, ID2P(LANG_DISK_MENU), 0, Icon_A26_Disk,
 #ifdef HAVE_DISK_STORAGE
           &disk_spindown,
           &storage_mode,
@@ -351,7 +351,7 @@ MAKE_MENU(disk_menu, ID2P(LANG_DISK_MENU), 0, Icon_NOICON,
 MENUITEM_SETTING(max_files_in_dir, &global_settings.max_files_in_dir, NULL);
 MENUITEM_SETTING(max_files_in_playlist, &global_settings.max_files_in_playlist, NULL);
 MENUITEM_SETTING(default_glyphs, &global_settings.glyphs_to_cache, NULL);
-MAKE_MENU(limits_menu, ID2P(LANG_LIMITS_MENU), 0, Icon_NOICON,
+MAKE_MENU(limits_menu, ID2P(LANG_LIMITS_MENU), 0, Icon_A26_Limits,
            &max_files_in_dir, &max_files_in_playlist
            ,&default_glyphs
            );
@@ -367,7 +367,7 @@ MENUITEM_SETTING(keyclick, &global_settings.keyclick, NULL);
 MENUITEM_SETTING(keyclick_repeats, &global_settings.keyclick_repeats, NULL);
 #ifdef HAVE_HARDWARE_CLICK
 MENUITEM_SETTING(keyclick_hardware, &global_settings.keyclick_hardware, NULL);
-MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
+MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_A26_KeyClick,
            &keyclick, &keyclick_hardware, &keyclick_repeats);
 #else
 MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
@@ -377,7 +377,7 @@ MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
 #if CONFIG_CHARGING
 MENUITEM_SETTING(car_adapter_mode, &global_settings.car_adapter_mode, NULL);
 MENUITEM_SETTING(car_adapter_mode_delay, &global_settings.car_adapter_mode_delay, NULL);
-MAKE_MENU(car_adapter_mode_menu, ID2P(LANG_CAR_ADAPTER_MODE), 0, Icon_NOICON,
+MAKE_MENU(car_adapter_mode_menu, ID2P(LANG_CAR_ADAPTER_MODE), 0, Icon_A26_Car,
            &car_adapter_mode, &car_adapter_mode_delay);
 #endif
 #ifdef IPOD_ACCESSORY_PROTOCOL
@@ -431,10 +431,10 @@ MENUITEM_SETTING(bt_selective_actions,
                                                     selectivesoftlock_callback);
 MENUITEM_FUNCTION(sel_softlock_mask, 0, ID2P(LANG_SETTINGS),
                   selectivesoftlock_set_mask, selectivesoftlock_callback,
-                  Icon_Menu_setting);
+                  Icon_S_SoftlockMask);
 
 MAKE_MENU(sel_softlock, ID2P(LANG_SOFTLOCK_SELECTIVE),
-          NULL, Icon_Menu_setting, &bt_selective_actions, &sel_softlock_mask);
+          NULL, Icon_A26_LockKey, &bt_selective_actions, &sel_softlock_mask);
 #endif /* !HAS_BUTTON_HOLD */
 
 MENUITEM_SETTING(wps_select_action, &global_settings.wps_select_action, NULL);
@@ -444,7 +444,7 @@ MENUITEM_SETTING(governor, &global_settings.governor, NULL);
 #endif
 
 MAKE_MENU(system_menu, ID2P(LANG_SYSTEM),
-          0, Icon_System_menu,
+          0, Icon_A26_SystemGears,
 #if (BATTERY_CAPACITY_INC > 0) || defined(HAVE_USB_CHARGING_ENABLE)
             &battery_menu,
 #endif
@@ -582,7 +582,7 @@ MENUITEM_SETTING(clear_settings_on_hold,
 #endif
 
 MAKE_MENU(startup_shutdown_menu, ID2P(LANG_STARTUP_SHUTDOWN),
-          0, Icon_System_menu,
+          0, Icon_A26_Power,
             &show_shutdown_message,
             &start_screen,
             &poweroff,
@@ -699,7 +699,7 @@ MENUITEM_SETTING(autoresume_automatic, &global_settings.autoresume_automatic,
                  autoresume_nexttrack_callback);
 
 MAKE_MENU(autoresume_menu, ID2P(LANG_AUTORESUME),
-          0, Icon_NOICON,
+          0, Icon_A26_Resume,
           &autoresume_enable, &autoresume_automatic);
 
 #endif /* HAVE_TAGCACHE */
@@ -778,7 +778,7 @@ MENUITEM_SETTING(browser_default,
 MENUITEM_SETTING(hotkey_wps_item, &global_settings.hotkey_wps, NULL);
 #endif
 
-MAKE_MENU(wps_settings, ID2P(LANG_WPS), 0, Icon_Playback_menu
+MAKE_MENU(wps_settings, ID2P(LANG_WPS), 0, Icon_A26_NowPlaying
             ,&browser_default
 #ifdef HAVE_HOTKEY
             ,&hotkey_wps_item
@@ -799,7 +799,7 @@ MENUITEM_FUNCTION_W_PARAM(browse_langs, 0, ID2P(LANG_LANGUAGE),
                           browse_folder, (void*)&langs, NULL, Icon_Language);
 
 MAKE_MENU(settings_menu_item, ID2P(LANG_GENERAL_SETTINGS), 0,
-          Icon_General_settings_menu,
+          Icon_A26_Tools,
           &wps_settings,
           &playlist_settings, &file_menu,
 #ifdef HAVE_TAGCACHE

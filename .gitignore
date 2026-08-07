@@ -369,6 +369,13 @@ __pycache__
 /*Audit*.md
 /*Worklog*.md
 /*Forensics*.md
+# El tracker de la auditoría integral SÍ se versiona (es la fuente de
+# verdad entre sesiones); la regla de arriba es para reportes generados.
+!/AUDIT.md
+# Las instrucciones del proyecto también: sin ellas, una sesión nueva (u
+# otro modelo) pierde toda la operativa. La regla /CLAUDE.md venía de la
+# cadena del fork y tenía el archivo viviendo sólo en el disco local.
+!/CLAUDE.md
 /fonts/APPLE2026_FONT_ANALYSIS.md
 /docs/profontdoc.txt
 /docs/usb-api.md

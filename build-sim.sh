@@ -77,11 +77,14 @@ sync_apple2026_theme_payload() {
         return
     fi
 
-    mkdir -p "$simroot/wps/Apple2026"
+    mkdir -p "$simroot/wps/Apple2026" "$simroot/wps/Apple2026Dark"
     for src in \
         "$repowps/Apple2026.sbs" \
         "$repowps/Apple2026.wps" \
-        "$repowps/Apple2026"/*.bmp; do
+        "$repowps/Apple2026"/*.bmp \
+        "$repowps/Apple2026Dark.sbs" \
+        "$repowps/Apple2026Dark.wps" \
+        "$repowps/Apple2026Dark"/*.bmp; do
         [ -f "$src" ] || continue
         rel="${src#"$repowps"/}"
         dst="$simroot/wps/$rel"
@@ -164,6 +167,7 @@ line selector text color: 000000
 list separator height: 1
 list separator color: C6C6C8
 font: /.rockbox/fonts/16-SFProText-Regular.fnt
+lang: /.rockbox/langs/español.lng
 statusbar: top
 iconset: /.rockbox/icons/Apple2026Icons.bmp
 viewers iconset: -

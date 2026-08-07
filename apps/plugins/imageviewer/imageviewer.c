@@ -28,6 +28,7 @@
 #include <lib/helper.h>
 #include <lib/configfile.h>
 #include "imageviewer.h"
+#include "lib/read_image.h"
 #include "imageviewer_button.h"
 #include "image_decoder.h"
 
@@ -1159,6 +1160,118 @@ static bool find_album_art(int *offset, int *filesize, int *status)
 #endif
 }
 
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+/* ---- Apple2026 fit-to-screen photo viewer ---------------------------
+ * One decode per photo, scaled during load to fit the screen with the
+ * aspect ratio preserved (black bars where it does not fill).  No zoom,
+ * no panning, no full-resolution buffer.
+ * Wheel = previous/next photo, PLAY = toggle slideshow, MENU = exit. */
+static int a26_photo_loop(void)
+{
+    struct bitmap bm;
+    bool need_load = true;
+    bool ok = false;
+    long next_tick = 0;
+
+    rb->lcd_set_backdrop(NULL);
+    rb->lcd_set_background(LCD_BLACK);
+    rb->lcd_set_foreground(LCD_WHITE);
+
+    while (1)
+    {
+        int button;
+
+        if (need_load)
+        {
+            need_load = false;
+            rb->memset(&bm, 0, sizeof(bm));
+            bm.data = (unsigned char *)buf;
+            bm.width = LCD_WIDTH;
+            bm.height = LCD_HEIGHT;
+            ok = read_image_file(np_file, &bm, buf_size,
+                                 FORMAT_NATIVE | FORMAT_DITHER |
+                                 FORMAT_RESIZE | FORMAT_KEEP_ASPECT,
+                                 NULL) > 0;
+            rb->lcd_clear_display();
+            if (ok && bm.width > 0 && bm.height > 0)
+            {
+                rb->lcd_bitmap((fb_data *)bm.data,
+                               (LCD_WIDTH - bm.width) / 2,
+                               (LCD_HEIGHT - bm.height) / 2,
+                               bm.width, bm.height);
+            }
+            else if (!iv_api.running_slideshow)
+            {
+                /* H-21: LANG_READ_FAILED lleva un %s y se pasaba a
+                 * putsxy tal cual, así que la pantalla mostraba los dos
+                 * caracteres "%s" en vez del nombre del archivo. */
+                char msg[MAX_PATH + 32];
+                rb->snprintf(msg, sizeof(msg), rb->str(LANG_READ_FAILED),
+                             rb->strrchr(np_file, '/')
+                                 ? rb->strrchr(np_file, '/') + 1 : np_file);
+                rb->lcd_putsxy(8, LCD_HEIGHT / 2, msg);
+            }
+            rb->lcd_update();
+            next_tick = *rb->current_tick + settings.ss_timeout * HZ;
+        }
+
+        button = rb->button_get_w_tmo(HZ / 2);
+
+        if (iv_api.slideshow_enabled && button == BUTTON_NONE &&
+            TIME_AFTER(*rb->current_tick, next_tick))
+        {
+            if (entries > 1)
+            {
+                if (change_filename(DIR_NEXT) == PLUGIN_ERROR)
+                    return PLUGIN_OK;
+                need_load = true;
+            }
+            else
+                next_tick = *rb->current_tick + settings.ss_timeout * HZ;
+            continue;
+        }
+
+        switch (button)
+        {
+            case BUTTON_SCROLL_FWD:
+            case BUTTON_SCROLL_FWD | BUTTON_REPEAT:
+            case BUTTON_RIGHT:
+                if (entries > 1)
+                {
+                    if (change_filename(DIR_NEXT) == PLUGIN_ERROR)
+                        return PLUGIN_OK;
+                    need_load = true;
+                }
+                break;
+
+            case BUTTON_SCROLL_BACK:
+            case BUTTON_SCROLL_BACK | BUTTON_REPEAT:
+            case BUTTON_LEFT:
+                if (entries > 1)
+                {
+                    if (change_filename(DIR_PREV) == PLUGIN_ERROR)
+                        return PLUGIN_OK;
+                    need_load = true;
+                }
+                break;
+
+            case BUTTON_PLAY:
+                iv_api.slideshow_enabled = !iv_api.slideshow_enabled;
+                next_tick = *rb->current_tick + settings.ss_timeout * HZ;
+                break;
+
+            case BUTTON_MENU:
+                return PLUGIN_OK;
+
+            default:
+                if (rb->default_event_handler(button) == SYS_USB_CONNECTED)
+                    return PLUGIN_USB_CONNECTED;
+                break;
+        }
+    }
+}
+#endif /* Apple2026 fit-to-screen viewer */
+
 /******************** Plugin entry point *********************/
 
 enum plugin_status plugin_start(const void* parameter)
@@ -1254,6 +1367,20 @@ enum plugin_status plugin_start(const void* parameter)
     rb->lcd_set_backdrop(NULL);
     rb->lcd_set_foreground(LCD_WHITE);
     rb->lcd_set_background(LCD_BLACK);
+#endif
+
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+    /* Apple2026: fit-to-screen viewer.  The stock path decodes at full
+     * resolution so it can pan/zoom, which blows the plugin buffer on
+     * multi-megapixel photos ("Out of memory").  read_image_file()
+     * resizes while decoding, so peak memory is one screen-sized frame
+     * regardless of the source dimensions. */
+    condition = a26_photo_loop();
+    release_decoder();
+    if (rb->memcmp(&settings, &old_settings, sizeof (settings)))
+        configfile_save(IMGVIEW_CONFIGFILE, config, ARRAYLEN(config),
+                        IMGVIEW_SETTINGS_VERSION);
+    return condition;
 #endif
 
     do

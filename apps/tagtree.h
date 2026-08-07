@@ -38,6 +38,7 @@ void tagtree_init(void) INIT_ATTR;
  * root view at the given index (Music submenu direct views). */
 void tagtree_request_initial_entry(int index);
 int tagtree_take_pending_entry(void);
+bool tagtree_has_pending_entry(void);
 int tagtree_enter(struct tree_context* c, bool is_visible);
 void tagtree_exit(struct tree_context* c, bool is_visible);
 int tagtree_load(struct tree_context* c);
@@ -47,7 +48,7 @@ bool tagtree_current_playlist_insert(int position, bool queue);
 int tagtree_add_to_playlist(const char* playlist, bool new_playlist);
 char *tagtree_get_title(struct tree_context* c);
 int tagtree_get_attr(struct tree_context* c);
-int tagtree_get_icon(struct tree_context* c);
+int tagtree_get_icon(struct tree_context* c, int selected_item);
 int tagtree_get_filename(struct tree_context* c, char *buf, int buflen);
 int tagtree_get_custom_action(struct tree_context* c);
 bool tagtree_get_subentry_filename(char *buf, size_t bufsize);

@@ -66,8 +66,14 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
 bool apple2026_pane_animating(void);
 
 /* Preferred poll timeout for the list loop while the pane animates:
- * 0 = no clamp needed, else a tick count (HZ/20 fade, HZ/8 slow pan). */
+ * 0 = no clamp needed, else a tick count (HZ/20 fundido,
+ * PANE_PAN_FRAME_TICKS deriva). */
 int apple2026_pane_anim_timeout(void);
+
+/* Repinta sólo el panel para un fotograma de la deriva lenta, sin tocar la
+ * lista.  Devuelve false cuando el fotograma no es de deriva pura: el
+ * llamante debe entonces hacer el `gui_synclist_draw()` de siempre. */
+bool apple2026_pane_draw_pane_only(struct screen *display);
 
 /* Advance the slideshow (scan slice, prefetch, 10s rotation).  Called on
  * the menu idle tick; returns true when a redraw is wanted now. */
@@ -76,6 +82,7 @@ bool apple2026_pane_tick(void);
 #define apple2026_pane_draw(display, list_vp, list) do { } while (0)
 #define apple2026_pane_animating() false
 #define apple2026_pane_anim_timeout() 0
+#define apple2026_pane_draw_pane_only(display) false
 #define apple2026_pane_tick() false
 #endif
 

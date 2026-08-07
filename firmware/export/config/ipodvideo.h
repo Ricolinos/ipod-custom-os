@@ -130,9 +130,11 @@
 /* define to activate advanced wheel acceleration code */
 #define HAVE_WHEEL_ACCELERATION
 /* define from which rotation speed [degree/sec] on the acceleration starts */
-#define WHEEL_ACCEL_START 270
+/* RockPod: v² y arranque tardío, como en ipod6g.h — la v⁴ hacía
+ * incontrolables las listas largas. */
+#define WHEEL_ACCEL_START 300
 /* define type of acceleration (1 = ^2, 2 = ^3, 3 = ^4) */
-#define WHEEL_ACCELERATION 3
+#define WHEEL_ACCELERATION 1
 
 /* Define this if you can detect headphones */
 #define HAVE_HEADPHONE_DETECTION

@@ -109,9 +109,27 @@ REQUIRED_RUNTIME_FILES = [
 ]
 
 REQUIRED_BMP_DIMENSIONS = {
-    "icons/Apple2026Icons.bmp": (30, 1170),  # +Coverflow/Photos/Shuffle/Genre/MusicApp
-    "wps/Apple2026/albumPlaceholder.bmp": (150, 150),
+    # 363 frames de 30 px: los 359 anteriores + los cuatro de transporte que
+    # añadió tools/apple2026_playback_icons.py (H-17).  Las DOS tiras deben
+    # tener la misma altura: si una se queda corta, el tema afectado sirve el
+    # icono equivocado a partir del primer frame que falte.
+    "icons/Apple2026Icons.bmp": (30, 10890),
+    "icons/Apple2026IconsDark.bmp": (30, 10890),
+    "wps/Apple2026/albumPlaceholder.bmp": (110, 110),  # matches the 110px art rect
     "wps/Apple2026/art_mask.bmp": (32, 32),
+    # A26_SPIN_PX x A26_SPIN_FRAMES de apps/gui/splash.c: si el generador
+    # cambia de tamaño y el C no, la tira se rechaza y no hay spinner.
+    "wps/Apple2026/loading.bmp": (32, 384),
+    # A26_SYM_PX x A26_USB_MODE_FRAMES: los cuatro modos del mando USB, en el
+    # orden de hid_key_mappings (usb_keymaps.c).  Si Rockbox añadiera un modo
+    # y la tira se quedara con cuatro, el modo nuevo saldría sin símbolo justo
+    # cuando el disco ya es del ordenador y no hay forma de leer otro archivo.
+    "wps/Apple2026/a26_usb_modes.bmp": (96, 384),
+    # La oscura también, y por la misma razón que las tiras de iconos (H-17):
+    # la genera tools/apple2026_dark_assets.py a mano, así que sin contrato un
+    # olvido dejaría el tema oscuro sin símbolos de modo y sólo se vería con el
+    # cable puesto, que es donde peor se diagnostica.
+    "wps/Apple2026Dark/a26_usb_modes.bmp": (96, 384),
     "wps/Apple2026/miniplayer_bg.bmp": (320, 50),
     "wps/Apple2026/qs_wheel.bmp": (92, 92),
     "wps/Apple2026/qs_slider_fill.bmp": (20, 132),
@@ -120,10 +138,10 @@ REQUIRED_BMP_DIMENSIONS = {
     "wps/Apple2026/qs_bar_track.bmp": (176, 6),
     "wps/Apple2026/qs_sun_max.bmp": (14, 14),
     "wps/Apple2026/qs_sun_min.bmp": (14, 14),
-    "wps/Apple2026/playerStatusLarge.bmp": (20, 80),
-    "wps/Apple2026/repeatLarge.bmp": (20, 15),
+    "wps/Apple2026/playerStatusLarge.bmp": (20, 100),  # +rewind frame
+    "wps/Apple2026/repeatLarge.bmp": (15, 60),   # repeat / repeat.1 x muted+pink
     "wps/Apple2026/shuffle.bmp": (16, 11),
-    "wps/Apple2026/shuffleLarge.bmp": (20, 15),
+    "wps/Apple2026/shuffleLarge.bmp": (15, 30),  # shuffle muted+pink
     "wps/Apple2026/wpsArtCorners.bmp": (150, 150),
     "wps/Apple2026/wpsBackdrop.bmp": (320, 240),
 }
@@ -131,30 +149,43 @@ REQUIRED_BMP_DIMENSIONS = {
 CLAIM_CONTRACTS = {
     "Apple2026.sbs": {
         "required": [
-            ("%Vl(batterytext,-70,0,38,20,6)", "SBS battery text must use dense slot 6"),
-            ("%Vl(batterytext_root,88,0,38,20,6)", "root SBS battery text must use dense slot 6 in the split bar"),
+            ("%Vl(batterytext,-80,0,38,20,6)", "SBS battery text must use dense slot 6, clear of the pp icon and the battery glyph"),
             ("%?if(%bl, =, 100)<100%%|%bl%%>", "battery percentage must not contain a space before '%'"),
-            ("%Vl(lock,-66,4,9,12,-)", "lock icon must live in the right-side status cluster"),
-            ("%Vl(lock_split,98,4,9,12,-)", "split bars need their own lock slot"),
+            ("%Vl(lock,216,4,9,12,-)", "lock icon must live in the right-side status cluster"),
+            ("%Vl(lock_split,121,4,9,12,-)", "split bars need their own lock slot"),
+            ("%Vl(hdr_title,10,0,108,20,3)", "full-screen header title needs 108px so fixed titles do not scroll (H-10)"),
+            ("%Vl(hdr_title_split,10,0,64,20,3)", "split header title is left aligned in the left column"),
+            ("%s%al%?Lo<iPod|%Lt>", "root header must read iPod through a dynamic tag, never a static literal"),
+            ("%Vl(hdr_clock,120,2,80,18,8)", "full-width clock must sit on the title baseline (y=2 for slot 8)"),
+            ("%Vl(hdr_clock_split,76,3,42,17,9)", "split clock must sit on the title baseline (y=3 for slot 9)"),
             ("%xl(J,statusPlay.bmp,0,0,2)", "status bar must carry the play/pause indicator"),
-            ("%Vl(sleeptimertext,-100,0,58,20,6)", "SBS sleep text must live in the right-side battery cluster"),
+            ("%Vl(sleeptimertext,120,0,80,20,6)", "sleep countdown takes the clock slot while it runs"),
             ("%?if(%cs, =, 10)<%VI(qs_blank)|", "quickscreen must suppress underlying content viewport ownership"),
             ("%Vi(qs_blank,0,0,1,1,5)", "quickscreen must define a dedicated blank info viewport"),
-            ("%V(80,8,160,18,8)", "quickscreen header must use the smaller centered title block"),
+            ("%V(10,0,108,20,3)", "quickscreen title needs 108px: at 94 it scrolled as a marquee (H-08)"),
+            ("%?if(%cs, =, 10)<%al%Sx(Quick Settings)|>", "quickscreen title must not scroll"),
+            ("%V(120,2,80,18,8)", "quickscreen clock must share the title baseline"),
             ("%V(114,84,92,92,-)", "quickscreen wheel must be centered"),
             ("%xd(Q)", "quickscreen must render the Apple2026 quick wheel asset"),
             ("%xd(X)", "quickscreen must render the brightness-up sun symbol"),
             ("%xd(R)", "quickscreen must render the brightness-down sun symbol"),
-            ("%St(0,0,176,6,image,V,backdrop,W,setting,brightness)", "quickscreen must render the wider rounded brightness bar"),
-            ("%pv(0,0,176,6,image,V,backdrop,W)", "quickscreen must render the wider rounded volume bar"),
+            ("%?pv<%xd(Ca)|%xd(Cb)|%xd(Cc)|%xd(Cd)|%xd(Ce)>", "quickscreen speaker must span the five volume states"),
+            ("%St(0,0,20,132,image,U,backdrop,G,vertical,setting,brightness)", "quickscreen brightness is a vertical slider on the right"),
+            ("%pv(0,0,20,132,image,U,backdrop,G,vertical)", "quickscreen volume is a vertical slider on the left"),
             ("%xl(T,playerStatusLarge.bmp,0,0,4)", "SBS mini-player must preload the larger transport strip"),
             ("# (mini-player retired: now-playing card lives in the split pane)", "mini-player must stay retired; the split pane owns now-playing"),
             ("%V(280,203,20,20,-)", "SBS mini-player transport must use the larger 20x20 slot"),
-            ("%?mp<|%?Lo<%Vd(pp_icon_split)", "status bar must show playback state while audio is active"),
+            ("%Vl(pp_icon_left,226,4,12,12,-)", "numeric battery must push the pp icon left instead of overlapping it"),
+            ("%Vl(battery_icon_root,133,2,27,16,3)", "split battery viewport must match the 27px bitmap frame"),
+            ("%Vl(busyindicator,202,6,9,9,-)", "busy spinner must share the 10px optical axis of the cluster"),
             ("%Vl(mp_volume_bg,60,203,196,20,-)", "SBS mini-player volume overlay must be a transient labeled viewport"),
             ("%Vl(mp_volume_clip,60,203,196,20,-)", "SBS mini-player clipping overlay must be a transient labeled viewport"),
         ],
         "forbidden": [
+            ("%Vd(pp_icon_split)", "el play/pausa no vuelve a la barra dividida: tapaba el candado (H-01/D2)"),
+            ("%Vl(pp_icon_split", "el viewport del play/pausa partido no debe volver (H-01/D2)"),
+            ("%Vl(busyindicatorleft", "la variante duplicada del spinner no debe volver (H-02.3)"),
+            ("%Vl(batterytext_root", "viewport muerto: ningun %Vd lo referenciaba (H-02.5)"),
             ("FBFBF9", "mini-player shell/body split white must not ship"),
             ("%dr(0,0,320,50,FFFFFF,FFFFFF)", "SBS must not hard-clear the full mini-player strip in stop/pause states"),
             ("%dr(0,0,320,50,FAFAF8,FAFAF8)", "SBS must not hard-clear the full mini-player strip in stop/pause states"),
@@ -191,21 +222,21 @@ CLAIM_CONTRACTS = {
         "required": [
             ("%?if(%bl, =, 100)<100%%|%bl%%>", "WPS battery percentage must not contain a space before '%'"),
             ("%Fl(6,13-SFCompactText-Regular.fnt)", "WPS must load the compact status-label font"),
-            ("%xl(N,playerStatusLarge.bmp,0,0,4)", "WPS must preload the dedicated large transport strip"),
-            ("%xl(O,repeatLarge.bmp,0,0)", "WPS must preload the dedicated large repeat glyph"),
-            ("%xl(Q,shuffleLarge.bmp,0,0)", "WPS must preload the dedicated large shuffle glyph"),
-            ("%Vl(title_line,18,-79,258,20,9)", "WPS title lane must reserve the right-side safe area"),
-            ("%Vl(artist_line,18,-60,258,18,3)", "WPS artist/album lane must reserve the right-side safe area"),
-            ("%Vl(shuffle_state,281,103,20,15,-)", "WPS must define the larger upper-right shuffle slot"),
-            ("%?or(%if(%ps, =, s),%if(%mm, =, 3))<%xd(Q)>", "WPS shuffle lane must explicitly cover shuffle and repeat-shuffle states"),
-            ("%Vl(repeat_icon_state,281,124,20,15,-)", "WPS must define the larger repeat icon slot"),
-            ("%?mm<|%xd(O)|%xd(O)|%xd(O)|%xd(O)>", "WPS repeat icon lane must stay populated for all repeat-enabled modes"),
-            ("%Vl(repeat_label_state,264,140,54,15,6)", "WPS must define the compact repeat-label lane under the repeat icon"),
-            ("%ac%?mm<||All|One|All|A-B>", "WPS repeat label lane must use short labels and treat repeat-shuffle as All"),
-            ("%Vl(player_status_lane,280,178,20,20,-)", "WPS player status must use the larger bottom-right lane"),
-            ("%Vl(lossless_ind,127,-12,66,11,-)", "WPS lossless badge must live in the bottom pad"),
-            ("%x(M,speaker_mute.bmp,35,1)", "mute icon must match the loud speaker size and sit flush with the volume rail"),
-            ("%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Nd)|>>", "WPS status icon must use the larger iPod-style play/pause mapping"),
+            ("%xl(N,playerStatusLarge.bmp,0,0,5)", "transport strip carries stop/pause/play/ff/rew"),
+            ("%xl(O,repeatLarge.bmp,0,0,4)", "repeat strip carries all four states"),
+            ("%xl(Q,shuffleLarge.bmp,0,0,2)", "shuffle strip carries both states"),
+            ("%?pv<%xd(Va)|%xd(Vb)|%xd(Vc)|%xd(Vd)|%xd(Ve)>", "player volume bar speaker must follow the volume level"),
+            ("%Vl(title_line,136,44,172,22,9)", "title sits right of the hero art"),
+            ("%Vl(artist_line,136,70,172,18,3)", "artist sits under the title, right of the art"),
+            ("%Vl(shuffle_state,285,212,15,15,-)", "shuffle state sits bottom-right of the transport"),
+            ("%?or(%if(%ps, =, s),%if(%mm, =, 3))<%xd(Qb)|%xd(Qa)>", "shuffle lane must render both states (pink on, muted off)"),
+            ("%Vl(repeat_icon_state,20,212,15,15,-)", "repeat state sits bottom-left of the transport"),
+            ("%?mm<||||%alA-B>", "A-B repeat must be named, it has no glyph of its own"),
+            ("%?mm<%xd(Oa)|%xd(Ob)|%xd(Od)|%xd(Ob)|%xd(Ob)>", "repeat lane must render every mode (repeat.1 swaps the glyph)"),
+            ("%Vl(player_status_lane,150,212,20,20,-)", "WPS transport sits centred under the time row"),
+            ("%Vl(lossless_ind,14,150,66,11,-)", "WPS lossless badge sits on the metadata row"),
+            ("%pv(44,5,236,4,image,I,backdrop,J)", "volume overlay shares the progress-bar art and row"),
+            ("%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Ne)|>>", "transport must distinguish forward from rewind"),
         ],
         "forbidden": [
             ("%xl(P,playerStatus.bmp,0,0,4)", "WPS must not use the old shared small transport strip"),
@@ -252,7 +283,8 @@ ASSET_SAMPLE_EXPECTATIONS = {
         (0, 0): SHELL_BG,
     },
     "wps/Apple2026/albumPlaceholder.bmp": {
-        (0, 0): SHELL_BG,
+        # shared gray note tile (same art Cover Flow uses) 
+        (0, 0): (248, 248, 248),
     },
     "wps/Apple2026/Wallpaper.bmp": {
         (0, 0): SHELL_BG,
@@ -379,19 +411,19 @@ def audit_wps_hero_art_assets(read_pixel, label_prefix: str) -> list[str]:
             f"{label_prefix}wps/Apple2026/wpsArtCorners.bmp: hero trim corner must preserve backdrop/shadow pixels"
         )
 
-    trim_cutout = read_pixel("wps/Apple2026/wpsArtCorners.bmp", 90, 12)
+    trim_cutout = read_pixel("wps/Apple2026/wpsArtCorners110.bmp", 55, 55)
     if trim_cutout != TRANS_KEY:
         errors.append(
             f"{label_prefix}wps/Apple2026/wpsArtCorners.bmp: rounded interior must remain transparent via FF00FF"
         )
 
-    backdrop_corner = read_pixel("wps/Apple2026/wpsBackdrop.bmp", 85, 8)
+    backdrop_corner = read_pixel("wps/Apple2026/wpsBackdrop.bmp", 16, 30)
     if backdrop_corner == SHELL_BG:
         errors.append(
             f"{label_prefix}wps/Apple2026/wpsBackdrop.bmp: hero corner pocket must retain the curved-edge shadow"
         )
 
-    backdrop_interior = read_pixel("wps/Apple2026/wpsBackdrop.bmp", 95, 15)
+    backdrop_interior = read_pixel("wps/Apple2026/wpsBackdrop.bmp", 200, 60)
     if backdrop_interior != SHELL_BG:
         errors.append(
             f"{label_prefix}wps/Apple2026/wpsBackdrop.bmp: hero rounded interior must stay flat shell tone"
@@ -501,14 +533,17 @@ def audit_source_contract() -> list[str]:
             errors.append("statusbar-skinned.c: missing CUSTOM_STATUSBAR steady-state update call")
         else:
             refresh_expr = refresh_call.group(1)
-            # STATIC was only needed while the bottom mini-player lived on
-            # static lanes; the now-playing card is C-drawn, so steady-state
-            # passes intentionally skip the static tree (perf).
-            for token in ("SKIN_REFRESH_NON_STATIC", "SKIN_REFRESH_SCROLL"):
-                if token not in refresh_expr:
-                    errors.append(
-                        f"statusbar-skinned.c: steady-state CUSTOM_STATUSBAR refresh must include {token}"
-                    )
+            # The static tree cannot be skipped: %Vd, the tag that makes a
+            # labelled viewport visible, is itself a STATIC token, so a
+            # non-static-only pass renders none of the %Vd-gated viewports
+            # and the bar's contents come and go.
+            if "SKIN_REFRESH_ALL" not in refresh_expr:
+                for token in ("SKIN_REFRESH_STATIC", "SKIN_REFRESH_NON_STATIC",
+                              "SKIN_REFRESH_SCROLL"):
+                    if token not in refresh_expr:
+                        errors.append(
+                            f"statusbar-skinned.c: steady-state CUSTOM_STATUSBAR refresh must include {token}"
+                        )
 
     if ART_FRAME_TOOL.exists():
         generator_text = ART_FRAME_TOOL.read_text(encoding="utf-8", errors="replace")

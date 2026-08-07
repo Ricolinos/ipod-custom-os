@@ -21,6 +21,7 @@
 #include "plugin.h"
 #include "lib/playback_control.h"
 #include "lib/configfile.h"
+#include "lib/read_image.h"
 #include "lib/helper.h"
 #include <ctype.h>
 
@@ -2771,6 +2772,86 @@ static int lrc_main(void)
 }
 
 /* this is the plugin entry point */
+
+#if (LCD_WIDTH == 320) && (LCD_HEIGHT == 240) && defined(HAVE_LCD_COLOR)
+/* ---- Apple2026 lyrics styling ---------------------------------------
+ * SF Pro faces, white text over a dark tone taken from the album art:
+ * the current line stays pure white, the rest sit at ~65% so the sung
+ * line reads first (Apple Music behaviour). */
+#define A26_LYR_ART 48
+static int a26_lyr_font = -1;
+
+static unsigned a26_lyr_dark_from_art(void)
+{
+    static unsigned char buf[A26_LYR_ART * A26_LYR_ART * sizeof(fb_data)
+                             + 40 * 1024];
+    struct bitmap bm;
+    char art[MAX_PATH];
+    unsigned r = 0, g = 0, b = 0;
+    int n, i;
+
+    if (!current.id3)
+        return LCD_RGBPACK(0x1C, 0x1C, 0x1E);
+    if (!rb->search_albumart_files(current.id3, ":", art, sizeof(art)))
+        return LCD_RGBPACK(0x1C, 0x1C, 0x1E);
+
+    rb->memset(&bm, 0, sizeof(bm));
+    bm.data = buf;
+    bm.width = A26_LYR_ART;
+    bm.height = A26_LYR_ART;
+    if (read_image_file(art, &bm, sizeof(buf),
+                        FORMAT_NATIVE | FORMAT_DITHER | FORMAT_RESIZE |
+                        FORMAT_KEEP_ASPECT, NULL) <= 0)
+        return LCD_RGBPACK(0x1C, 0x1C, 0x1E);
+
+    n = bm.width * bm.height;
+    if (n <= 0)
+        return LCD_RGBPACK(0x1C, 0x1C, 0x1E);
+    for (i = 0; i < n; i++)
+    {
+        fb_data c = ((fb_data *)bm.data)[i];
+        r += (c >> 11) & 0x1F;
+        g += (c >> 5) & 0x3F;
+        b += c & 0x1F;
+    }
+    r /= n; g /= n; b /= n;
+    /* deep, slightly desaturated version of the album tone */
+    r = r * 2 / 5; g = g * 2 / 5; b = b * 2 / 5;
+    return (unsigned)((r << 11) | (g << 5) | b);
+}
+
+static void a26_lyr_style(void)
+{
+    unsigned bg = a26_lyr_dark_from_art();
+    int id;
+
+    prefs.active_color = LCD_WHITE;
+    prefs.inactive_color = LCD_RGBPACK(0xA8, 0xA8, 0xAD);
+    prefs.align = 1;            /* centred, like Apple Music */
+    prefs.statusbar_on = false;
+    prefs.display_title = false;
+
+    id = rb->font_load(ROCKBOX_DIR "/fonts/18-SFProText-Regular.fnt");
+    if (id < 0)
+        id = rb->font_load(ROCKBOX_DIR "/fonts/16-SFProText-Regular.fnt");
+    a26_lyr_font = id;
+    if (a26_lyr_font >= 0)
+    {
+        rb->screens[SCREEN_MAIN]->setuifont(a26_lyr_font);
+        uifont = a26_lyr_font;
+        font_ui_height = rb->font_get(uifont)->height;
+    }
+
+    rb->lcd_set_backdrop(NULL);
+    rb->lcd_set_background(bg);
+    rb->lcd_set_foreground(LCD_WHITE);
+    rb->lcd_clear_display();
+    rb->lcd_update();
+}
+#else
+#define a26_lyr_style() do { } while (0)
+#endif
+
 enum plugin_status plugin_start(const void* parameter)
 {
     int ret = LRC_GOTO_MAIN;
@@ -2780,6 +2861,7 @@ enum plugin_status plugin_start(const void* parameter)
 
     uifont = rb->screens[0]->getuifont();
     font_ui_height = rb->font_get(uifont)->height;
+    a26_lyr_style();
 
     lrc_buffer = rb->plugin_get_buffer(&lrc_buffer_size);
     lrc_buffer = ALIGN_UP(lrc_buffer, 4); /* 4 bytes aligned */

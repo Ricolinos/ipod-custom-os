@@ -97,15 +97,24 @@ static int menu_callback(int action,
 }
 
 #define ITEM_FLAG (MENU_FUNC_CHECK_RETVAL)
+#if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
+#define ICON_PLUG(ic) ic
+#else
+#define ICON_PLUG(ic) Icon_Folder
+#endif
 
+/* Las tres llevaban el icono genérico de carpeta, que no distingue nada. */
 MENUITEM_FUNCTION_W_PARAM(games_item, ITEM_FLAG, ID2P(LANG_PLUGIN_GAMES),
-                          plugins_menu, (void*)GAMES, NULL, Icon_Folder);
+                          plugins_menu, (void*)GAMES, NULL,
+                          ICON_PLUG(Icon_S_PlugGames));
 MENUITEM_FUNCTION_W_PARAM(apps_item,  ITEM_FLAG, ID2P(LANG_PLUGIN_APPS),
-                          plugins_menu, (void*)APPS,  NULL, Icon_Folder);
+                          plugins_menu, (void*)APPS,  NULL,
+                          ICON_PLUG(Icon_S_PlugApps));
 MENUITEM_FUNCTION_W_PARAM(demos_item, ITEM_FLAG, ID2P(LANG_PLUGIN_DEMOS),
-                          plugins_menu, (void*)DEMOS, NULL, Icon_Folder);
+                          plugins_menu, (void*)DEMOS, NULL,
+                          ICON_PLUG(Icon_S_PlugDemos));
 
 
 MAKE_MENU(plugin_menu, ID2P(LANG_PLUGINS), &menu_callback,
-          Icon_Plugin,
+          Icon_A26_Plugins,
           &games_item, &apps_item, &demos_item);

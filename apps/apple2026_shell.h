@@ -6,6 +6,7 @@
 #define APPS_APPLE2026_SHELL_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "config.h"
 #include "lcd.h"
@@ -13,30 +14,103 @@
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 
 #define ROCKPOD_APPLE2026_IPOD 1
-/* Full-bleed list chrome: viewport is LCD width; apply this indent to row content. */
-#define A26_LIST_CONTENT_INSET 10
-/* Shell background (FFFFFF) */
-#define A26_SHELL_BG LCD_RGBPACK(255, 255, 255)
-/* Primary body/header text (000000) */
-#define A26_TEXT_PRIMARY LCD_RGBPACK(0, 0, 0)
-/* Secondary metadata / support text (6E6E73) */
-#define A26_TEXT_SECONDARY LCD_RGBPACK(110, 110, 115)
-/* Tertiary emphasis / progress fill (3C3C43) */
-#define A26_TEXT_TERTIARY LCD_RGBPACK(60, 60, 67)
-/* Accent red (FF2D55) */
-#define A26_ACCENT LCD_RGBPACK(255, 45, 85)
-/* List separator / thin rail (C6C6C8 — Apple opaqueSeparator) */
-#define A26_SHELL_RAIL LCD_RGBPACK(198, 198, 200)
-/* Active progress segment — tertiary family, not pure black */
-#define A26_PROGRESS_FILL LCD_RGBPACK(60, 60, 67)
-/* Unfilled progress track — matches WPS `%Vb(E5E5EA)` rail */
-#define A26_PROGRESS_TRACK LCD_RGBPACK(229, 229, 234)
-/* Statusbar battery “remainder” — calm neutral vs stock LCD_DARKGRAY */
-#define A26_BATTERY_REMAIN LCD_RGBPACK(199, 199, 204)
-/* Splash “broken theme” panel fill — calm grouped secondary, not stock gray */
-#define A26_SPLASH_BROKEN_FILL LCD_RGBPACK(242, 242, 246)
+/* Full-bleed list chrome: viewport is LCD width; apply this indent to row
+ * content.  The icon tile is 30px wide with its glyph centred, so an 18px
+ * glyph starts 6px into the tile: an inset of 2 puts the visible edge of
+ * every icon 8px from the screen, which is the margin the design calls for,
+ * while keeping the glyphs centred on a common axis. */
+#define A26_LIST_CONTENT_INSET 2
+/* ---------------------------------------------------------------------
+ * Colores de la capa.  Eran constantes de compilación, y por eso el tema
+ * oscuro no podía existir: los mismos ochenta sitios de uso tenían que dar
+ * un valor u otro según el tema.  Los nombres no cambian; ahora resuelven
+ * contra la paleta activa.
+ * ------------------------------------------------------------------- */
+enum a26_color {
+    A26_C_SHELL_BG,              /* Fondo de la carcasa */
+    A26_C_TEXT_PRIMARY,          /* Texto principal */
+    A26_C_TEXT_SECONDARY,        /* Texto secundario / metadatos */
+    A26_C_TEXT_TERTIARY,         /* Énfasis terciario */
+    A26_C_ACCENT,                /* Acento */
+    A26_C_SHELL_RAIL,            /* Separador de lista / raya fina */
+    A26_C_PROGRESS_FILL,         /* Progreso recorrido */
+    A26_C_PROGRESS_TRACK,        /* Progreso pendiente */
+    A26_C_BATTERY_REMAIN,        /* Resto de la batería */
+    A26_C_SPLASH_BROKEN_FILL,    /* Panel de "tema roto" */
+    A26_C_SELECTION_FILL,        /* Fila resaltada de un panel flotante */
+    A26_C_COUNT
+};
+
+/* Nombre de archivo de cada variante: lo comparte la puerta del tema, el
+ * empaquetado (wps/WPSLIST) y el rótulo traducido del explorador. */
+#define A26_THEME_LIGHT_STEM "Apple2026"
+#define A26_THEME_DARK_STEM  "Apple2026Dark"
+
+enum a26_theme_mode {
+    A26_THEME_LIGHT = 0,
+    A26_THEME_DARK,
+};
+
+/* Apunta a la paleta del tema activo.  Nunca es NULL: arranca en la clara. */
+extern const unsigned *a26_palette;
+
+#define A26_SHELL_BG             (a26_palette[A26_C_SHELL_BG])
+#define A26_TEXT_PRIMARY         (a26_palette[A26_C_TEXT_PRIMARY])
+#define A26_TEXT_SECONDARY       (a26_palette[A26_C_TEXT_SECONDARY])
+#define A26_TEXT_TERTIARY        (a26_palette[A26_C_TEXT_TERTIARY])
+#define A26_ACCENT               (a26_palette[A26_C_ACCENT])
+#define A26_SHELL_RAIL           (a26_palette[A26_C_SHELL_RAIL])
+#define A26_PROGRESS_FILL        (a26_palette[A26_C_PROGRESS_FILL])
+#define A26_PROGRESS_TRACK       (a26_palette[A26_C_PROGRESS_TRACK])
+#define A26_BATTERY_REMAIN       (a26_palette[A26_C_BATTERY_REMAIN])
+#define A26_SPLASH_BROKEN_FILL   (a26_palette[A26_C_SPLASH_BROKEN_FILL])
+#define A26_SELECTION_FILL       (a26_palette[A26_C_SELECTION_FILL])
+
+/* Cambia la paleta.  La llama la carga del tema; el resto de la capa no
+ * necesita enterarse porque lee siempre a través de los tokens. */
+void apple2026_set_theme_mode(enum a26_theme_mode mode);
+
+/* Ruta de un bitmap dentro de la carpeta del tema activo.  Todo lo que dibuja
+ * el código C tiene que pasar por aquí: con la ruta escrita a mano se cargaban
+ * siempre los del tema claro. */
+const char *apple2026_asset(char *buf, size_t bufsz, const char *name);
+/* Igual, pero sobre un buffer rotatorio propio, para pasarla directamente
+ * como argumento sin declarar uno en cada sitio de uso. */
+const char *A26_ASSET(const char *name);
+
+/* Cambia cada vez que se cambia de tema.  Quien guarde un bitmap cargado tiene
+ * que guardar también este valor y recargar cuando ya no coincida: si no, se
+ * queda con el dibujo del tema anterior para toda la sesión. */
+unsigned apple2026_asset_gen(void);
+enum a26_theme_mode apple2026_theme_mode(void);
 
 bool apple2026_theme_selected(void);
+
+/* Decoración de una fila de un menú de lista de cadenas.  Esos menús no
+ * tienen ajuste detrás del que deducir nada, así que lo dice quien los abre. */
+struct a26_menu_row {
+    int icon;            /* Icon_NOICON si la fila no lleva icono propio */
+    const char *value;   /* texto a la derecha; NULL si no lleva */
+    bool value_active;   /* rosa si está activo, atenuado si equivale a "no" */
+    int toggle;          /* -1 si no es de sí/no; 0 apagado, 1 encendido */
+};
+
+/* Describe las filas del PRÓXIMO do_menu().  Se consume al entrar, para que
+ * un submenú no herede la decoración del menú que lo abrió; el que llama
+ * vuelve a fijarla en cada vuelta de su bucle.  `flip` cambia el ajuste de
+ * sí/no de una fila y devuelve true si lo hizo. */
+void apple2026_menu_rows(void (*describe)(int row, struct a26_menu_row *out),
+                         bool (*flip)(int row));
+
+struct screen;
+/* Franja de estado para pantallas que se dibujan solas (búsqueda, USB):
+ * título a la izquierda, reloj al centro, batería a la derecha. */
+void apple2026_status_strip(struct screen *display, int width,
+                            const char *title);
+
+/* Icono propio de un ajuste, por su nombre de configuración; Icon_NOICON
+ * cuando no tiene uno asignado. */
+int apple2026_setting_icon(const char *cfg_name);
 bool apple2026_quicksettings_enabled(void);
 void apple2026_playpause(void);
 

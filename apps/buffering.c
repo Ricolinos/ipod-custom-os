@@ -862,7 +862,9 @@ static int load_image(int fd, const char *path,
 #if (LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1)
     bmp->maskdata = NULL;
 #endif
-    const int format = FORMAT_NATIVE | FORMAT_DITHER |
+    /* Sin tramado: sobre una portada de color plano el damero se ve y el
+     * error de cuantizar a 16 bits no. */
+    const int format = FORMAT_NATIVE |
                        FORMAT_RESIZE | FORMAT_KEEP_ASPECT;
 #ifdef HAVE_JPEG
     if (aa != NULL) {

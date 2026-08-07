@@ -40,6 +40,7 @@
 #include "yesno.h"
 #include "splash.h"
 #include "keyboard.h"
+#include "apple2026_kbd.h"
 
 /* Used for directory move, copy and delete */
 struct file_op_params
@@ -569,6 +570,11 @@ int create_dir(void)
     if (pathlen >= sizeof (dirname))
         return FORC_PATH_TOO_LONG;
 
+#if ROCKPOD_APPLE2026_IPOD
+    apple2026_kbd_set_context(A26_KBD_WRITE,
+                              (const char *)str(LANG_CREATE_DIR),
+                              (const char *)str(LANG_CREATE_DIR), NULL);
+#endif
     rc = prompt_name(basename, sizeof (dirname) - pathlen);
     if (rc == FORC_SUCCESS)
         rc = mkdir(dirname) * 10;
@@ -632,6 +638,11 @@ int rename_file(const char *selected_file)
         single file format, such as in the Playlists menu */
         *newext = '\0';
 
+#if ROCKPOD_APPLE2026_IPOD
+    apple2026_kbd_set_context(A26_KBD_WRITE,
+                              (const char *)str(LANG_RENAME),
+                              (const char *)str(LANG_RENAME), NULL);
+#endif
     rc = prompt_name(newbase, sizeof (newname) - pathlen);
 
     if (rc != FORC_SUCCESS)

@@ -35,6 +35,7 @@
 #include "crc32.h"
 #include "sound.h"
 #include "settings.h"
+#include "apple2026_kbd.h"
 #include "debug.h"
 #include "usb.h"
 #include "backlight.h"
@@ -770,6 +771,29 @@ bool settings_save_config(int options)
                              IF_CNFN_NUM_(, NULL));
 
     /* allow user to modify filename */
+#if ROCKPOD_APPLE2026_IPOD
+    /* La pantalla de escritura se presenta según lo que se va a guardar;
+     * sin esto se anunciaría como una búsqueda. */
+    {
+        int subject;
+
+        switch (options)
+        {
+            case SETTINGS_SAVE_THEME:      subject = LANG_CUSTOM_THEME; break;
+#ifdef HAVE_RECORDING
+            case SETTINGS_SAVE_RECPRESETS: subject = LANG_RECORDING_SETTINGS;
+                                           break;
+#endif
+            case SETTINGS_SAVE_EQPRESET:   subject = LANG_EQUALIZER; break;
+            case SETTINGS_SAVE_SOUND:      subject = LANG_SOUND_SETTINGS; break;
+            default:                       subject = LANG_SETTINGS; break;
+        }
+        apple2026_kbd_set_context(A26_KBD_SAVE,
+                                  (const char *)str(LANG_A26_SAVE_AS),
+                                  (const char *)str(LANG_A26_SAVE_AS),
+                                  (const char *)str(subject));
+    }
+#endif
     while (true) {
         if (!kbd_input(filename, sizeof(filename), NULL)) {
             break;

@@ -7878,15 +7878,16 @@
     vibe500: "OK = Yes"
   </source>
   <dest>
-    *: "PLAY = Sí"
+    *: "Aceptar"
     cowond2*: "MENÚ o arriba-derecha = Sí"
-    creativezen*,gigabeat*,iaudiom5,iaudiox5,ipod*,iriverh10,iriverh10_5gb,mrobe100,sansac200*,sansaclip*,sansaconnect,sansae200*,sansafuze*: "SELECT = Sí"
+    ipod*: "Aceptar"
+    creativezen*,gigabeat*,iaudiom5,iaudiox5,iriverh10,iriverh10_5gb,mrobe100,sansac200*,sansaclip*,sansaconnect,sansae200*,sansafuze*: "SELECT = Sí"
     iriverh100,iriverh120,iriverh300: "NAVI = Sí"
     mrobe500: "PLAY, POWER o arriba-derecha = Sí"
     vibe500: "OK = Sí"
   </dest>
   <voice>
-    *: ""
+    *: "Aceptar"
   </voice>
 </phrase>
 <phrase>
@@ -7925,10 +7926,10 @@
     *: "Any Other = No"
   </source>
   <dest>
-    *: "Otro = No"
+    *: "Cancelar"
   </dest>
   <voice>
-    *: ""
+    *: "Cancelar"
   </voice>
 </phrase>
 <phrase>
@@ -10994,10 +10995,10 @@
     *: "PictureFlow"
   </source>
   <dest>
-    *: "~PictureFlow"
+    *: "Cover Flow"
   </dest>
   <voice>
-    *: "abrir pictur flou"
+    *: "abrir cover flou"
   </voice>
 </phrase>
 <phrase>
@@ -11567,10 +11568,10 @@
     *: "Number of slides"
   </source>
   <dest>
-    *: "Número de carátulas"
+    *: "Solape de carátulas"
   </dest>
   <voice>
-    *: "Número de carátulas"
+    *: "Solape de carátulas"
   </voice>
 </phrase>
 <phrase>
@@ -11693,10 +11694,10 @@
     *: "Spacing"
   </source>
   <dest>
-    *: "Separación"
+    *: "Carátulas paralelas"
   </dest>
   <voice>
-    *: "Separación"
+    *: "Carátulas paralelas"
   </voice>
 </phrase>
 <phrase>
@@ -11791,10 +11792,10 @@
     *: "Playback Control"
   </source>
   <dest>
-    *: "Control de Reproducción"
+    *: "Control de reproducción"
   </dest>
   <voice>
-    *: "Control de Reproducción"
+    *: "Control de reproducción"
   </voice>
 </phrase>
 <phrase>
@@ -11805,10 +11806,10 @@
     *: "Previous Track"
   </source>
   <dest>
-    *: "Pista Anterior"
+    *: "Pista anterior"
   </dest>
   <voice>
-    *: "Pista Anterior"
+    *: "Pista anterior"
   </voice>
 </phrase>
 <phrase>
@@ -11819,10 +11820,10 @@
     *: "Pause / Play"
   </source>
   <dest>
-    *: "Pausar / Reproducir"
+    *: "Reproducir o pausar"
   </dest>
   <voice>
-    *: "Pausar / Reproducir"
+    *: "Reproducir o pausar"
   </voice>
 </phrase>
 <phrase>
@@ -11833,10 +11834,10 @@
     *: "Stop Playback"
   </source>
   <dest>
-    *: "Detener Reproducción"
+    *: "Detener reproducción"
   </dest>
   <voice>
-    *: "Detener Reproducción"
+    *: "Detener reproducción"
   </voice>
 </phrase>
 <phrase>
@@ -11847,10 +11848,10 @@
     *: "Next Track"
   </source>
   <dest>
-    *: "Siguiente Pista"
+    *: "Siguiente pista"
   </dest>
   <voice>
-    *: "Siguiente Pista"
+    *: "Siguiente pista"
   </voice>
 </phrase>
 <phrase>
@@ -11861,10 +11862,10 @@
     *: "Change Volume"
   </source>
   <dest>
-    *: "Cambiar Volumen"
+    *: "Cambiar volumen"
   </dest>
   <voice>
-    *: "Cambiar Volumen"
+    *: "Cambiar volumen"
   </voice>
 </phrase>
 <phrase>
@@ -11875,10 +11876,10 @@
     *: "Shuffle Mode"
   </source>
   <dest>
-    *: "Modo Aleatorio"
+    *: "Modo aleatorio"
   </dest>
   <voice>
-    *: "Modo Aleatorio"
+    *: "Modo aleatorio"
   </voice>
 </phrase>
 <phrase>
@@ -13331,10 +13332,10 @@
     *: "Change Repeat Mode"
   </source>
   <dest>
-    *: "Cambiar Modo de Repeteción"
+    *: "Cambiar modo de repetición"
   </dest>
   <voice>
-    *: "Cambiar Modo de Repeteción"
+    *: "Cambiar modo de repetición"
   </voice>
 </phrase>
 <phrase>
@@ -16667,10 +16668,10 @@
     *: "Recently Added"
   </source>
   <dest>
-    *: "Añadidas Recientemente"
+    *: "Agregado recientemente"
   </dest>
   <voice>
-    *: "Añadidas Recientemente"
+    *: "Agregado recientemente"
   </voice>
 </phrase>
 <phrase>
@@ -16681,10 +16682,10 @@
     *: "Playback History"
   </source>
   <dest>
-    *: "Historial de Reproducción"
+    *: "Historial"
   </dest>
   <voice>
-    *: "Historial de Reproducción"
+    *: "Historial de reproducción"
   </voice>
 </phrase>
 <phrase>
@@ -16947,7 +16948,7 @@
     *: "Quick Settings"
   </source>
   <dest>
-    *: "Ajustes rápidos"
+    *: "Ajustes"
   </dest>
   <voice>
     *: "Ajustes rápidos"
@@ -17324,10 +17325,10 @@
     *: "Slideshow"
   </source>
   <dest>
-    *: "Slideshow"
+    *: "Pase de diapositivas"
   </dest>
   <voice>
-    *: "Slideshow"
+    *: "Pase de diapositivas"
   </voice>
 </phrase>
 <phrase>
@@ -17426,5 +17427,425 @@
   </dest>
   <voice>
     *: "Letra"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_ADD_TO_PLAYLIST
+  desc: Apple2026 playlist picker title
+  user: core
+  <source>
+    *: "Add to Playlist"
+  </source>
+  <dest>
+    *: "Agregar a Playlist"
+  </dest>
+  <voice>
+    *: "Agregar a Playlist"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_SEARCH_BY
+  desc: Apple2026 search screen header
+  user: core
+  <source>
+    *: "Search by"
+  </source>
+  <dest>
+    *: "Buscar por"
+  </dest>
+  <voice>
+    *: "Buscar por"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_MEDIA_MODE
+  desc: Apple2026 USB mass storage screen label
+  user: core
+  <source>
+    *: "Media mode"
+  </source>
+  <dest>
+    *: "Modo multimedia"
+  </dest>
+  <voice>
+    *: "Modo multimedia"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_WRITE_TEXT
+  desc: Apple2026 text entry screen header when it is not a search
+  user: core
+  <source>
+    *: "Text"
+  </source>
+  <dest>
+    *: "Texto"
+  </dest>
+  <voice>
+    *: "Texto"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_SAVE_AS
+  desc: Apple2026 text entry screen header when naming a file to save
+  user: core
+  <source>
+    *: "Save as"
+  </source>
+  <dest>
+    *: "Guardar como..."
+  </dest>
+  <voice>
+    *: "Guardar como..."
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_EQ_FREQ
+  desc: Apple2026 graphical equaliser, short label for the band frequency
+  user: core
+  <source>
+    *: "Frequency"
+  </source>
+  <dest>
+    *: "Frecuencia"
+  </dest>
+  <voice>
+    *: "Frecuencia"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_STATUSBAR
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Show status bar"
+  </source>
+  <dest>
+    *: "Mostrar barra de estado"
+  </dest>
+  <voice>
+    *: "Mostrar barra de estado"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_SCROLL_SPEED
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Scroll speed"
+  </source>
+  <dest>
+    *: "Velocidad de desplazamiento"
+  </dest>
+  <voice>
+    *: "Velocidad de desplazamiento"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_TRANS_SPEED
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Transition speed"
+  </source>
+  <dest>
+    *: "Velocidad de transición"
+  </dest>
+  <voice>
+    *: "Velocidad de transición"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_TEXT_FADE
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Text crossfade"
+  </source>
+  <dest>
+    *: "Fundido del texto"
+  </dest>
+  <voice>
+    *: "Fundido del texto"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_NO_INDEX
+  desc: Cover Flow: cache could not be read
+  user: core
+  <source>
+    *: "Could not read the cache"
+  </source>
+  <dest>
+    *: "No se pudo leer la caché"
+  </dest>
+  <voice>
+    *: "No se pudo leer la caché"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_NO_ALBUM
+  desc: Cover Flow: album missing from the database
+  user: core
+  <source>
+    *: "Album not found"
+  </source>
+  <dest>
+    *: "Álbum no encontrado"
+  </dest>
+  <voice>
+    *: "Álbum no encontrado"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_BAD_ART
+  desc: Cover Flow: unreadable album art
+  user: core
+  <source>
+    *: "Unreadable cover: %s"
+  </source>
+  <dest>
+    *: "Carátula ilegible: %s"
+  </dest>
+  <voice>
+    *: "Carátula ilegible: %s"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ANY_KEY
+  desc: Cover Flow: wait for a keypress
+  user: core
+  <source>
+    *: "%s. Press any button to continue."
+  </source>
+  <dest>
+    *: "%s. Pulsa cualquier botón para continuar."
+  </dest>
+  <voice>
+    *: "%s. Pulsa cualquier botón para continuar."
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_RTC_FAILED
+  desc: Clock could not be set
+  user: core
+  <source>
+    *: "Can't set the time: the clock is not responding"
+  </source>
+  <dest>
+    *: "No se pudo poner la hora: el reloj no responde"
+  </dest>
+  <voice>
+    *: "No se pudo poner la hora: el reloj no responde"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_THEME_LIGHT
+  desc: Apple2026 theme name shown in the theme browser
+  user: core
+  <source>
+    *: "Theme Light"
+  </source>
+  <dest>
+    *: "Tema Claro"
+  </dest>
+  <voice>
+    *: "Tema Claro"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_THEME_DARK
+  desc: Apple2026 theme name shown in the theme browser
+  user: core
+  <source>
+    *: "Theme Dark"
+  </source>
+  <dest>
+    *: "Tema Oscuro"
+  </dest>
+  <voice>
+    *: "Tema Oscuro"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_THEMES_TITLE
+  desc: Apple2026 title of the theme browser list
+  user: core
+  <source>
+    *: "Themes"
+  </source>
+  <dest>
+    *: "Temas"
+  </dest>
+  <voice>
+    *: "Temas"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_ART_CACHE
+  desc: Cover Flow: album art cache could not be built
+  user: core
+  <source>
+    *: "Could not create album art cache"
+  </source>
+  <dest>
+    *: "No se pudo crear la caché de carátulas"
+  </dest>
+  <voice>
+    *: "No se pudo crear la caché de carátulas"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_NO_ALBUMS
+  desc: Cover Flow: the database has no albums
+  user: core
+  <source>
+    *: "No albums found. Please enable database"
+  </source>
+  <dest>
+    *: "No hay álbumes. Activa la base de datos"
+  </dest>
+  <voice>
+    *: "No hay álbumes. Activa la base de datos"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_NEED_DB
+  desc: Cover Flow: the database is required
+  user: core
+  <source>
+    *: "Please enable database"
+  </source>
+  <dest>
+    *: "Activa la base de datos para usar Cover Flow"
+  </dest>
+  <voice>
+    *: "Activa la base de datos para usar Cover Flow"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_MEMORY
+  desc: Cover Flow: not enough memory
+  user: core
+  <source>
+    *: "Not enough memory"
+  </source>
+  <dest>
+    *: "No hay memoria suficiente"
+  </dest>
+  <voice>
+    *: "No hay memoria suficiente"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_SLIDE
+  desc: Cover Flow: the placeholder slide could not be loaded
+  user: core
+  <source>
+    *: "Could not load the empty slide"
+  </source>
+  <dest>
+    *: "No se pudo cargar la carátula de reserva"
+  </dest>
+  <voice>
+    *: "No se pudo cargar la carátula de reserva"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_INTERNAL
+  desc: Cover Flow: internal start-up failure
+  user: core
+  <source>
+    *: "Cover Flow could not start"
+  </source>
+  <dest>
+    *: "Cover Flow no pudo arrancar"
+  </dest>
+  <voice>
+    *: "Cover Flow no pudo arrancar"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_MULTIMEDIA
+  desc: Apple2026 USB screen: HID mode 0 name
+  user: core
+  <source>
+    *: "Multimedia"
+  </source>
+  <dest>
+    *: "Multimedia"
+  </dest>
+  <voice>
+    *: "Multimedia"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_PRESENTATION
+  desc: Apple2026 USB screen: HID mode 1 name
+  user: core
+  <source>
+    *: "Presentation"
+  </source>
+  <dest>
+    *: "Presentación"
+  </dest>
+  <voice>
+    *: "Presentación"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_BROWSER
+  desc: Apple2026 USB screen: HID mode 2 name
+  user: core
+  <source>
+    *: "Browser"
+  </source>
+  <dest>
+    *: "Navegador"
+  </dest>
+  <voice>
+    *: "Navegador"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_MOUSE
+  desc: Apple2026 USB screen: HID mode 3 name
+  user: core
+  <source>
+    *: "Mouse"
+  </source>
+  <dest>
+    *: "Ratón"
+  </dest>
+  <voice>
+    *: "Ratón"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_HINT1
+  desc: Apple2026 USB screen: how to switch mode, line 1
+  user: core
+  <source>
+    *: "Hold the centre button and press"
+  </source>
+  <dest>
+    *: "Mantén el centro y pulsa"
+  </dest>
+  <voice>
+    *: "Mantén el centro y pulsa"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_HINT2
+  desc: Apple2026 USB screen: how to switch mode, line 2
+  user: core
+  <source>
+    *: "next or previous"
+  </source>
+  <dest>
+    *: "siguiente o anterior"
+  </dest>
+  <voice>
+    *: "siguiente o anterior"
   </voice>
 </phrase>

@@ -35,17 +35,19 @@
 # Slot 9: 16-SFProText-Medium.fnt      (RB12 h=20, title)
 %Fl(3,14-SFProText-Regular.fnt)
 %Fl(6,13-SFCompactText-Regular.fnt)
+# Slot 4: tiny badge face (A-B repeat tag) - 7pt SF Pro
+%Fl(4,07-SFPro-Rail.fnt)
 %Fl(8,20-SFProText-Medium.fnt)
 %Fl(9,16-SFProText-Medium.fnt)
 %Fl(7,35-SFProDisplay-Bold.fnt)
 
 # Preload icons  -  Interpod-aligned core IDs plus dedicated Apple2026 shuffle
 # playerStatus: 16x18 per tile, 4 frames â€” Pa=stop Pb=pause-bars Pc=play-fill Pd=ff
-%xl(N,playerStatusLarge.bmp,0,0,4)
+%xl(N,playerStatusLarge.bmp,0,0,5)
 %xl(A,holdSlider.bmp,0,0,2)
 %xl(B,batteryStatus.bmp,0,4,10)
-%xl(O,repeatLarge.bmp,0,0)
-%xl(Q,shuffleLarge.bmp,0,0)
+%xl(O,repeatLarge.bmp,0,0,4)
+%xl(Q,shuffleLarge.bmp,0,0,2)
 %xl(L,losslessIndicator.bmp,0,0)
 %xl(C,speaker_loud.bmp,266,1)
 
@@ -58,9 +60,15 @@
 %xl(I,vb.bmp,0,0)
 %xl(J,vb_backdrop.bmp,0,0)
 # Preload album art framing assets (Apple Music-style rounded corners + soft shadow)
-%xl(K,wpsArtCorners.bmp,0,0)
+%xl(K,wpsArtCorners110.bmp,0,0)
 # Wheel-mode row: 5 icons x (inactive a-e / active f-j)
-%xl(W,wps_modes.bmp,0,0,10)
+%xl(W,wps_modes.bmp,0,0,12)
+# Rating stars: a=empty b=filled (muted) / c=empty d=filled (pink,
+# shown while the rating mode is active)
+%xl(S,wps_stars.bmp,0,0,4)
+%xl(D,dolby.bmp,0,0)
+# Volume row speakers (SF): a=mute b=low c=high
+%xl(V,volIcons.bmp,20,0,5)
 
 
 
@@ -75,7 +83,10 @@
 %?mh<%Vd(lock)|>
 
 # Display volume bar while adjusting volume; otherwise show time+progress
-%?mv(1.2)<%Vd(volumebar)|%Vd(pl_counter)%Vd(elapsed_time)%Vd(lossless_ind)%Vd(remain_time)%?if(%mp,<,4)<%Vd(pb)|%Vd(pb_active)>>
+%Vd(pl_counter)%Vd(elapsed_time)%Vd(lossless_ind)%Vd(atmos_ind)%Vd(remain_time)
+# Scrub mode (%Wm=1) uses the thicker active bar so the dragged
+# playhead is obvious; ff/rew (%mp>=3) does the same.
+%?mv(1.2)<%Vd(volumebar)|%?if(%Wm, =, 1)<%Vd(pb_active)|%?if(%mp,<,4)<%Vd(pb)|%Vd(pb_active)>>>
 
 # Always display the hero art. The corner trim now lives inside the same %VB
 # viewport and is drawn after %Cd, so it updates in the same pass as the art.
@@ -91,10 +102,10 @@
 
 # Active-only playback-state/status lane on the right
 %Vd(shuffle_state)
-%Vd(repeat_icon_state)
-%Vd(repeat_label_state)
+%Vd(repeat_icon_state)%Vd(repeat_ab_tag)
 %Vd(player_status_lane)
 %Vd(mode_vol)%Vd(mode_scrub)%Vd(mode_pl)%Vd(mode_lyr)%Vd(mode_rate)
+%Vd(star1)%Vd(star2)%Vd(star3)%Vd(star4)%Vd(star5)
 
 # Sleep timer
 %?bs<%Vd(sleeptimer)>
@@ -115,10 +126,10 @@
 # Corner trim is drawn in this same viewport after %Cd. The trim corners are
 # backdrop-matched cutout pixels, so the curved edge reveals the real shadowed
 # shell instead of flat white caps on top of the shadow.
-%Vl(album_art,85,8,150,150,-)%VB
+%Vl(album_art,14,28,110,110,-)%VB
 %Vf(FFFFFF)
 %Vb(FFFFFF)
-%Cl(0,0,150,150,c,c)
+%Cl(0,0,110,110,c,c)
 %?C<|%x(AlbumPlaceholder,albumPlaceholder.bmp,0,0)>
 %Cd%xd(K)
 
@@ -150,30 +161,29 @@
 %Vb(FFFFFF)
 %bs
 
-# Repeat mode â€” icon + text label for readability
-%Vl(shuffle_state,281,103,20,15,-)
+# Repeat / shuffle state (bottom row, flanking the transport).
+# Always drawn: pink when active, muted gray when off.  Repeat-one
+# swaps the glyph (SF: repeat / repeat.1 / shuffle).
+# %mm: 0=off 1=all 2=one 3=shuffle 4=A-B
+%Vl(repeat_icon_state,20,212,15,15,-)
 %Vb(FFFFFF)
-%?or(%if(%ps, =, s),%if(%mm, =, 3))<%xd(Q)>
+%?mm<%xd(Oa)|%xd(Ob)|%xd(Od)|%xd(Ob)|%xd(Ob)>
 
-# Shuffle indicator â€” shown when enabled
-%Vl(repeat_icon_state,281,124,20,15,-)
+# A-B is the one repeat mode with no glyph of its own, so it says so in
+# words underneath; every other mode is already told apart by its icon
+# (shuffle-repeat lights the shuffle indicator instead).
+%Vl(repeat_ab_tag,37,216,26,12,4)
+%Vf(FF2E56)
 %Vb(FFFFFF)
-%?mm<|%xd(O)|%xd(O)|%xd(O)|%xd(O)>
+%?mm<||||%alA-B>
 
-%Vl(repeat_label_state,264,140,54,15,6)
-%Vf(8E8E93)
+%Vl(shuffle_state,285,212,15,15,-)
 %Vb(FFFFFF)
-%ac%?mm<||All|One|All|A-B>
-
-# Playlist position  -  centered in time row (font slot 3, RB12 h=18; VP h=18)
-%Vl(pl_counter,107,-32,106,18,3)
-%Vf(6E6E73)
-%Vb(FFFFFF)
-%ac%pp %Sx(of) %pe
+%?or(%if(%ps, =, s),%if(%mm, =, 3))<%xd(Qb)|%xd(Qa)>
 
 # Song title  -  16pt Medium (slot 9, RB12 h=20); width locked to the
 # metadata safe area so long titles never enter the bottom-right status lane.
-%Vl(title_line,18,-79,258,20,9)
+%Vl(title_line,136,44,172,22,9)
 %Vf(000000)
 %Vb(FFFFFF)
 %s%al%?it<%it|%fn>
@@ -181,16 +191,16 @@
 # Artist / Album  -  14pt Regular (slot 3, RB12 h=18); VP h=18
 # Single viewport alternates: 5s artist (gray), then 5s album (darker gray).
 # Width matches the title safe area so the right lane stays reserved for status.
-%Vl(artist_line,18,-60,258,18,3)
+%Vl(artist_line,136,70,172,18,3)
 %Vf(8E8E93)
 %Vb(FFFFFF)
 %t(5)%s%al%?ia<%ia|%fn>;%t(5)%s%al%?id<%id|%fn>
 
 # Player status icon  -  bottom-right, aligned to the playback/time zone rather
 # than the top chrome. Branch: 0=stop 1=play 2=pause 3=ff 4=rew
-%Vl(player_status_lane,280,178,20,20,-)
+%Vl(player_status_lane,150,212,20,20,-)
 %Vb(FFFFFF)
-%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Nd)|>>
+%?mh<|%?mp<|%xd(Nc)|%xd(Nb)|%xd(Nd)|%xd(Ne)|>>
 
 # -------------------------------------------------------
 # Progress bar  -  bitmap pill bars (restored from Interpod pattern)
@@ -198,30 +208,35 @@
 # -------------------------------------------------------
 
 # Progress bar (inactive - uses pill bitmap)
-%Vl(pb,20,-39,-20,4,-)
+%Vl(pb,20,182,280,5,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
 %pb(0,0,-,4,image,E,backdrop,F)
 
 # Progress bar (active - uses pill bitmap, 1px taller for visual weight)
-%Vl(pb_active,20,-39,-20,5,-)
+%Vl(pb_active,20,182,280,5,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
 %pb(0,0,-,5,image,G,backdrop,H)
 
 # Elapsed time  -  left, 14pt Regular (RB12 h=18), gray
-%Vl(elapsed_time,18,-32,87,18,3)
+%Vl(elapsed_time,18,192,87,18,3)
 %Vf(6E6E73)
 %Vb(FFFFFF)
 %s%al%pc
 
 # Lossless indicator  -  right of center, only shown for lossless formats
-%Vl(lossless_ind,127,-12,66,11,-)
+%Vl(lossless_ind,14,150,66,11,-)
 %Vb(FFFFFF)
 %?or(%if(%fc, =, 4),%if(%fc, =, 5),%if(%fc, =, 7),%if(%fc, =, 11),%if(%fc, =, 13))<%xd(L)>
 
+# Dolby badge  -  shown for AC3/E-AC3 streams (Dolby content)
+%Vl(atmos_ind,86,150,52,12,-)
+%Vb(FFFFFF)
+%?if(%fc, =, 9)<%xd(D)>
+
 # Remaining time  -  right, 14pt Regular (RB12 h=18), gray
-%Vl(remain_time,-87,-32,-20,18,3)
+%Vl(remain_time,-107,192,87,18,3)
 %Vf(6E6E73)
 %Vb(FFFFFF)
 %s%ar-%pr
@@ -230,33 +245,55 @@
 # Volume bar  -  shown while scroll wheel adjusts volume
 # Occupies the progress+time zone (y=-40, h=20)
 # -------------------------------------------------------
-%Vl(volumebar,0,-40,-,20,-)
+%Vl(volumebar,0,177,-,14,-)
 %Vf(3C3C43)
 %Vb(C7C7CC)
-%x(M,speaker_mute.bmp,35,1)
-%pv(58,8,204,4,image,I,backdrop,J)
-%xd(C)
+# Sits on the progress row: speaker icon at the left, then the bar with
+# the same pill art as the progress bar so the swap is seamless.
+%?pv<%xd(Va)|%xd(Vb)|%xd(Vc)|%xd(Vd)|%xd(Ve)>
+%pv(44,5,236,4,image,I,backdrop,J)
 
 # -------------------------------------------------------
 # Wheel-mode row (Apple2026): SELECT cycles Volume / Scrub / Playlist /
 # Lyrics / Rating.  %Wm is the active mode; active icon is Apple pink,
 # the others are the muted secondary gray.
-%Vl(mode_vol,109,-16,14,14,-)
+%Vl(mode_vol,196,150,14,14,-)
 %Vb(FFFFFF)
 %?if(%Wm, =, 0)<%xd(Wf)|%xd(Wa)>
 
-%Vl(mode_scrub,131,-16,14,14,-)
+%Vl(mode_scrub,218,150,14,14,-)
 %Vb(FFFFFF)
 %?if(%Wm, =, 1)<%xd(Wg)|%xd(Wb)>
 
-%Vl(mode_pl,153,-16,14,14,-)
+%Vl(mode_pl,240,150,14,14,-)
 %Vb(FFFFFF)
-%?if(%Wm, =, 2)<%xd(Wh)|%xd(Wc)>
+%?Wp<%?if(%Wm, =, 2)<%xd(Wh)|%xd(Wc)>|%xd(Wk)>
 
-%Vl(mode_lyr,175,-16,14,14,-)
+%Vl(mode_lyr,262,150,14,14,-)
 %Vb(FFFFFF)
-%?if(%Wm, =, 3)<%xd(Wi)|%xd(Wd)>
+%?Wl<%?if(%Wm, =, 3)<%xd(Wi)|%xd(Wd)>|%xd(Wl)>
 
-%Vl(mode_rate,197,-16,14,14,-)
+%Vl(mode_rate,284,150,14,14,-)
 %Vb(FFFFFF)
 %?if(%Wm, =, 4)<%xd(Wj)|%xd(We)>
+
+# Rating row (under the artist line, iPod-style)
+%Vl(star1,136,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 2)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 2)<%xd(Sb)|%xd(Sa)>>
+
+%Vl(star2,151,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 4)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 4)<%xd(Sb)|%xd(Sa)>>
+
+%Vl(star3,166,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 6)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 6)<%xd(Sb)|%xd(Sa)>>
+
+%Vl(star4,181,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 8)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 8)<%xd(Sb)|%xd(Sa)>>
+
+%Vl(star5,196,96,11,11,-)
+%Vb(FFFFFF)
+%?if(%Wm, =, 4)<%?if(%rr, >=, 10)<%xd(Sd)|%xd(Sc)>|%?if(%rr, >=, 10)<%xd(Sb)|%xd(Sa)>>

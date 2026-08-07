@@ -42,9 +42,11 @@
 #include "playlist.h"
 #include "misc.h"
 #include "icons.h"
-#ifdef ROCKPOD_APPLE2026_IPOD
+/* Sin condición: es esta cabecera la que define ROCKPOD_APPLE2026_IPOD, así
+ * que tras un #ifdef de esa macro no se incluía nunca y todo lo de la capa se
+ * compilaba fuera en silencio.  Ella misma se apaga en otros objetivos. */
 #include "apple2026_shell.h"
-#endif
+#include "splash.h"
 
 #include "bitmaps/usblogo.h"
 
@@ -150,6 +152,34 @@ static void usb_screen_fix_viewports(struct screen *screen,
         logo_height = BMPHEIGHT_usblogo;
     }
 
+#if ROCKPOD_APPLE2026_IPOD
+    /* La página de USB corre con el tema DESACTIVADO.
+     *
+     * Con el tema activo, cada `send_event(GUI_EVENT_ACTIONUPDATE)` del bucle
+     * de USB llega a `viewportmanager_redraw`, que llama a `sb_skin_update()`,
+     * y eso repinta el shell entero —lista y panel— ENCIMA de la página del
+     * cable.  En el aparato es fatal: `handle_usb_events()` tiene su propio
+     * `while(1)` y no vuelve hasta que se desconecta, así que
+     * `usb_screens_draw()` corre UNA sola vez y medio segundo después el menú
+     * ya está encima para siempre.  En el simulador el bucle exterior sí
+     * redibuja la página en cada vuelta, y por eso allí sólo se ve
+     * "parpadear" — que es exactamente lo que hizo que esta pantalla pasara
+     * por buena en la auditoría: una captura suelta cae en la fase buena.
+     *
+     * Desactivar el tema corta la cadena en su raíz: `toggle_events()` deja de
+     * registrar el manejador de GUI_EVENT_ACTIONUPDATE, así que ya no hay
+     * quien repinte.  Además es lo que H-19 daba por supuesto al añadir la
+     * variante de página a pantalla completa de `a26_page_begin` "para
+     * contextos con tema desactivado (plugin, USB, apagado)": el código decía
+     * lo contrario de lo que decía su propio comentario.
+     *
+     * Efecto secundario buscado: desaparece la barra de estado, cuyo reloj se
+     * quedaba congelado toda la sesión de USB de todos modos.  El iPod
+     * original tampoco muestra barra aquí. */
+    if (screen->screen_type == SCREEN_MAIN && apple2026_theme_selected())
+        viewportmanager_theme_enable(screen->screen_type, false, parent);
+    else
+#endif
     viewportmanager_theme_enable(screen->screen_type, true, parent);
 
     if (logo_width  > parent->width)
@@ -206,6 +236,27 @@ static void usb_screen_fix_viewports(struct screen *screen,
 #endif
 }
 
+#if ROCKPOD_APPLE2026_IPOD && defined(USB_ENABLE_HID)
+/* Nombres de los modos del mando, en el MISMO orden que `hid_key_mappings`
+ * (usb_keymaps.c) — ese orden es el valor de `usb_keypad_mode` y también el
+ * de los fotogramas de la tira.  Se repite aquí el `#ifdef` del ratón para
+ * que las tres listas no puedan desalinearse.
+ *
+ * No se reutilizan los LANG_*_MODE de serie a propósito: en español son
+ * "Modo multimedia", "Modo presentación", "Navegador" y "Modo de ratón" —
+ * inconsistentes entre sí, y la palabra "Modo" sobra cuando la pantalla ya
+ * dice de qué va. */
+static const int a26_usb_mode_lang[] = {
+    LANG_A26_USB_MODE_MULTIMEDIA,
+    LANG_A26_USB_MODE_PRESENTATION,
+    LANG_A26_USB_MODE_BROWSER,
+#ifdef HAVE_USB_HID_MOUSE
+    LANG_A26_USB_MODE_MOUSE,
+#endif
+};
+#define A26_USB_MODE_COUNT ((int)(sizeof(a26_usb_mode_lang) / sizeof(int)))
+#endif
+
 static void usb_screens_draw(struct usb_screen_vps_t *usb_screen_vps_ar)
 {
     struct viewport *last_vp;
@@ -228,35 +279,54 @@ static void usb_screens_draw(struct usb_screen_vps_t *usb_screen_vps_ar)
         screen->clear_viewport();
         screen->backlight_on();
 
-        screen->set_viewport(logo);
-        screen->bmp(logos[i], 0, 0);
-        if (i == SCREEN_MAIN)
-        {
 #if ROCKPOD_APPLE2026_IPOD
-            /* Apple2026: draw "Connected" label and "Eject to disconnect" hint
-             * below logo in clean Apple-style treatment. */
-            if (screen->depth >= 16)
-            {
-                int char_h = font_get(logo->font)->height;
-                int label_y = logo->y + logo->height + 8;
-                struct viewport label_vp = *parent;
-                label_vp.y = label_y;
-                label_vp.height = char_h;
-                label_vp.flags |= VP_FLAG_ALIGN_CENTER;
-                screen->set_foreground(LCD_RGBPACK(0x00, 0x00, 0x00));
-                screen->set_viewport(&label_vp);
-                screen->puts_scroll(0, 0, "Connected");
+        bool a26_drawn = false;
 
-                struct viewport hint_vp = *parent;
-                hint_vp.y = label_y + char_h + 4;
-                hint_vp.height = char_h;
-                hint_vp.flags |= VP_FLAG_ALIGN_CENTER;
-                screen->set_foreground(LCD_RGBPACK(0x8E, 0x8E, 0x93));
-                screen->set_viewport(&hint_vp);
-                screen->puts_scroll(0, 0, "Eject before disconnecting");
-                screen->set_viewport(parent);
+        /* La misma página que el apagado o la base de datos: símbolo
+         * centrado y el estado debajo.  El logotipo de serie sobre un panel
+         * vacío no se parecía a ninguna otra pantalla del aparato. */
+        if (i == SCREEN_MAIN && screen->depth >= 16
+            && apple2026_theme_selected())
+        {
+#ifdef USB_ENABLE_HID
+            /* Con el mando activo, el protagonista de la pantalla es el modo
+             * —es lo único que el usuario puede cambiar aquí— y no el cable,
+             * que sólo repetiría lo que ya sabe: que está conectado.  Cuando
+             * el modo cambia, `handle_usb_events()` sale de su bucle interno
+             * y el de fuera vuelve a pasar por aquí, así que el símbolo y el
+             * nombre se actualizan solos. */
+            if (usb_hid && usb_keypad_mode >= 0
+                && usb_keypad_mode < A26_USB_MODE_COUNT)
+            {
+                a26_drawn = apple2026_usb_mode_page(screen, usb_keypad_mode,
+                        str(a26_usb_mode_lang[usb_keypad_mode]),
+                        str(LANG_A26_USB_MODE_HINT1),
+                        str(LANG_A26_USB_MODE_HINT2));
             }
 #endif
+            /* Sin mando (o si la tira no llegó a precargarse) se cae a la
+             * página del cable de siempre. */
+            if (!a26_drawn)
+                a26_drawn = apple2026_symbol_page(screen,
+                        A26_ASSET("a26_usb.bmp"),
+                        str(LANG_A26_MEDIA_MODE), 1);
+        }
+
+        if (!a26_drawn)
+#endif
+        {
+            screen->set_viewport(logo);
+            screen->bmp(logos[i], 0, 0);
+        }
+        if (i == SCREEN_MAIN
+#if ROCKPOD_APPLE2026_IPOD
+            /* El rótulo de serie ("Modo de teclado USB: …") repetiría, en
+             * fuente de sistema y sobre nuestra página, lo que ésta ya dice
+             * en grande. */
+            && !a26_drawn
+#endif
+           )
+        {
 #ifdef USB_ENABLE_HID
             if (usb_hid)
             {
@@ -318,6 +388,48 @@ void gui_usb_screen_run(bool early_usb, intptr_t seqnum)
     /* update the UI before disabling fonts, this maximizes the propability
      * that font cache lookups succeed during USB */
     send_event(GUI_EVENT_ACTIONUPDATE, NULL);
+#endif
+
+#if ROCKPOD_APPLE2026_IPOD
+    /* Tras el acuse el disco pasa al ordenador y ya no se pueden leer
+     * archivos: el símbolo de la página de USB se precarga ahora.  Cargarlo
+     * en usb_screens_draw() fallaba siempre en el aparato (y en el
+     * simulador nunca se notó, porque su disco no se cede). */
+    apple2026_symbol_preload(A26_ASSET("a26_usb.bmp"));
+#ifdef USB_ENABLE_HID
+    /* La tira de los cuatro modos, entera: el modo se cambia CON el cable
+     * puesto, así que cargar sólo el actual dejaría la pantalla sin símbolo
+     * en cuanto el usuario cambiase. */
+    apple2026_usb_modes_preload();
+#endif
+
+    /* Y lo mismo con los GLIFOS del rótulo.  `font_disable_all()`, tres
+     * líneas más abajo, cierra el descriptor de cada .fnt y deja sólo la
+     * caché en RAM: a partir de ahí un glifo que no esté cacheado no se
+     * puede dibujar, porque no hay de dónde leerlo.  Rockbox ya tiene este
+     * cuidado con sus cadenas de USB (`usb_screen_fix_viewports`), pero ese
+     * bucle vive bajo `USB_ENABLE_HID` y sólo corre con el modo teclado
+     * activo, así que "Modo multimedia" no pasaba por él.  Medir la cadena
+     * la mete en la caché, que es el mismo truco que usa el bucle de serie.
+     *
+     * En el simulador esto NO se puede comprobar: su disco nunca se cede y
+     * los .fnt siguen abiertos.  Igual que la precarga del símbolo de
+     * arriba, que fallaba siempre en el aparato y nunca aquí. */
+    font_getstringsize(str(LANG_A26_MEDIA_MODE), NULL, NULL, FONT_UI);
+#ifdef USB_ENABLE_HID
+    /* Y los de LOS CUATRO nombres de modo, no sólo el actual: el usuario
+     * puede ciclarlos con el cable puesto, y para entonces los .fnt ya están
+     * cerrados.  Precargar sólo el modo activo habría funcionado en la
+     * primera pantalla y dejado las otras tres en blanco — un fallo que sólo
+     * aparecería al cambiar de modo, en el aparato, y jamás aquí. */
+    {
+        int m;
+        for (m = 0; m < A26_USB_MODE_COUNT; m++)
+            font_getstringsize(str(a26_usb_mode_lang[m]), NULL, NULL, FONT_UI);
+        font_getstringsize(str(LANG_A26_USB_MODE_HINT1), NULL, NULL, FONT_UI);
+        font_getstringsize(str(LANG_A26_USB_MODE_HINT2), NULL, NULL, FONT_UI);
+    }
+#endif
 #endif
 
     if(!early_usb)

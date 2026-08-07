@@ -11294,10 +11294,10 @@
     *: "PictureFlow"
   </source>
   <dest>
-    *: "PictureFlow"
+    *: "Cover Flow"
   </dest>
   <voice>
-    *: "open picture flow"
+    *: "open cover flow"
   </voice>
 </phrase>
 <phrase>
@@ -17445,5 +17445,425 @@
   </dest>
   <voice>
     *: "Lyrics"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_ADD_TO_PLAYLIST
+  desc: Apple2026 playlist picker title
+  user: core
+  <source>
+    *: "Add to Playlist"
+  </source>
+  <dest>
+    *: "Add to Playlist"
+  </dest>
+  <voice>
+    *: "Add to Playlist"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_SEARCH_BY
+  desc: Apple2026 search screen header
+  user: core
+  <source>
+    *: "Search by"
+  </source>
+  <dest>
+    *: "Search by"
+  </dest>
+  <voice>
+    *: "Search by"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_MEDIA_MODE
+  desc: Apple2026 USB mass storage screen label
+  user: core
+  <source>
+    *: "Media mode"
+  </source>
+  <dest>
+    *: "Media mode"
+  </dest>
+  <voice>
+    *: "Media mode"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_WRITE_TEXT
+  desc: Apple2026 text entry screen header when it is not a search
+  user: core
+  <source>
+    *: "Text"
+  </source>
+  <dest>
+    *: "Text"
+  </dest>
+  <voice>
+    *: "Text"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_SAVE_AS
+  desc: Apple2026 text entry screen header when naming a file to save
+  user: core
+  <source>
+    *: "Save as"
+  </source>
+  <dest>
+    *: "Save as"
+  </dest>
+  <voice>
+    *: "Save as"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_EQ_FREQ
+  desc: Apple2026 graphical equaliser, short label for the band frequency
+  user: core
+  <source>
+    *: "Frequency"
+  </source>
+  <dest>
+    *: "Frequency"
+  </dest>
+  <voice>
+    *: "Frequency"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_STATUSBAR
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Show status bar"
+  </source>
+  <dest>
+    *: "Show status bar"
+  </dest>
+  <voice>
+    *: "Show status bar"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_SCROLL_SPEED
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Scroll speed"
+  </source>
+  <dest>
+    *: "Scroll speed"
+  </dest>
+  <voice>
+    *: "Scroll speed"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_TRANS_SPEED
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Transition speed"
+  </source>
+  <dest>
+    *: "Transition speed"
+  </dest>
+  <voice>
+    *: "Transition speed"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_TEXT_FADE
+  desc: Cover Flow display setting
+  user: core
+  <source>
+    *: "Text crossfade"
+  </source>
+  <dest>
+    *: "Text crossfade"
+  </dest>
+  <voice>
+    *: "Text crossfade"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_NO_INDEX
+  desc: Cover Flow: cache could not be read
+  user: core
+  <source>
+    *: "Could not read the cache"
+  </source>
+  <dest>
+    *: "Could not read the cache"
+  </dest>
+  <voice>
+    *: "Could not read the cache"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_NO_ALBUM
+  desc: Cover Flow: album missing from the database
+  user: core
+  <source>
+    *: "Album not found"
+  </source>
+  <dest>
+    *: "Album not found"
+  </dest>
+  <voice>
+    *: "Album not found"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_BAD_ART
+  desc: Cover Flow: unreadable album art
+  user: core
+  <source>
+    *: "Unreadable cover: %s"
+  </source>
+  <dest>
+    *: "Unreadable cover: %s"
+  </dest>
+  <voice>
+    *: "Unreadable cover: %s"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ANY_KEY
+  desc: Cover Flow: wait for a keypress
+  user: core
+  <source>
+    *: "%s. Press any button to continue."
+  </source>
+  <dest>
+    *: "%s. Press any button to continue."
+  </dest>
+  <voice>
+    *: "%s. Press any button to continue."
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_RTC_FAILED
+  desc: Clock could not be set
+  user: core
+  <source>
+    *: "Can't set the time: the clock is not responding"
+  </source>
+  <dest>
+    *: "Can't set the time: the clock is not responding"
+  </dest>
+  <voice>
+    *: "Can't set the time: the clock is not responding"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_THEME_LIGHT
+  desc: Apple2026 theme name shown in the theme browser
+  user: core
+  <source>
+    *: "Theme Light"
+  </source>
+  <dest>
+    *: "Theme Light"
+  </dest>
+  <voice>
+    *: "Theme Light"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_THEME_DARK
+  desc: Apple2026 theme name shown in the theme browser
+  user: core
+  <source>
+    *: "Theme Dark"
+  </source>
+  <dest>
+    *: "Theme Dark"
+  </dest>
+  <voice>
+    *: "Theme Dark"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_THEMES_TITLE
+  desc: Apple2026 title of the theme browser list
+  user: core
+  <source>
+    *: "Themes"
+  </source>
+  <dest>
+    *: "Themes"
+  </dest>
+  <voice>
+    *: "Themes"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_ART_CACHE
+  desc: Cover Flow: album art cache could not be built
+  user: core
+  <source>
+    *: "Could not create album art cache"
+  </source>
+  <dest>
+    *: "Could not create album art cache"
+  </dest>
+  <voice>
+    *: "Could not create album art cache"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_NO_ALBUMS
+  desc: Cover Flow: the database has no albums
+  user: core
+  <source>
+    *: "No albums found. Please enable database"
+  </source>
+  <dest>
+    *: "No albums found. Please enable database"
+  </dest>
+  <voice>
+    *: "No albums found. Please enable database"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_NEED_DB
+  desc: Cover Flow: the database is required
+  user: core
+  <source>
+    *: "Please enable database"
+  </source>
+  <dest>
+    *: "Please enable database"
+  </dest>
+  <voice>
+    *: "Please enable database"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_MEMORY
+  desc: Cover Flow: not enough memory
+  user: core
+  <source>
+    *: "Not enough memory"
+  </source>
+  <dest>
+    *: "Not enough memory"
+  </dest>
+  <voice>
+    *: "Not enough memory"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_SLIDE
+  desc: Cover Flow: the placeholder slide could not be loaded
+  user: core
+  <source>
+    *: "Could not load the empty slide"
+  </source>
+  <dest>
+    *: "Could not load the empty slide"
+  </dest>
+  <voice>
+    *: "Could not load the empty slide"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_INTERNAL
+  desc: Cover Flow: internal start-up failure
+  user: core
+  <source>
+    *: "Cover Flow could not start"
+  </source>
+  <dest>
+    *: "Cover Flow could not start"
+  </dest>
+  <voice>
+    *: "Cover Flow could not start"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_MULTIMEDIA
+  desc: Apple2026 USB screen: HID mode 0 name
+  user: core
+  <source>
+    *: "Multimedia"
+  </source>
+  <dest>
+    *: "Multimedia"
+  </dest>
+  <voice>
+    *: "Multimedia"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_PRESENTATION
+  desc: Apple2026 USB screen: HID mode 1 name
+  user: core
+  <source>
+    *: "Presentation"
+  </source>
+  <dest>
+    *: "Presentation"
+  </dest>
+  <voice>
+    *: "Presentation"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_BROWSER
+  desc: Apple2026 USB screen: HID mode 2 name
+  user: core
+  <source>
+    *: "Browser"
+  </source>
+  <dest>
+    *: "Browser"
+  </dest>
+  <voice>
+    *: "Browser"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_MOUSE
+  desc: Apple2026 USB screen: HID mode 3 name
+  user: core
+  <source>
+    *: "Mouse"
+  </source>
+  <dest>
+    *: "Mouse"
+  </dest>
+  <voice>
+    *: "Mouse"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_HINT1
+  desc: Apple2026 USB screen: how to switch mode, line 1
+  user: core
+  <source>
+    *: "Hold the centre button and press"
+  </source>
+  <dest>
+    *: "Hold the centre button and press"
+  </dest>
+  <voice>
+    *: "Hold the centre button and press"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_USB_MODE_HINT2
+  desc: Apple2026 USB screen: how to switch mode, line 2
+  user: core
+  <source>
+    *: "next or previous"
+  </source>
+  <dest>
+    *: "next or previous"
+  </dest>
+  <voice>
+    *: "next or previous"
   </voice>
 </phrase>

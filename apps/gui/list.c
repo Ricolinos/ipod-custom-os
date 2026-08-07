@@ -63,6 +63,28 @@ void apple2026_ensure_rail_font(void)
         apple2026_rail_font_id =
             font_load(FONT_DIR "/07-SFPro-Rail.fnt");
 }
+
+/* Magnified face for the rail letter the list is currently sitting on. */
+int apple2026_rail_big_font_id = -1;
+void apple2026_ensure_rail_big_font(void)
+{
+    if (apple2026_rail_big_font_id < 0)
+        apple2026_rail_big_font_id =
+            font_load(FONT_DIR "/13-SFCompactText-Regular.fnt");
+}
+
+/* Face for the letter badge that flashes mid-screen while flicking. */
+int apple2026_letter_badge_font_id = -1;
+void apple2026_ensure_letter_badge_font(void)
+{
+    if (apple2026_letter_badge_font_id < 0)
+        apple2026_letter_badge_font_id =
+            font_load(FONT_DIR "/28-SFProDisplay-Bold.fnt");
+}
+
+/* Stamped every time the wheel jumps a letter group.  The list draw shows
+ * the badge for a moment afterwards so you can see where you are landing. */
+long apple2026_letter_flash_tick = 0;
 #endif
 
 /* The minimum number of pending button events in queue before starting
@@ -239,6 +261,8 @@ void gui_synclist_init(struct gui_synclist * gui_list,
     gui_list->callback_speak_item = NULL;
     gui_list->callback_draw_item = NULL;
     gui_list->a26_index_rail = false;
+    gui_list->callback_get_item_toggle = NULL;
+    gui_list->callback_get_item_value = NULL;
     gui_list->nb_items = 0;
     gui_list->selected_item = 0;
     gui_list->font_tier = ROCKPOD_LIST_FONT_NORMAL;
@@ -764,6 +788,51 @@ char apple2026_list_current_letter(struct gui_synclist *lists)
 }
 #endif
 
+#if ROCKPOD_APPLE2026_IPOD
+/* ¿El giro actual es un "flick"?  El salto por letras sólo debe entrar con
+ * un giro rápido de verdad.  El flag REPEAT no sirve de señal: la rueda lo
+ * emite con cualquier giro continuo, también paseando canción a canción, y
+ * por eso era imposible desplazarse a velocidad normal.  El driver de la
+ * rueda del 6G publica la velocidad real (grados/segundo, punto fijo 28.4)
+ * en los datos de la acción; se entra al modo letras por encima de 420 º/s
+ * y se sale por debajo de 300 º/s — la histéresis evita rebotar entre
+ * modos justo en el umbral.  Sin velocímetro (simulador) se estima por la
+ * cadencia de eventos, exigiendo una racha para entrar. */
+static bool a26_wheel_is_flicking(void)
+{
+    static bool engaged;
+    unsigned int data = get_action_data();
+
+#ifdef HAVE_WHEEL_ACCELERATION
+    if (data & (1u << 31))
+    {
+        /* El driver de la rueda (button-clickwheel.c) publica la velocidad
+         * en grados/segundo LISOS en los 24 bits bajos — sin punto fijo.
+         * El >>4 que hubo aquí dejaba el umbral 16 veces más alto y el
+         * modo letras no entraba nunca. */
+        unsigned int v = data & 0xffffffu;
+        engaged = v >= (engaged ? 300u : 420u);
+        return engaged;
+    }
+#endif
+    {
+        static long last_tick;
+        static int fast_run;
+
+        if (current_tick - last_tick <= HZ/10)
+        {
+            if (fast_run < 3)
+                fast_run++;
+        }
+        else
+            fast_run = 0;
+        last_tick = current_tick;
+        engaged = fast_run >= (engaged ? 1 : 3);
+        return engaged;
+    }
+}
+#endif
+
 bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
 {
     int action = *actionptr;
@@ -781,8 +850,20 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
 #if ROCKPOD_APPLE2026_IPOD
     /* Fast wheel on an indexed list jumps by first letter (iPod-style). */
     if (lists->a26_index_rail && lists->nb_items > 1 &&
-        (action == ACTION_STD_PREVREPEAT || action == ACTION_STD_NEXTREPEAT))
+        (action == ACTION_STD_PREVREPEAT || action == ACTION_STD_NEXTREPEAT) &&
+        a26_wheel_is_flicking())
     {
+        /* Ritmo legible: un grupo cada décima de segundo aunque los
+         * eventos de la rueda lleguen en ráfaga; los sobrantes se
+         * consumen sin mover para que no se acumulen. */
+        static long a26_next_jump_tick;
+        if (TIME_BEFORE(current_tick, a26_next_jump_tick))
+        {
+            *actionptr = ACTION_NONE;
+            return true;
+        }
+        a26_next_jump_tick = current_tick + HZ/10;
+
         int i = lists->selected_item;
         char cur = a26_item_letter(lists, i);
         if (action == ACTION_STD_NEXTREPEAT)
@@ -799,6 +880,7 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
             while (i > 0 && a26_item_letter(lists, i - 1) == cur)
                 i--;
         }
+        apple2026_letter_flash_tick = current_tick;
         gui_synclist_select_item(lists, i);
         gui_synclist_draw(lists);
         gui_synclist_speak_item(lists);
@@ -1002,10 +1084,17 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
     }
 #endif
     /* Apple2026 split root menu: advance the preview-pane slideshow on the
-     * idle tick and repaint when it produced a new frame. */
+     * idle tick and repaint when it produced a new frame.
+     *
+     * H-16: los fotogramas de la deriva lenta (10 por segundo durante 18 s)
+     * sólo mueven la carátula, así que se repinta únicamente el panel; la
+     * lista con sus iconos y su barra no tiene por qué redibujarse para eso.
+     * Si el panel dice que no puede (fundido, tarjeta de reproducción,
+     * pantalla dormida) se cae al redibujo completo de siempre. */
     if (action == ACTION_NONE && apple2026_pane_tick())
     {
-        gui_synclist_draw(lists);
+        if (!apple2026_pane_draw_pane_only(&screens[SCREEN_MAIN]))
+            gui_synclist_draw(lists);
         return true;
     }
     return false;
@@ -1023,7 +1112,8 @@ int list_do_action_timeout(struct gui_synclist *lists, int timeout)
             timeout = fade_timeout;
     }
 #endif
-    /* Apple2026: preview-pane animation cadence (HZ/20 fade, HZ/8 pan) */
+    /* Apple2026: cadencia de la animación del panel (HZ/20 el fundido,
+     * PANE_PAN_FRAME_TICKS la deriva; el valor lo decide el propio panel). */
     {
         int pane_timeout = apple2026_pane_anim_timeout();
         if (pane_timeout > 0 && timeout > pane_timeout)
@@ -1147,6 +1237,8 @@ bool simplelist_show_list(struct simplelist_info *info)
 
     gui_synclist_set_icon_callback(&lists, info->get_icon);
     gui_synclist_set_voice_callback(&lists, info->get_talk);
+    /* después de gui_synclist_init, que deja el callback en NULL */
+    lists.callback_get_item_value = info->get_value;
 #ifdef HAVE_LCD_COLOR
     gui_synclist_set_color_callback(&lists, info->get_color);
     if (info->selection_color)
@@ -1248,6 +1340,7 @@ void simplelist_info_init(struct simplelist_info *info, char* title,
     info->title_icon = Icon_NOICON;
     info->get_icon = NULL;
     info->get_name = NULL;
+    info->get_value = NULL;
     info->get_talk = NULL;
 #ifdef HAVE_LCD_COLOR
     info->get_color = NULL;

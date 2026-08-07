@@ -327,7 +327,14 @@ static int browser(void* param)
                     /* Maybe just needs to reboot due to delayed commit */
                     if (stat->commit_delayed)
                     {
-                        splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
+                        {
+                            if (!apple2026_symbol_page(&screens[SCREEN_MAIN],
+                                        A26_ASSET("a26_reboot.bmp"),
+                                        str(LANG_PLEASE_REBOOT), 1))
+                                splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
+                            else
+                                sleep(HZ*2);
+                        }
                         break;
                     }
 
@@ -351,6 +358,17 @@ static int browser(void* param)
                             break;
                         FOR_NB_SCREENS(i)
                             screens[i].clear_display();
+
+                        /* B5 de H-04: entre este clear y la primera página
+                         * de progreso del bucle de abajo la pantalla se
+                         * quedaba en blanco, y arrancar la reconstrucción
+                         * es justo lo que despierta el disco: es la espera
+                         * más larga de todas.  Se pinta ya la misma página
+                         * de símbolo que usará el progreso, para que además
+                         * no haya salto visual entre una y otra. */
+                        apple2026_symbol_page(&screens[SCREEN_MAIN],
+                                              A26_ASSET("a26_database.bmp"),
+                                              NULL, 1);
 
                         /* Start initialisation */
                         tagcache_rebuild();
@@ -401,16 +419,44 @@ static int browser(void* param)
                     }
                     else
                     {
-                        splashf(0, str(LANG_BUILDING_DATABASE),
-                                   stat->processed_entries); /* (voiced above) */
+                        char a26_dbmsg[64];
+
+                        snprintf(a26_dbmsg, sizeof(a26_dbmsg),
+                                 str(LANG_BUILDING_DATABASE),
+                                 stat->processed_entries);
+                        if (!apple2026_symbol_page(&screens[SCREEN_MAIN],
+                                    A26_ASSET("a26_database.bmp"),
+                                    a26_dbmsg, 1))
+                            splashf(0, str(LANG_BUILDING_DATABASE),
+                                       stat->processed_entries);
                     }
                 }
             }
             if (!tagcache_is_usable())
+            {
+                /* Sin base de datos no hay navegación que hacer, pero la
+                 * entrada pendiente hay que consumirla igual: si se queda
+                 * armada, se dispara sola en la siguiente apertura del
+                 * árbol y abre una vista que nadie pidió (H-03, A2). */
+                tagtree_take_pending_entry();
                 return GO_TO_PREVIOUS;
+            }
             filter = SHOW_ID3DB;
             last_ft_dirlevel = tc->dirlevel;
-            if (last_screen == GO_TO_WPS &&
+            if (tagtree_has_pending_entry())
+            {
+                /* El submenú Música pide entrar en una vista concreta por
+                 * índice, y ese índice es relativo a la RAÍZ del árbol.
+                 * Restaurar aquí el dirlevel de la última visita dejaba la
+                 * auto-entrada apuntando a otra lista —se pedía Artistas y
+                 * se abría Canciones—, así que se arranca de cero.
+                 * currtable=0 es lo que hace que tagtree_load vuelva a
+                 * cargar TABLE_ROOT. */
+                tc->dirlevel = 0;
+                tc->selected_item = 0;
+                tc->currtable = 0;
+            }
+            else if (last_screen == GO_TO_WPS &&
                 global_status.playback_context == PLAYBACK_CONTEXT_DATABASE)
             {
                 tc->dirlevel = global_status.playback_context_dirlevel;
@@ -713,8 +759,10 @@ static int item_callback(int action,
                          const struct menu_item_ex *this_item,
                          struct gui_synclist *this_list);
 
+#if !((MODEL_NUMBER == 5) || (MODEL_NUMBER == 71))   /* sólo el menú raíz estándar */
 MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
                         NULL, Icon_Bookmark);
+#endif
 
 /* Apple2026: /Music folder view inside the Music submenu ("Carpetas"),
  * run inline so backing out stays in the Music submenu. */
@@ -728,7 +776,7 @@ MENUITEM_FUNCTION(music_library, MENU_FUNC_CHECK_RETVAL,
 /* Apple2026 split root menu: curated media libraries */
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 MENUITEM_RETURNVALUE(video_library, ID2P(LANG_ROOT_VIDEOS), GO_TO_VIDEOLIB,
-                        NULL, Icon_Display_menu);
+                        NULL, Icon_S_Videos);
 /* Photos submenu (iPod-style): Slideshow / Folders / Settings.
  * All inline so backing out stays inside the Photos menu. */
 static int photo_folders_fn(void)
@@ -801,8 +849,10 @@ MENUITEM_RETURNVALUE(pictureflow_item, "Cover Flow", GO_TO_PICTUREFLOW,
                         NULL, Icon_Display_menu);
 #endif
 #endif
+#if !((MODEL_NUMBER == 5) || (MODEL_NUMBER == 71))   /* aquí cuelga de Extras */
 MENUITEM_RETURNVALUE(rocks_browser, ID2P(LANG_PLUGINS), GO_TO_BROWSEPLUGINS,
                         NULL, Icon_Plugin);
+#endif
 
 static char *get_wps_item_name(int selected_item, void * data,
                                char *buffer, size_t buffer_len)
@@ -815,18 +865,20 @@ static char *get_wps_item_name(int selected_item, void * data,
 MENUITEM_RETURNVALUE_DYNTEXT(wps_item, GO_TO_WPS, item_callback,
                                 get_wps_item_name,
                                 NULL, NULL, Icon_Playback_menu);
+#if !((MODEL_NUMBER == 5) || (MODEL_NUMBER == 71))   /* ídem: aquí cuelgan de Extras */
 MENUITEM_RETURNVALUE(equalizer_item, ID2P(LANG_EQUALIZER), GO_TO_EQUALIZER,
                      NULL, Icon_EQ);
 #ifdef HAVE_RECORDING
 MENUITEM_RETURNVALUE(rec, ID2P(LANG_RECORDING), GO_TO_RECSCREEN,
                         NULL, Icon_Recording);
 #endif
+#endif
 #if CONFIG_TUNER
 MENUITEM_RETURNVALUE(fm, ID2P(LANG_FM_RADIO), GO_TO_FM,
                         item_callback, Icon_Radio_screen);
 #endif
 MENUITEM_RETURNVALUE(menu_, ID2P(LANG_SETTINGS), GO_TO_MAINMENU,
-                        NULL, Icon_General_settings_menu);
+                        NULL, Icon_S_Settings);
 MENUITEM_RETURNVALUE(bookmarks, ID2P(LANG_BOOKMARK_MENU_RECENT_BOOKMARKS),
                         GO_TO_RECENTBMARKS,  item_callback,
                         Icon_Bookmark);
@@ -860,14 +912,49 @@ static int extras_files_fn(void)
     return a26_inline_browse(GO_TO_FILEBROWSER);
 }
 MENUITEM_FUNCTION(files_browser, MENU_FUNC_CHECK_RETVAL,
-                  "Files", extras_files_fn, NULL, Icon_file_view_menu);
+                  ID2P(LANG_DIR_BROWSER), extras_files_fn, NULL,
+                  Icon_file_view_menu);
+/* Accesos directos, Ecualizador y Grabación entraban como MENUITEM_RETURNVALUE,
+ * así que al elegirlos do_menu devolvía el GO_TO_* hasta la raíz y, al salir de
+ * la pantalla, el usuario aparecía en el menú principal en vez de volver a
+ * Extras.  Aquí se ejecutan en línea, como ya hacía Archivos, y el Ecualizador
+ * cuelga directamente de su propio menú. */
+static int extras_plugins_fn(void)
+{
+    int ret = do_menu(&plugin_menu, NULL, NULL, false);
+
+    return (ret == GO_TO_PREVIOUS || ret == GO_TO_ROOT) ? 0 : ret;
+}
+MENUITEM_FUNCTION(extras_plugins, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_PLUGINS), extras_plugins_fn, NULL,
+                  Icon_A26_Plugins);
+
+static int extras_shortcuts_fn(void)
+{
+    int ret = do_shortcut_menu(NULL);
+
+    return (ret == GO_TO_PREVIOUS || ret == GO_TO_ROOT) ? 0 : ret;
+}
+MENUITEM_FUNCTION(extras_shortcuts, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_SHORTCUTS), extras_shortcuts_fn, NULL,
+                  Icon_Bookmark);
+
 #ifdef HAVE_RECORDING
-MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
-          &files_browser, &rocks_browser, &shortcut_menu, &equalizer_item,
-          &rec);
+static int extras_recording_fn(void)
+{
+    recording_screen(false);
+    return 0;
+}
+MENUITEM_FUNCTION(extras_recording, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_RECORDING), extras_recording_fn, NULL,
+                  Icon_Recording);
+
+MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_S_Extras,
+          &files_browser, &extras_plugins, &extras_shortcuts, &equalizer_menu,
+          &extras_recording);
 #else
-MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_Plugin,
-          &files_browser, &rocks_browser, &shortcut_menu, &equalizer_item);
+MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_S_Extras,
+          &files_browser, &extras_plugins, &extras_shortcuts, &equalizer_menu);
 #endif
 
 /* Apple2026: Music opens an iPod-style submenu of database views (direct
@@ -898,9 +985,21 @@ MENUITEM_FUNCTION_W_PARAM(db_genres_item, MENU_FUNC_CHECK_RETVAL,
 MENUITEM_FUNCTION_W_PARAM(db_search_item, MENU_FUNC_CHECK_RETVAL,
                   ID2P(LANG_ROOT_SEARCH), db_view_fn, (void *)4,
                   NULL, Icon_Preset);
+/* Índices 5 y 6: las dos últimas entradas de la raíz de tagnavi.  Estaban
+ * definidas en tagnavi.config pero no había forma de llegar a ellas sin
+ * aflorar esa raíz cruda, que es justo lo que H-03 elimina.  Los símbolos
+ * son los mismos que tagtree_get_icon da a esas destinaciones, y ninguno se
+ * repite entre los hermanos de este submenú. */
+MENUITEM_FUNCTION_W_PARAM(db_recent_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_RECENTLY_ADDED), db_view_fn, (void *)5,
+                  NULL, Icon_Queued);
+MENUITEM_FUNCTION_W_PARAM(db_history_item, MENU_FUNC_CHECK_RETVAL,
+                  ID2P(LANG_PLAYBACK_HISTORY), db_view_fn, (void *)6,
+                  NULL, Icon_A26_Clock);
 MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_MusicApp,
           &db_songs_item, &pictureflow_item, &playlists, &db_artists_item,
-          &db_albums_item, &db_genres_item, &db_search_item, &music_library);
+          &db_albums_item, &db_genres_item, &db_recent_item, &db_history_item,
+          &db_search_item, &music_library);
 #else
 MAKE_MENU(music_submenu, ID2P(LANG_MUSIC_LIBRARY), 0, Icon_MusicApp,
           &music_library, &playlists);

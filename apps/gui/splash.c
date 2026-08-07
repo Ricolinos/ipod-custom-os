@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "stdarg.h"
 #include "string.h"
+#include "string-extra.h"
 #include "rbunicode.h"
 #include "stdio.h"
 #include "kernel.h"
@@ -33,9 +34,392 @@
 #include "scrollbar.h"
 #include "font.h"
 #include "apple2026_shell.h"
+#include "bmp.h"
+#include "rbpaths.h"
 #ifndef BOOTLOADER
 #include "misc.h" /* get_current_activity */
 #endif
+
+
+#if ROCKPOD_APPLE2026_IPOD && !defined(BOOTLOADER)
+/* ---- Apple2026 loading screens ---------------------------------------
+ * "Loading..." becomes a clean page with a centred iOS-style spinner; long
+ * jobs draw a slim floating bar over the bottom of whatever screen is
+ * already showing (see apple2026_progress_page).
+ *
+ * La página respeta la barra de estado cuando la hay y ocupa la pantalla
+ * entera cuando no la hay — lo decide a26_page_begin consultando al
+ * viewportmanager, no el llamador. */
+#define A26_SPIN_PX      32
+#define A26_SPIN_FRAMES  12
+#define A26_TOPBAR_H     20
+
+static fb_data a26_spin_px[A26_SPIN_PX * A26_SPIN_PX * A26_SPIN_FRAMES];
+static int a26_spin_state;   /* 0 untried, 1 ok, -1 failed */
+static unsigned a26_spin_gen;   /* generación de assets con la que se cargó */
+
+static bool a26_load_strip(const char *name, fb_data *dst, size_t sz,
+                           int px, int frames, int *state)
+{
+    struct bitmap bm;
+
+    if (*state)
+        return *state > 0;
+    memset(&bm, 0, sizeof(bm));
+    bm.data = (unsigned char *)dst;
+    *state = (read_bmp_file(name, &bm, sz, FORMAT_NATIVE | FORMAT_DITHER,
+                            NULL) > 0
+              && bm.width == px && bm.height == px * frames) ? 1 : -1;
+    return *state > 0;
+}
+
+/* La página empieza bajo la barra de estado SÓLO si hay barra de estado.
+ *
+ * H-19: con el tema desactivado —dentro de un plugin, en USB, al apagar—
+ * nadie dibuja esa franja, y esta página tampoco la tocaba: el viewport
+ * arrancaba en y=20 y el volcado iba de 20 a 240.  En la pantalla física
+ * seguían los 20 px de lo anterior, que desde una vista dividida son media
+ * barra más la cabecera del tile del panel.  Es una regresión del arreglo
+ * B1/B2 de H-04 (commit d20cb5f060): antes ahí no se dibujaba nada, así
+ * que la franja rancia no llamaba la atención.
+ *
+ * Con el tema activo (base de datos, menú contextual, ajustes de sonido) la
+ * barra sí se repinta sola y la página debe respetarla.  Un solo sitio
+ * decide, y así ninguna firma pública cambia ni hay dos variantes que
+ * mantener en paralelo. */
+static void a26_page_begin(struct screen *display, struct viewport *vp,
+                           bool force_full)
+{
+    bool with_bar = !force_full
+                 && viewportmanager_theme_is_enabled(display->screen_type);
+
+    viewport_set_defaults(vp, display->screen_type);
+    vp->x = 0;
+    vp->y = with_bar ? A26_TOPBAR_H : 0;
+    vp->width = display->lcdwidth;
+    vp->height = display->lcdheight - vp->y;
+    vp->fg_pattern = A26_TEXT_PRIMARY;
+    vp->bg_pattern = A26_SHELL_BG;
+    vp->flags &= ~VP_FLAG_ALIGNMENT_MASK;
+    display->set_viewport(vp);
+    display->clear_viewport();
+}
+
+static void a26_center_text(struct screen *display, struct viewport *vp,
+                            int y, const char *text)
+{
+    int w, h;
+    if (!text || !text[0])
+        return;
+    display->getstringsize(text, &w, &h);
+    display->putsxy((vp->width - w) / 2, y, text);
+}
+
+/* Plain spinner page (replaces the "Loading..." box). */
+bool apple2026_loading_page(struct screen *display, bool full_screen)
+{
+    struct viewport vp;
+    static int frame;
+
+    /* La tira se carga una sola vez y se queda en memoria, así que hay que
+     * soltarla al cambiar de tema: si no, el spinner del tema anterior sigue
+     * sirviéndose el resto de la sesión.  Antes eso pasaba desapercibido
+     * porque el tile era transparente y sólo se veían los brazos, mal
+     * coloreados; desde que es opaco, el fondo blanco del tile claro se ve
+     * como un RECUADRO sobre el fondo oscuro de la página. */
+    if (a26_spin_gen != apple2026_asset_gen())
+    {
+        a26_spin_gen = apple2026_asset_gen();
+        a26_spin_state = 0;
+    }
+    if (!a26_load_strip(A26_ASSET("loading.bmp"), a26_spin_px,
+                        sizeof(a26_spin_px), A26_SPIN_PX, A26_SPIN_FRAMES,
+                        &a26_spin_state))
+        return false;
+
+    a26_page_begin(display, &vp, full_screen);
+    frame = (frame + 1) % A26_SPIN_FRAMES;
+    /* Estampado OPACO: la tira la genera tools/apple2026_spinner.py con el
+     * fondo del tema ya mezclado y sin clave magenta, precisamente para que
+     * los bordes curvos de los brazos tengan una rampa de verdad en vez de
+     * recortarse contra la clave.  a26_page_begin acaba de limpiar a ese
+     * mismo SHELL_BG, así que el tile encaja sin costura. */
+    display->bitmap_part(a26_spin_px, 0, frame * A26_SPIN_PX,
+                         STRIDE(display->screen_type, A26_SPIN_PX,
+                                A26_SPIN_PX * A26_SPIN_FRAMES),
+                         (vp.width - A26_SPIN_PX) / 2,
+                         (vp.height - A26_SPIN_PX) / 2,
+                         A26_SPIN_PX, A26_SPIN_PX);
+    display->update_viewport();
+    display->set_viewport(NULL);
+    return true;
+}
+
+/* Página de símbolo: un glifo grande centrado y, opcionalmente, una línea
+ * de texto debajo.  Sustituye a los cuadros de texto sueltos sobre pantalla
+ * blanca que quedaban en el apagado, en el aviso de reinicio y mientras se
+ * construye la base de datos, que eran el último resto de cromo de Rockbox
+ * a la vista. */
+#define A26_SYM_PX 96
+static fb_data a26_sym_px[A26_SYM_PX * A26_SYM_PX];
+static int a26_sym_state;
+static char a26_sym_loaded[MAX_PATH];
+
+/* Un solo buffer para todas las páginas; la clave es la RUTA, no el
+ * puntero: A26_ASSET() reparte punteros de un búfer rotatorio de cuatro
+ * ranuras, así que dos archivos distintos pueden compartir dirección y la
+ * clave por puntero servía la imagen equivocada o arrastraba un fallo. */
+static bool a26_sym_ensure(const char *file)
+{
+    if (strcmp(a26_sym_loaded, file))
+    {
+        a26_sym_state = 0;
+        strmemccpy(a26_sym_loaded, file, sizeof(a26_sym_loaded));
+    }
+    return a26_load_strip(file, a26_sym_px, sizeof(a26_sym_px),
+                          A26_SYM_PX, 1, &a26_sym_state);
+}
+
+/* Carga anticipada: la pantalla de USB debe pedir su símbolo ANTES de
+ * ceder el disco al ordenador; después ya no hay archivos que leer. */
+void apple2026_symbol_preload(const char *file)
+{
+    a26_sym_ensure(file);
+}
+
+bool apple2026_symbol_page(struct screen *display, const char *file,
+                           const char *text, int blinks)
+{
+    struct viewport vp;
+    int i;
+
+    if (!a26_sym_ensure(file))
+        return false;
+
+    if (blinks < 1)
+        blinks = 1;
+    for (i = 0; i < blinks; i++)
+    {
+        int y;
+
+        a26_page_begin(display, &vp, false);
+        y = (vp.height - A26_SYM_PX) / 2 - (text && *text ? 14 : 0);
+        if (blinks == 1 || (i & 1) == 0)
+            display->transparent_bitmap_part(a26_sym_px, 0, 0,
+                    STRIDE(display->screen_type, A26_SYM_PX, A26_SYM_PX),
+                    (vp.width - A26_SYM_PX) / 2, y, A26_SYM_PX, A26_SYM_PX);
+        if (text && *text)
+        {
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                        A26_TEXT_SECONDARY));
+            a26_center_text(display, &vp, y + A26_SYM_PX + 14, text);
+        }
+        display->update_viewport();
+        if (blinks > 1)
+            sleep(HZ / 4);
+    }
+    display->set_viewport(NULL);
+    return true;
+}
+
+/* ---- pantalla de USB: modo del mando (HID) ----------------------------
+ *
+ * Los cuatro fotogramas viven en UNA tira y se cargan de una sola vez, no en
+ * cuatro archivos: durante el USB el disco es del ordenador y no se puede
+ * leer nada.  Con archivos sueltos, y con la caché de un solo hueco de
+ * `a26_sym_ensure`, cambiar de modo con el cable puesto intentaría leer del
+ * disco cedido y dejaría la pantalla sin símbolo.
+ *
+ * El orden de los fotogramas ES el de `hid_key_mappings` en usb_keymaps.c,
+ * o sea el valor de `usb_keypad_mode`.  Lo garantiza el generador
+ * (tools/apple2026_usb_mode_icons.py), que lleva la misma lista. */
+#define A26_USB_MODE_FRAMES 4
+static fb_data a26_usbmode_px[A26_SYM_PX * A26_SYM_PX * A26_USB_MODE_FRAMES];
+static int a26_usbmode_state;
+static unsigned a26_usbmode_gen;
+
+/* Se llama ANTES de ceder el disco (usb_acknowledge).  Devuelve false si la
+ * tira no está: el llamante se queda con la página del cable de siempre. */
+bool apple2026_usb_modes_preload(void)
+{
+    if (a26_usbmode_gen != apple2026_asset_gen())
+    {
+        a26_usbmode_gen = apple2026_asset_gen();
+        a26_usbmode_state = 0;   /* el tema cambió: la tira anterior no vale */
+    }
+    return a26_load_strip(A26_ASSET("a26_usb_modes.bmp"), a26_usbmode_px,
+                          sizeof(a26_usbmode_px), A26_SYM_PX,
+                          A26_USB_MODE_FRAMES, &a26_usbmode_state);
+}
+
+/* Símbolo del modo + su nombre + dos líneas de ayuda para cambiarlo.
+ * Deliberadamente NO se recarga nada aquí: si la precarga no llegó a tiempo
+ * devolvemos false y no se dibuja media pantalla. */
+bool apple2026_usb_mode_page(struct screen *display, int frame,
+                             const char *name, const char *hint1,
+                             const char *hint2)
+{
+    struct viewport vp;
+    struct font *fnt;
+    int y, lh;
+
+    if (a26_usbmode_state <= 0 || frame < 0 || frame >= A26_USB_MODE_FRAMES)
+        return false;
+
+    a26_page_begin(display, &vp, false);
+
+    /* La altura de línea sale de la FUENTE, no de medir una cadena: esto se
+     * dibuja con el disco ya cedido y los .fnt cerrados por
+     * `font_disable_all()`, y medir texto necesita glifos en caché.  El alto
+     * de la fuente está en su cabecera, que sigue en RAM pase lo que pase. */
+    fnt = font_get(vp.font);
+    lh = fnt ? fnt->height : 0;
+    if (lh <= 0)
+        return false;
+
+    /* El bloque entero (símbolo + tres renglones) se centra como una unidad;
+     * centrar sólo el símbolo dejaba el texto colgando y la página descuadrada
+     * hacia abajo. */
+    y = (vp.height - (A26_SYM_PX + 14 + lh + 4 + lh + lh)) / 2;
+
+    display->transparent_bitmap_part(a26_usbmode_px, 0, frame * A26_SYM_PX,
+            STRIDE(display->screen_type, A26_SYM_PX,
+                   A26_SYM_PX * A26_USB_MODE_FRAMES),
+            (vp.width - A26_SYM_PX) / 2, y, A26_SYM_PX, A26_SYM_PX);
+    y += A26_SYM_PX + 14;
+
+    /* Jerarquía por COLOR, no por tamaño (DESIGN.md): el modo en tinta
+     * principal, la ayuda en secundaria.  Una sola fuente además mantiene
+     * pequeña la caché de glifos, que es todo lo que queda vivo una vez
+     * `font_disable_all()` ha cerrado los .fnt. */
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
+    a26_center_text(display, &vp, y, name);
+    y += lh + 4;
+
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                A26_TEXT_SECONDARY));
+    a26_center_text(display, &vp, y, hint1);
+    a26_center_text(display, &vp, y + lh, hint2);
+
+    display->update_viewport();
+    display->set_viewport(NULL);
+    return true;
+}
+
+bool apple2026_power_page(struct screen *display, bool battery_dead)
+{
+    return apple2026_symbol_page(display,
+            battery_dead ? A26_ASSET("a26_battery_empty.bmp")
+                         : A26_ASSET("a26_power.bmp"),
+            NULL, battery_dead ? 6 : 1);
+}
+
+/* Barra de progreso flotante: una pastilla fina sobre el borde inferior de
+ * la pantalla que ya está dibujada.  Antes esto era una página completa con
+ * un engrane que tapaba el menú; ahora la carga convive con la pantalla
+ * anterior hasta que toque cambiar de vista.  Con total <= 0 (no se sabe
+ * cuánto queda) la pastilla corre sola de lado a lado. */
+bool apple2026_progress_page(struct screen *display, const char *text,
+                             int current, int total)
+{
+    struct viewport vp;
+    int bar_x, bar_w, bar_y, r, fill;
+
+    (void)text;   /* sin texto: sólo la barra, sobre la pantalla previa */
+
+    if (!apple2026_theme_selected())
+        return false;   /* el llamador cae al splash de serie */
+
+    viewport_set_defaults(&vp, display->screen_type);
+    display->set_viewport(&vp);
+
+    bar_w = vp.width - 80;
+    bar_x = 40;
+    bar_y = vp.height - 14;
+
+    /* Cápsula de fondo con borde fino: sin ella la pastilla se pierde
+     * cuando flota sobre texto de listas o sobre una carátula. */
+    {
+        static const int cap_inset[6] = { 4, 2, 1, 1, 0, 0 };
+        int cap_x = bar_x - 8;
+        int cap_w = bar_w + 16;
+        int cap_y = bar_y - 4;
+
+        for (r = 0; r < 12; r++)
+        {
+            int inset = cap_inset[r < 6 ? r : 11 - r];
+            int x0 = cap_x + inset, x1 = cap_x + cap_w - 1 - inset;
+
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_SHELL_BG));
+            display->hline(x0, x1, cap_y + r);
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_SHELL_RAIL));
+            if (r == 0 || r == 11)
+                display->hline(x0, x1, cap_y + r);
+            else
+            {
+                display->drawpixel(x0, cap_y + r);
+                display->drawpixel(x1, cap_y + r);
+            }
+        }
+    }
+
+    if (total > 0)
+    {
+        fill = (bar_w * current) / total;
+        if (fill < 0)
+            fill = 0;
+        if (fill > bar_w)
+            fill = bar_w;
+    }
+    else
+    {
+        /* indeterminado: un segmento que recorre el carril en bucle */
+        int seg = bar_w / 4;
+        int pos = ((current_tick % (2 * HZ)) * (bar_w - seg)) / (2 * HZ);
+        fill = -1;                    /* señal: pintar segmento suelto */
+        bar_x += 0;
+        /* pinta el carril entero y luego el segmento */
+        for (r = 0; r < 4; r++)
+        {
+            int inset = (r == 0 || r == 3) ? 1 : 0;
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_PROGRESS_TRACK));
+            display->hline(bar_x + inset, bar_x + bar_w - 1 - inset,
+                           bar_y + r);
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_PROGRESS_FILL));
+            display->hline(bar_x + pos + inset, bar_x + pos + seg - 1 - inset,
+                           bar_y + r);
+        }
+    }
+
+    if (fill >= 0)
+    {
+        for (r = 0; r < 4; r++)
+        {
+            int inset = (r == 0 || r == 3) ? 1 : 0;
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_PROGRESS_TRACK));
+            display->hline(bar_x + inset, bar_x + bar_w - 1 - inset,
+                           bar_y + r);
+            if (fill > 2 * inset)
+            {
+                display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_PROGRESS_FILL));
+                display->hline(bar_x + inset, bar_x + fill - 1 - inset,
+                               bar_y + r);
+            }
+        }
+    }
+
+    display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
+    display->update_viewport_rect(bar_x - 8, bar_y - 4, bar_w + 16, 12);
+    display->set_viewport(NULL);
+    return true;
+}
+#endif /* ROCKPOD_APPLE2026_IPOD */
 
 static long progress_next_tick, talked_tick;
 
@@ -249,6 +633,17 @@ void splashf(int ticks, const char *fmt, ...)
         }
     }
 
+#if ROCKPOD_APPLE2026_IPOD && !defined(BOOTLOADER)
+    /* Apple2026: "Loading..." is a full page with a spinner, not a box. */
+    if (id == LANG_WAIT && apple2026_theme_selected()
+        && apple2026_loading_page(&screens[SCREEN_MAIN], false))
+    {
+        if (ticks > 0)
+            sleep(ticks);
+        return;
+    }
+#endif
+
     /* If fmt is a lang ID then get the corresponding string (which
        still might contain % place holders). */
     fmt = P2STR((unsigned char *)fmt);
@@ -293,6 +688,22 @@ void splash_progress(int current, int total, const char *fmt, ...)
         progress_next_tick = now + HZ/20;
         vp_flag = 0; /* don't mark vp dirty to prevent flashing */
     }
+
+#if ROCKPOD_APPLE2026_IPOD && !defined(BOOTLOADER)
+    /* Apple2026: long jobs get a full progress page (gear + bar). */
+    if (apple2026_theme_selected())
+    {
+        char a26_buf[MAXBUFFER];
+        va_list a26_ap;
+        const char *a26_fmt = P2STR((unsigned char *)fmt);
+        va_start(a26_ap, fmt);
+        vsnprintf(a26_buf, sizeof(a26_buf), a26_fmt, a26_ap);
+        va_end(a26_ap);
+        if (apple2026_progress_page(&screens[SCREEN_MAIN], a26_buf,
+                                    current, total))
+            return;
+    }
+#endif
 
     if (global_settings.talk_menu &&
         total > 0 &&

@@ -98,6 +98,9 @@ struct list_putlineinfo_t {
     bool is_title;
     bool show_cursor;
     bool have_icons;
+    int toggle;   /* Apple2026: -1 no aplica, 0 apagado, 1 encendido */
+    const char *value;   /* Apple2026: valor a la derecha, NULL si no aplica */
+    bool value_active;   /* rosa si activo, negro al 50% si apagado */
 };
 
 typedef void list_draw_item(struct list_putlineinfo_t *list_info);
@@ -124,6 +127,11 @@ typedef enum {
  *          selected item, negative value for default coloring.
  */
 typedef int list_get_color(int selected_item, void * data);
+/* Apple2026: valor del ajuste de la fila, con la misma forma que el callback
+ * de gui_synclist.  Lo necesitan las listas que no son menús —el ecualizador
+ * las usa— para mostrar el valor a la derecha como el resto de Configuración. */
+typedef const char *list_get_value(int selected_item, void *data,
+                                   char *buf, size_t bufsz, bool *active);
 
 struct list_selection_color
 {
@@ -155,6 +163,16 @@ struct gui_synclist
     /* Apple2026: right-edge A-Z index rail + fast-wheel letter jumps
      * (database views and music tracklists) */
     bool a26_index_rail;
+    /* Apple2026: estado del interruptor de la fila — -1 si no es un ajuste
+     * de sí/no, 0 apagado, 1 encendido.  Permite verlo y cambiarlo desde la
+     * propia lista en vez de entrar a la pantalla de opciones. */
+    int (*callback_get_item_toggle)(int selected_item, void *data);
+    /* Apple2026: valor del ajuste de la fila, para los que no son sí/no.
+     * Devuelve NULL si la fila no es un ajuste con valor mostrable, y pone
+     * *active a false cuando el valor equivale a "apagado". */
+    const char *(*callback_get_item_value)(int selected_item, void *data,
+                                           char *buf, size_t bufsz,
+                                           bool *active);
     bool keyclick;
     bool talk_menu;
     bool wraparound;
@@ -308,6 +326,7 @@ struct simplelist_info {
     enum themable_icons title_icon;
     list_get_icon *get_icon; /* can be NULL */
     list_get_name *get_name; /* NULL if you're using simplelist_addline() */
+    list_get_value *get_value; /* Apple2026: puede ser NULL */
     list_speak_item *get_talk; /* can be NULL to not speak */
 #ifdef HAVE_LCD_COLOR
     list_get_color *get_color;

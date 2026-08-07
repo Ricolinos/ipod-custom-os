@@ -93,20 +93,20 @@ static int write_settings_file(void* param)
 }
 
 MENUITEM_FUNCTION_W_PARAM(browse_configs, 0, ID2P(LANG_CUSTOM_CFG),
-                          browse_folder, (void*)&config, NULL, Icon_NOICON);
+                          browse_folder, (void*)&config, NULL, Icon_S_BrowseCfg);
 MENUITEM_FUNCTION_W_PARAM(save_settings_item, 0, ID2P(LANG_SAVE_SETTINGS),
                           write_settings_file, (void*)SETTINGS_SAVE_ALL,
-                          NULL, Icon_NOICON);
+                          NULL, Icon_S_SaveCfg);
 MENUITEM_FUNCTION_W_PARAM(save_theme_item, 0, ID2P(LANG_SAVE_THEME),
                           write_settings_file, (void*)SETTINGS_SAVE_THEME,
-                          NULL, Icon_NOICON);
+                          NULL, Icon_S_SaveTheme);
 MENUITEM_FUNCTION_W_PARAM(save_sound_item, 0, ID2P(LANG_SAVE_SOUND),
                           write_settings_file, (void*)SETTINGS_SAVE_SOUND,
-                          NULL, Icon_NOICON);
+                          NULL, Icon_S_SaveSound);
 MENUITEM_FUNCTION(reset_settings_item, 0, ID2P(LANG_RESET),
-                  reset_settings, NULL, Icon_NOICON);
+                  reset_settings, NULL, Icon_S_ResetCfg);
 
-MAKE_MENU(manage_settings, ID2P(LANG_MANAGE_MENU), NULL, Icon_Config,
+MAKE_MENU(manage_settings, ID2P(LANG_MANAGE_MENU), NULL, Icon_S_ManageCfg,
           &browse_configs, &reset_settings_item,
           &save_settings_item, &save_sound_item, &save_theme_item);
 /*    MANAGE SETTINGS MENU        */
@@ -475,7 +475,7 @@ MENUITEM_FUNCTION(show_info_item, 0, ID2P(LANG_ROCKBOX_INFO),
 #if CONFIG_RTC
 int time_screen(void* ignored);
 MENUITEM_FUNCTION(timedate_item, MENU_FUNC_CHECK_RETVAL, ID2P(LANG_TIME_MENU),
-                  time_screen,  NULL, Icon_Menu_setting );
+                  time_screen,  NULL, Icon_S_TimeDate );
 #endif
 
 MENUITEM_FUNCTION(show_credits_item, 0, ID2P(LANG_CREDITS),

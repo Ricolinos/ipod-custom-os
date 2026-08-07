@@ -35,6 +35,7 @@
 #include "lang.h"
 #include "keyboard.h"
 #include "apple2026_shell.h"
+#include "apple2026_kbd.h"
 #include "viewport.h"
 #include "file.h"
 #include "splash.h"
@@ -410,6 +411,13 @@ static void kbd_move_picker_vertical(struct keyboard_parameters *pm,
 int kbd_input(char* text, int buflen, ucschar_t *kbd)
 {
     bool done = false;
+#if ROCKPOD_APPLE2026_IPOD
+    /* Apple2026 ships the iPod search strip in place of the character
+     * grid.  Custom keymaps (kbd != NULL) still get the stock grid, since
+     * the strip only carries the search alphabet. */
+    if (kbd == NULL && apple2026_theme_selected())
+        return apple2026_kbd_input(text, buflen);
+#endif
     struct keyboard_parameters * const param = kbd_param;
     struct edit_state state;
     ucschar_t ch;

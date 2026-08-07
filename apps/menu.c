@@ -39,6 +39,7 @@
 #include "usb.h"
 #include "panic.h"
 #include "settings.h"
+#include "sound.h"
 #include "settings_list.h"
 #include "option_select.h"
 #include "screens.h"
@@ -187,6 +188,44 @@ static const char* get_menu_item_name(int selected_item,
     return P2STR(menu->callback_and_desc->desc);
 }
 
+#if ROCKPOD_APPLE2026_IPOD
+/* Decoración de las filas del menú que se está mostrando.  Se guarda en una
+ * pila implícita —cada do_menu() salva la del menú que lo abrió y la repone al
+ * salir— porque los menús se anidan. */
+struct a26_deco {
+    void (*describe)(int row, struct a26_menu_row *out);
+    bool (*flip)(int row);
+};
+static struct a26_deco a26_pending;
+static const struct a26_deco *a26_cur;
+
+void apple2026_menu_rows(void (*describe)(int row, struct a26_menu_row *out),
+                         bool (*flip)(int row))
+{
+    a26_pending.describe = describe;
+    a26_pending.flip = flip;
+}
+
+/* Describe la fila si el menú actual es de lista de cadenas y trae
+ * decoración; si no, deja la estructura en blanco. */
+static bool a26_deco_row(int selected_item, void *data,
+                         struct a26_menu_row *out)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
+
+    out->icon = Icon_NOICON;
+    out->value = NULL;
+    out->value_active = false;
+    out->toggle = -1;
+    if (!a26_cur || !a26_cur->describe || !menu)
+        return false;
+    if ((menu->flags & MENU_TYPE_MASK) != MT_RETURN_ID)
+        return false;
+    a26_cur->describe(get_menu_selection(selected_item, menu), out);
+    return true;
+}
+#endif
+
 static enum themable_icons  menu_get_icon(int selected_item, void * data)
 {
     const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
@@ -196,6 +235,12 @@ static enum themable_icons  menu_get_icon(int selected_item, void * data)
 
     if (type == MT_RETURN_ID)
     {
+#if ROCKPOD_APPLE2026_IPOD
+        struct a26_menu_row row;
+
+        if (a26_deco_row(selected_item, data, &row) && row.icon != Icon_NOICON)
+            return row.icon;
+#endif
         return Icon_Menu_functioncall;
     }
     if (type == MT_MENU)
@@ -212,12 +257,155 @@ static enum themable_icons  menu_get_icon(int selected_item, void * data)
         if(flags == MT_MENU)
             menu_icon = Icon_Submenu;
         else if (flags == MT_SETTING || flags == MT_SETTING_W_TEXT)
+        {
              menu_icon = Icon_Menu_setting;
+#if ROCKPOD_APPLE2026_IPOD
+             {
+                 const struct settings_list *st = find_setting(menu->variable);
+                 int ic = st ? apple2026_setting_icon(st->cfg_name)
+                             : Icon_NOICON;
+
+                 if (ic != Icon_NOICON)
+                     menu_icon = ic;
+             }
+#endif
+        }
         else if (flags == MT_FUNCTION_CALL || flags == MT_RETURN_VALUE)
              menu_icon = Icon_Menu_functioncall;
     }
     return menu_icon;
 }
+
+#if ROCKPOD_APPLE2026_IPOD
+/* Devuelve el estado del ajuste de sí/no de la fila, o -1 si no lo es.
+ * Rockbox obliga a entrar a una pantalla de dos opciones para algo que cabe
+ * en un interruptor; con esto la fila lo muestra y lo cambia. */
+static const struct settings_list *a26_row_bool(int selected_item, void *data)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
+    const struct settings_list *st;
+
+    if ((menu->flags & MENU_TYPE_MASK) != MT_MENU)
+        return NULL;
+    selected_item = get_menu_selection(selected_item, menu);
+    menu = menu->submenus[selected_item];
+    if ((menu->flags & MENU_TYPE_MASK) != MT_SETTING)
+        return NULL;
+    st = find_setting(menu->variable);
+    if (!st || (st->flags & F_T_MASK) != F_T_BOOL)
+        return NULL;
+    return st;
+}
+
+static int menu_get_toggle(int selected_item, void *data)
+{
+    const struct settings_list *st;
+    struct a26_menu_row row;
+
+    if (a26_deco_row(selected_item, data, &row))
+        return row.toggle;
+    st = a26_row_bool(selected_item, data);
+    if (!st)
+        return -1;
+    return *(bool *)st->setting ? 1 : 0;
+}
+
+/* Invierte el ajuste de la fila.  Devuelve false si no era un sí/no, para
+ * que quien llama siga con el comportamiento normal. */
+static bool menu_toggle_row(int selected_item, void *data)
+{
+    const struct settings_list *st = a26_row_bool(selected_item, data);
+    bool *var;
+
+    if (!st)
+        return false;
+    var = (bool *)st->setting;
+    *var = !*var;
+    /* algunos ajustes tienen efecto en el momento */
+    if (st->bool_setting && st->bool_setting->option_callback)
+        st->bool_setting->option_callback(*var);
+    settings_save();
+    return true;
+}
+#endif
+
+#if ROCKPOD_APPLE2026_IPOD
+/* Ajuste de la fila que no es de sí/no; NULL si no aplica. */
+static const struct settings_list *a26_row_value(int selected_item, void *data)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
+    const struct settings_list *st;
+
+    if ((menu->flags & MENU_TYPE_MASK) != MT_MENU)
+        return NULL;
+    selected_item = get_menu_selection(selected_item, menu);
+    menu = menu->submenus[selected_item];
+    if ((menu->flags & MENU_TYPE_MASK) != MT_SETTING)
+        return NULL;
+    st = find_setting(menu->variable);
+    if (!st || (st->flags & F_T_MASK) == F_T_BOOL)
+        return NULL;   /* los sí/no ya llevan interruptor */
+    return st;
+}
+
+static const char *menu_get_value(int selected_item, void *data,
+                                  char *buf, size_t bufsz, bool *active)
+{
+    const struct settings_list *st;
+    const char *val;
+    struct a26_menu_row row;
+
+    if (a26_deco_row(selected_item, data, &row))
+    {
+        *active = row.value_active;
+        return row.value;
+    }
+    st = a26_row_value(selected_item, data);
+    if (!st)
+        return NULL;
+    val = option_get_valuestring(st, buf, bufsz, *(int *)st->setting);
+    if (!val)
+        return NULL;
+    /* "Apagado" o "No" se muestran atenuados; cualquier otro valor está
+     * activo.  Se compara con las cadenas traducidas, no con el índice,
+     * porque no todas las listas ponen la opción nula primero. */
+    *active = strcasecmp(val, str(LANG_OFF)) != 0
+           && strcasecmp(val, str(LANG_SET_BOOL_NO)) != 0;
+    /* Un ajuste numérico en cero tampoco hace nada —un precorte de 0.0 dB,
+     * unos graves de 0.0 dB, un balance de 0—, así que se atenúa igual.  Sin
+     * esto, el precorte del ecualizador salía en rosa mientras la ganancia de
+     * sus bandas, que es el mismo "0.0 dB", salía atenuada dos pantallas más
+     * adentro.
+     *
+     * La excepción es cuando el cero es el máximo del ajuste: el volumen va de
+     * -74 a 0 dB, y ahí 0 es a todo volumen, no "sin efecto". */
+    if (*active && *(int *)st->setting == 0)
+    {
+        if (st->flags & F_INT_SETTING)
+            *active = st->int_setting->max == 0;
+        else if (st->flags & F_T_SOUND)
+            *active = sound_max(st->sound_setting->setting) == 0;
+    }
+    return val;
+}
+
+/* Avanza a la siguiente opción sin salir de la lista.  Sólo para listas
+ * cortas: en un ajuste de decenas de valores, ciclar de uno en uno sería
+ * peor que abrir la pantalla de siempre. */
+#define A26_CYCLE_MAX 6
+static bool menu_cycle_value(int selected_item, void *data)
+{
+    const struct settings_list *st = a26_row_value(selected_item, data);
+
+    if (!st || (st->flags & F_CHOICE_SETTING) == 0)
+        return false;
+    if (!st->choice_setting || st->choice_setting->count > A26_CYCLE_MAX)
+        return false;
+    option_select_next_val(st, false, true);
+    settings_save();
+    return true;
+}
+#endif
 
 static bool menu_item_is_navigable(int selected_item, void * data)
 {
@@ -307,6 +495,10 @@ static int init_menu_lists(const struct menu_item_ex *menu,
     title = init_title(menu, &icon, buf, buf_sz);
     gui_synclist_set_title(lists, title, icon);
     gui_synclist_set_icon_callback(lists, global_settings.show_icons?menu_get_icon:NULL);
+#if ROCKPOD_APPLE2026_IPOD
+    lists->callback_get_item_toggle = menu_get_toggle;
+    lists->callback_get_item_value = menu_get_value;
+#endif
     gui_synclist_set_navigable_callback(lists, menu_item_is_navigable);
     if(global_settings.talk_menu)
         gui_synclist_set_voice_callback(lists, talk_menu_item);
@@ -443,6 +635,18 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
     bool redraw_lists;
 
     int old_audio_status = audio_status();
+
+#if ROCKPOD_APPLE2026_IPOD
+    /* La decoración que dejó quien nos llama es para ESTE menú.  Se toma y se
+     * borra la pendiente, para que un submenú no herede filas que no son
+     * suyas, y al salir se repone la del menú que nos abrió. */
+    const struct a26_deco *a26_prev = a26_cur;
+    struct a26_deco a26_here = a26_pending;
+
+    a26_pending.describe = NULL;
+    a26_pending.flip = NULL;
+    a26_cur = &a26_here;
+#endif
 
     /* Plugins run as ACTIVITY_PLUGIN, but SBS themes typically exclude
      * that activity from sub-menu styling (%Lb, header viewports).
@@ -733,6 +937,28 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
         }
         else if (action == ACTION_STD_OK)
         {
+#if ROCKPOD_APPLE2026_IPOD
+            /* Un ajuste de sí/no se invierte aquí mismo: la pantalla de dos
+             * opciones a la que llevaría no aporta nada que la fila no
+             * muestre ya con su interruptor. */
+            if (!in_stringlist
+                && (menu_toggle_row(gui_synclist_get_sel_pos(&lists), menu)
+                    || menu_cycle_value(gui_synclist_get_sel_pos(&lists),
+                                        menu)))
+            {
+                gui_synclist_draw(&lists);
+                continue;
+            }
+            /* Lo mismo en una lista de cadenas decorada: quien la abrió sabe
+             * invertir la fila sin salir de ella. */
+            if (in_stringlist && a26_here.flip
+                && a26_here.flip(get_menu_selection(
+                        gui_synclist_get_sel_pos(&lists), menu)))
+            {
+                gui_synclist_draw(&lists);
+                continue;
+            }
+#endif
             /* entering an item that may not be a list, so stop scrolling */
             gui_synclist_scroll_stop(&lists);
             redraw_lists = true;
@@ -906,6 +1132,9 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
     if(!(global_settings.touch_mode != (int)old_global_mode &&
          tsm == old_global_mode))
         touchscreen_set_mode(tsm);
+#endif
+#if ROCKPOD_APPLE2026_IPOD
+    a26_cur = a26_prev;
 #endif
     return ret;
 }

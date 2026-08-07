@@ -1050,7 +1050,14 @@ static bool set_databasedir(void)
     struct tagcache_stat *tc_stat = tagcache_get_stat();
     if (strcasecmp(selected_file.path, tc_stat->db_path))
     {
-        splash(HZ, ID2P(LANG_PLEASE_REBOOT));
+        {
+            if (!apple2026_symbol_page(&screens[SCREEN_MAIN],
+                        A26_ASSET("a26_reboot.bmp"),
+                        str(LANG_PLEASE_REBOOT), 1))
+                splash(HZ, ID2P(LANG_PLEASE_REBOOT));
+            else
+                sleep(HZ);
+        }
     }
 
     set_dir_helper(global_settings.tagcache_db_path,

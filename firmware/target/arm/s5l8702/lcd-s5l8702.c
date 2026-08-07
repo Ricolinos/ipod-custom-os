@@ -382,6 +382,9 @@ void lcd_update_rect(int, int, int, int) ICODE_ATTR;
 void lcd_update_rect(int x, int y, int width, int height)
 {
     int pixels = width * height;
+#if A26_LCD_CORNERS
+    a26_lcd_stamp_corners(x, y, width, height);
+#endif
     fb_data* p = FBADDR(x,y);
     uint16_t* out = lcd_dblbuf[0];
 

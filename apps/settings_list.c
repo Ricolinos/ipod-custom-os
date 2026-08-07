@@ -1348,8 +1348,12 @@ const struct settings_list settings[] = {
            ID2P(LANG_SERIAL_BITRATE_38400),ID2P(LANG_SERIAL_BITRATE_57600)),
 #endif
 #ifdef HAVE_ACCESSORY_SUPPLY
+    /* RockPod: apagada por defecto.  El firmware original sólo alimenta el
+     * riel de accesorios del conector de 30 pines cuando un accesorio lo
+     * pide; dejarlo siempre encendido gasta pila sin nada conectado.  Quien
+     * use base o mando puede activarlo en Ajustes. */
     OFFON_SETTING(0, accessory_supply, LANG_ACCESSORY_SUPPLY,
-                  true, "accessory power supply", accessory_supply_set),
+                  false, "accessory power supply", accessory_supply_set),
 #endif
 #ifdef HAVE_LINEOUT_POWEROFF
     OFFON_SETTING(0, lineout_active, LANG_LINEOUT,
@@ -1803,7 +1807,7 @@ const struct settings_list settings[] = {
     TEXT_SETTING(0, autoresume_paths, "autoresume next track paths",
                  "/podcast:/podcasts", NULL, NULL),
 
-    OFFON_SETTING(0, runtimedb, LANG_RUNTIMEDB_ACTIVE, false,
+    OFFON_SETTING(0, runtimedb, LANG_RUNTIMEDB_ACTIVE, true,
                   "gather runtime data", NULL),
     TEXT_SETTING(0, tagcache_scan_paths, "database scan paths",
                  DEFAULT_TAGCACHE_SCAN_PATHS, NULL, NULL),

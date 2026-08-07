@@ -57,6 +57,18 @@ struct mp3entry *wps_get_next_id3(void);
  * 3=lyrics 4=rating) — read by the %Wm skin tag. */
 int a26_wps_get_mode(void);
 
+/* Apple2026: true while the wheel is dragging the playhead (scrub mode) */
+bool a26_wps_is_scrubbing(void);
+
+/* Apple2026: true when the playlist catalog has something to add to */
+bool a26_playlists_available(void);
+/* Forget the cached catalog answer (call after adding/creating a list). */
+void a26_playlists_invalidate(void);
+
+/* Apple2026: true when the current track has a lyrics file */
+struct mp3entry;
+bool a26_lyrics_available(const struct mp3entry *id3);
+
 /* in milliseconds */
 #define DEFAULT_SKIP_THRESH          3000l
 

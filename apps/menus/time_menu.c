@@ -229,7 +229,7 @@ static int time_menu_callback(int action,
 MENUITEM_SETTING(sync_rds_time, &global_settings.sync_rds_time, NULL);
 #endif
 
-MAKE_MENU(time_menu, ID2P(LANG_TIME_MENU), time_menu_callback, Icon_NOICON,
+MAKE_MENU(time_menu, ID2P(LANG_TIME_MENU), time_menu_callback, Icon_A26_Clock,
           &time_set,
 #ifdef HAVE_RTC_ALARM
           &alarm_screen_call,
@@ -282,7 +282,7 @@ int time_screen(void* ignored)
     struct tm *tm = get_time();
     if (tm->tm_year==102 && tm->tm_hour==2 && tm->tm_min==2 && tm->tm_sec==2)
     {
-        splash(4*HZ, "Can't set time/date due to hardware issues!");
+        splash(4*HZ, str(LANG_A26_RTC_FAILED));
         pop_current_activity();
         return 0;
     }
