@@ -159,7 +159,7 @@ static bool pane_load_bmp(const char *name)
     char path[MAX_PATH];
     int ret;
 
-    snprintf(path, sizeof(path), PANE_ASSET_DIR "/%s", name);
+    apple2026_asset(path, sizeof(path), name);
     memset(&pane_bmp, 0, sizeof(pane_bmp));
     pane_bmp.data = (unsigned char *)pane_pixels;
     ret = read_bmp_file(path, &pane_bmp, sizeof(pane_pixels),
@@ -728,7 +728,7 @@ static void np_load_art(const struct mp3entry *id3)
             /* No cover for this track: show the standard placeholder tile.
              * (The idle slideshow never does this — it only ever picks
              * albums that actually have art.) */
-            strmemccpy(path, PANE_ASSET_DIR "/np_noart.bmp", sizeof(path));
+            apple2026_asset(path, sizeof(path), "np_noart.bmp");
         }
     }
     memset(&bm, 0, sizeof(bm));

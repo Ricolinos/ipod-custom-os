@@ -329,7 +329,7 @@ static int browser(void* param)
                     {
                         {
                             if (!apple2026_symbol_page(&screens[SCREEN_MAIN],
-                                        WPS_DIR "/Apple2026/a26_reboot.bmp",
+                                        A26_ASSET("a26_reboot.bmp"),
                                         str(LANG_PLEASE_REBOOT), 1))
                                 splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
                             else
@@ -414,7 +414,7 @@ static int browser(void* param)
                                  str(LANG_BUILDING_DATABASE),
                                  stat->processed_entries);
                         if (!apple2026_symbol_page(&screens[SCREEN_MAIN],
-                                    WPS_DIR "/Apple2026/a26_database.bmp",
+                                    A26_ASSET("a26_database.bmp"),
                                     a26_dbmsg, 1))
                             splashf(0, str(LANG_BUILDING_DATABASE),
                                        stat->processed_entries);

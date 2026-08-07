@@ -241,7 +241,7 @@ static void ly_load_art(const struct mp3entry *id3)
     if (!have_cover)
     {
         /* keep the column composed: same placeholder tile used everywhere */
-        strmemccpy(path, WPS_DIR "/Apple2026/np_noart.bmp", sizeof(path));
+        apple2026_asset(path, sizeof(path), "np_noart.bmp");
     }
     memset(&bm, 0, sizeof(bm));
     bm.data = ly_work;
@@ -347,7 +347,7 @@ static bool ly_load_strip(const char *name, fb_data *dst, int w, int h)
     struct bitmap bm;
     int i, n = w * h;
 
-    snprintf(path, sizeof(path), WPS_DIR "/Apple2026/%s", name);
+    apple2026_asset(path, sizeof(path), name);
     memset(&bm, 0, sizeof(bm));
     bm.data = (unsigned char *)dst;
     bm.width = w;
@@ -366,6 +366,13 @@ static bool ly_load_strip(const char *name, fb_data *dst, int w, int h)
 
 static void ly_load_chrome(void)
 {
+    static unsigned ly_chrome_gen;
+
+    if (ly_chrome_gen != apple2026_asset_gen())
+    {
+        ly_chrome_gen = apple2026_asset_gen();
+        ly_chrome_tried = false;
+    }
     if (ly_chrome_tried)
         return;
     ly_chrome_tried = true;
@@ -420,18 +427,17 @@ static void ly_round_rect(struct screen *display, int x, int y, int w, int h,
 /* Soft drop shadow under the album, cast on the white column. */
 static void ly_art_shadow(struct screen *display)
 {
-    static const unsigned shade[LY_SHADOW] = {
-        LCD_RGBPACK(0xF3, 0xF3, 0xF5),      /* outermost, barely there */
-        LCD_RGBPACK(0xEA, 0xEA, 0xED),
-        LCD_RGBPACK(0xE0, 0xE0, 0xE4),
-        LCD_RGBPACK(0xD5, 0xD5, 0xDA),      /* hugging the artwork */
-    };
+    /* Cada anillo es el fondo oscurecido un poco más que el anterior.  Estaban
+     * escritos a mano como grises claros, que sólo valen sobre papel blanco:
+     * con el tema oscuro salían más claros que el fondo, o sea un halo
+     * brillante alrededor de la carátula en vez de una sombra. */
+    static const unsigned char dim[LY_SHADOW] = { 12, 22, 34, 48 };
     int i;
 
     for (i = LY_SHADOW; i >= 1; i--)
         ly_round_rect(display, LY_ART_X - i, LY_ART_Y - i + 2,
                       LY_ART + 2 * i, LY_ART + 2 * i, LY_ART_RAD + i,
-                      shade[LY_SHADOW - i]);
+                      ly_mix(A26_SHELL_BG, 0, dim[LY_SHADOW - i]));
 }
 
 /* The white column sits above the lyrics panel: darken the first few
@@ -641,6 +647,11 @@ static void ly_paint_column(struct screen *display, const struct mp3entry *id3,
                             int height)
 {
     int i;
+
+    /* La paleta la fija apple2026_theme_selected(); esta pantalla puede ser
+     * la primera en dibujar tras arrancar, y entonces pintaba con la clara
+     * aunque el tema puesto fuera el oscuro. */
+    apple2026_theme_selected();
 
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_SHELL_BG));
     display->fillrect(0, 0, LY_LEFT_W, height);

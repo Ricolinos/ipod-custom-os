@@ -131,17 +131,23 @@ static int list_icon_width(enum screen_type screen)
 #define A26_SW_W 30
 #define A26_SW_H 18
 static fb_data a26_sw_px[A26_SW_W * A26_SW_H * 2];
-static int a26_sw_state;   /* 0 sin intentar, 1 cargado, -1 falló */
+static int a26_sw_state;
+static unsigned a26_sw_gen;   /* 0 sin intentar, 1 cargado, -1 falló */
 
 static bool a26_switch_ready(void)
 {
     struct bitmap bm;
 
+    if (a26_sw_gen != apple2026_asset_gen())
+    {
+        a26_sw_gen = apple2026_asset_gen();
+        a26_sw_state = 0;               /* otro tema, otro dibujo */
+    }
     if (a26_sw_state)
         return a26_sw_state > 0;
     memset(&bm, 0, sizeof(bm));
     bm.data = (unsigned char *)a26_sw_px;
-    a26_sw_state = (read_bmp_file(WPS_DIR "/Apple2026/a26_switch.bmp", &bm,
+    a26_sw_state = (read_bmp_file(A26_ASSET("a26_switch.bmp"), &bm,
                                   sizeof(a26_sw_px), FORMAT_NATIVE, NULL) > 0
                     && bm.width == A26_SW_W
                     && bm.height == A26_SW_H * 2) ? 1 : -1;

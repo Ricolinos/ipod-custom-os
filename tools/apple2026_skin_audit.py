@@ -156,7 +156,8 @@ CLAIM_CONTRACTS = {
             ("%xl(T,playerStatusLarge.bmp,0,0,4)", "SBS mini-player must preload the larger transport strip"),
             ("# (mini-player retired: now-playing card lives in the split pane)", "mini-player must stay retired; the split pane owns now-playing"),
             ("%V(280,203,20,20,-)", "SBS mini-player transport must use the larger 20x20 slot"),
-            ("%?mp<|%?Lo<|%?LM<|%Vd(pp_icon)", "status bar must show playback state while audio is active"),
+            ("%?mp<|%?Lo<%Vd(pp_icon_split)", "status bar must show playback state while audio is active, "
+             "split screens included"),
             ("%Vl(mp_volume_bg,60,203,196,20,-)", "SBS mini-player volume overlay must be a transient labeled viewport"),
             ("%Vl(mp_volume_clip,60,203,196,20,-)", "SBS mini-player clipping overlay must be a transient labeled viewport"),
         ],

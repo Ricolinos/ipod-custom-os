@@ -27,6 +27,7 @@
 #include "lang.h"
 #include "action.h"
 #include "settings.h"
+#include "apple2026_shell.h"
 #include "menu.h"
 #include "sound_menu.h"
 #include "exported_menus.h"
@@ -168,7 +169,7 @@ static int timestretch_callback(int action,
             if (global_settings.timestretch_enabled && !dsp_timestretch_available())
                 {
                     if (!apple2026_symbol_page(&screens[SCREEN_MAIN],
-                                WPS_DIR "/Apple2026/a26_reboot.bmp",
+                                A26_ASSET("a26_reboot.bmp"),
                                 str(LANG_PLEASE_REBOOT), 1))
                         splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
                     else

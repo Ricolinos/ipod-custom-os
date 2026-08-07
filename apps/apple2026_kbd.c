@@ -180,11 +180,17 @@ static bool kb_icon_ok;
 static void kb_header_icon(struct screen *display, int x, int y)
 {
     static const char * const files[] = {
-        WPS_DIR "/Apple2026/a26_kbd_write.bmp",
-        WPS_DIR "/Apple2026/a26_kbd_search.bmp",
-        WPS_DIR "/Apple2026/a26_kbd_save.bmp",
+        "a26_kbd_write.bmp", "a26_kbd_search.bmp", "a26_kbd_save.bmp",
     };
+    char path[MAX_PATH];
 
+    static unsigned kb_icon_gen;
+
+    if (kb_icon_gen != apple2026_asset_gen())
+    {
+        kb_icon_gen = apple2026_asset_gen();
+        kb_icon_loaded = -1;
+    }
     if (kb_icon_loaded != (int)kb_kind)
     {
         struct bitmap bm;
@@ -192,8 +198,10 @@ static void kb_header_icon(struct screen *display, int x, int y)
         memset(&bm, 0, sizeof(bm));
         bm.data = (unsigned char *)kb_icon_px;
         kb_icon_loaded = (int)kb_kind;
-        kb_icon_ok = read_bmp_file(files[kb_kind], &bm, sizeof(kb_icon_px),
-                                   FORMAT_NATIVE | FORMAT_DITHER, NULL) > 0
+        kb_icon_ok = read_bmp_file(
+                apple2026_asset(path, sizeof(path), files[kb_kind]),
+                &bm, sizeof(kb_icon_px),
+                FORMAT_NATIVE | FORMAT_DITHER, NULL) > 0
                   && bm.width == KB_ICON_PX && bm.height == KB_ICON_PX;
     }
     if (!kb_icon_ok)

@@ -94,7 +94,7 @@
 %?if(%cs, =, 10)<|%?Lo<%Vd(battery_icon_root)|%?LM<%Vd(battery_icon_root)|%Vd(battery_icon)>>>
 %?if(%St(battery display), =, numeric)<%?Lo<|%?LM<|%Vd(batterytext)>>>
 %?mh<%?Lo<%Vd(lock_split)|%?LM<%Vd(lock_split)|%Vd(lock)>>|>
-%?mp<|%?Lo<|%?LM<|%Vd(pp_icon)>>|%?Lo<|%?LM<|%Vd(pp_icon)>>|%?Lo<|%?LM<|%Vd(pp_icon)>>|%?Lo<|%?LM<|%Vd(pp_icon)>>>
+%?mp<|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>|%?Lo<%Vd(pp_icon_split)|%?LM<%Vd(pp_icon_split)|%Vd(pp_icon)>>>
 %?lh<%?Lo<|%?LM<|%?if(%St(battery display), =, numeric)<%Vd(busyindicatorleft)|%Vd(busyindicator)>>>|>
 #
 # Header title â€” full screens center it; split screens use the small
@@ -216,11 +216,11 @@
 %xd(Ab)
 
 # â”€â”€ Playback state (SF play/pause.fill; shown whenever audio is active) â”€â”€â”€â”€â”€
-%Vl(pp_icon,232,4,12,12,-)
+%Vl(pp_icon,-54,4,12,12,-)
 %Vb(1C1C1E)
 %?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 
-%Vl(pp_icon_split,121,4,12,12,-)
+%Vl(pp_icon_split,119,4,12,12,-)
 %Vb(1C1C1E)
 %?mp<|%xd(Ja)|%xd(Jb)|%xd(Ja)|%xd(Ja)>
 

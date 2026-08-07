@@ -1052,7 +1052,7 @@ static bool set_databasedir(void)
     {
         {
             if (!apple2026_symbol_page(&screens[SCREEN_MAIN],
-                        WPS_DIR "/Apple2026/a26_reboot.bmp",
+                        A26_ASSET("a26_reboot.bmp"),
                         str(LANG_PLEASE_REBOOT), 1))
                 splash(HZ, ID2P(LANG_PLEASE_REBOOT));
             else

@@ -2364,19 +2364,10 @@ static unsigned int mfnv(char *str)
  *
  * NOTE: pfraw slides are stored TRANSPOSED (column-major, see
  * output_row_32_transposed): pixel (x, y) lives at data[x * height + y]. */
-static void pf_round_slide_corners(struct bitmap *bm)
+static void pf_round_corners_raw(pix_t *px, int w, int h, pix_t corner)
 {
     const int rad = 7;
-    pix_t *px = (pix_t *)bm->data;
-    int w = bm->width, h = bm->height, x, y;
-    pix_t corner;
-
-#ifdef HAVE_ALBUMART
-    pf_update_dynamic_colors();
-    corner = pf_bg_color;
-#else
-    corner = 0;
-#endif
+    int x, y;
 
     if (w < 2 * rad || h < 2 * rad)
         return;
@@ -2399,6 +2390,24 @@ static void pf_round_slide_corners(struct bitmap *bm)
                 px[x * h + y] = corner;
         }
     }
+}
+
+/* El color de la esquina es el del fondo actual, no el que hubiera cuando se
+ * construyó la caché: si no, al cambiar de tema quedaban del color viejo. */
+static pix_t pf_corner_color(void)
+{
+#ifdef HAVE_ALBUMART
+    pf_update_dynamic_colors();
+    return pf_bg_color;
+#else
+    return 0;
+#endif
+}
+
+static void pf_round_slide_corners(struct bitmap *bm)
+{
+    pf_round_corners_raw((pix_t *)bm->data, bm->width, bm->height,
+                         pf_corner_color());
 }
 
 static bool save_pfraw(char* filename, struct bitmap *bm)
@@ -2893,6 +2902,9 @@ static int read_pfraw(char* filename, int prio)
 
     rb->read( fh, data , sizeof( pix_t ) * bm->width * bm->height );
     rb->close( fh );
+    /* La caché se escribió con el fondo de su día; se vuelven a recortar con
+     * el de ahora para que el redondeo no se vea al cambiar de tema. */
+    pf_round_corners_raw(data, bm->width, bm->height, pf_corner_color());
     return hid;
 }
 

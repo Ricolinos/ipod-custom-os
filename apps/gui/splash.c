@@ -101,7 +101,7 @@ bool apple2026_loading_page(struct screen *display)
     struct viewport vp;
     static int frame;
 
-    if (!a26_load_strip(WPS_DIR "/Apple2026/loading.bmp", a26_spin_px,
+    if (!a26_load_strip(A26_ASSET("loading.bmp"), a26_spin_px,
                         sizeof(a26_spin_px), A26_SPIN_PX, A26_SPIN_FRAMES,
                         &a26_spin_state))
         return false;
@@ -174,8 +174,8 @@ bool apple2026_symbol_page(struct screen *display, const char *file,
 bool apple2026_power_page(struct screen *display, bool battery_dead)
 {
     return apple2026_symbol_page(display,
-            battery_dead ? WPS_DIR "/Apple2026/a26_battery_empty.bmp"
-                         : WPS_DIR "/Apple2026/a26_power.bmp",
+            battery_dead ? A26_ASSET("a26_battery_empty.bmp")
+                         : A26_ASSET("a26_power.bmp"),
             NULL, battery_dead ? 6 : 1);
 }
 
@@ -188,7 +188,7 @@ bool apple2026_progress_page(struct screen *display, const char *text,
     char pct[8];
     int cy, bar_x, bar_w, bar_y, fill;
 
-    if (!a26_load_strip(WPS_DIR "/Apple2026/gear.bmp", a26_gear_px,
+    if (!a26_load_strip(A26_ASSET("gear.bmp"), a26_gear_px,
                         sizeof(a26_gear_px), A26_GEAR_PX, A26_GEAR_FRAMES,
                         &a26_gear_state))
         return false;

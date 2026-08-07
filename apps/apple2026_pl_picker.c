@@ -230,6 +230,16 @@ static int pl_isqrt(int v)
 }
 
 /* Filled rectangle with rounded top corners (the bottom runs off-screen). */
+/* Mezcla c hacia `to` por a/256. */
+static fb_data pl_mix(fb_data c, fb_data to, unsigned a)
+{
+    unsigned r = (((c >> 11) & 0x1F) * (256 - a) + ((to >> 11) & 0x1F) * a);
+    unsigned g = (((c >> 5) & 0x3F) * (256 - a) + ((to >> 5) & 0x3F) * a);
+    unsigned b = ((c & 0x1F) * (256 - a) + (to & 0x1F) * a);
+
+    return (fb_data)(((r >> 8) << 11) | ((g >> 8) << 5) | (b >> 8));
+}
+
 static void pl_fill_round(struct screen *display, int x, int y, int w, int h,
                           int r, unsigned colour)
 {
@@ -269,16 +279,16 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
      * never clear the whole screen. */
     pl_fill_round(display, sx - PL_SHADOW, sy - PL_SHADOW + 2,
                   sw + PL_SHADOW, sh, PL_PANEL_R + PL_SHADOW,
-                  LCD_RGBPACK(0xEC, 0xEC, 0xEF));
+                  pl_mix(A26_SHELL_BG, 0, 18));
     pl_fill_round(display, sx - 1, sy + 1, sw + 1, sh,
-                  PL_PANEL_R + 1, LCD_RGBPACK(0xDA, 0xDA, 0xDE));
+                  PL_PANEL_R + 1, pl_mix(A26_SHELL_BG, 0, 40));
     pl_fill_round(display, sx, sy, sw, sh, PL_PANEL_R, A26_SHELL_BG);
 
     display->setfont(FONT_UI);
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, A26_TEXT_PRIMARY));
     display->putsxy(sx + PL_MARGIN, sy + 5, str(LANG_A26_ADD_TO_PLAYLIST));
     display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                                    LCD_RGBPACK(0xC6, 0xC6, 0xC8)));
+                                    A26_SHELL_RAIL));
     display->hline(sx, sx + sw - 1, sy + PL_TITLE_H - 1);
 
     for (i = 0; i < rows && top + i < pl_count; i++)
@@ -292,7 +302,7 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
         if (idx == sel)
         {
             display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                                        LCD_RGBPACK(0xE5, 0xE5, 0xEA)));
+                                        A26_SELECTION_FILL));
             display->fillrect(sx, y, sw, PL_ROW_H);
         }
 
@@ -323,7 +333,7 @@ static void pl_draw(struct screen *display, int sel, int top, int rows)
 
         /* hairline separator, inset to the text column */
         display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                                        LCD_RGBPACK(0xC6, 0xC6, 0xC8)));
+                                        A26_SHELL_RAIL));
         display->hline(sx + PL_MARGIN + PL_THUMB + 10, sx + sw - 1,
                        y + PL_ROW_H - 1);
     }

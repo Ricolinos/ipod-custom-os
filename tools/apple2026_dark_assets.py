@@ -107,11 +107,19 @@ def convert(px):
     return out
 
 
+# Estos no salen de convertir el claro: la conversión supone tinta sobre papel
+# y aquí el dibujo ya es claro sobre oscuro, así que saldría del revés.  Los
+# genera tools/apple2026_switch.py, nativo para cada tema.
+NATIVE = ('a26_switch.bmp',)
+
+
 def main():
     if not os.path.isdir(DST_DIR):
         os.mkdir(DST_DIR)
     n = 0
     for f in sorted(os.listdir(SRC_DIR)):
+        if f in NATIVE:
+            continue
         src = os.path.join(SRC_DIR, f)
         dst = os.path.join(DST_DIR, f)
         if not f.endswith('.bmp'):

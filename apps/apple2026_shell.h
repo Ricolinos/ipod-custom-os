@@ -6,6 +6,7 @@
 #define APPS_APPLE2026_SHELL_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "config.h"
 #include "lcd.h"
@@ -36,6 +37,7 @@ enum a26_color {
     A26_C_PROGRESS_TRACK,        /* Progreso pendiente */
     A26_C_BATTERY_REMAIN,        /* Resto de la batería */
     A26_C_SPLASH_BROKEN_FILL,    /* Panel de "tema roto" */
+    A26_C_SELECTION_FILL,        /* Fila resaltada de un panel flotante */
     A26_C_COUNT
 };
 
@@ -62,10 +64,24 @@ extern const unsigned *a26_palette;
 #define A26_PROGRESS_TRACK       (a26_palette[A26_C_PROGRESS_TRACK])
 #define A26_BATTERY_REMAIN       (a26_palette[A26_C_BATTERY_REMAIN])
 #define A26_SPLASH_BROKEN_FILL   (a26_palette[A26_C_SPLASH_BROKEN_FILL])
+#define A26_SELECTION_FILL       (a26_palette[A26_C_SELECTION_FILL])
 
 /* Cambia la paleta.  La llama la carga del tema; el resto de la capa no
  * necesita enterarse porque lee siempre a través de los tokens. */
 void apple2026_set_theme_mode(enum a26_theme_mode mode);
+
+/* Ruta de un bitmap dentro de la carpeta del tema activo.  Todo lo que dibuja
+ * el código C tiene que pasar por aquí: con la ruta escrita a mano se cargaban
+ * siempre los del tema claro. */
+const char *apple2026_asset(char *buf, size_t bufsz, const char *name);
+/* Igual, pero sobre un buffer rotatorio propio, para pasarla directamente
+ * como argumento sin declarar uno en cada sitio de uso. */
+const char *A26_ASSET(const char *name);
+
+/* Cambia cada vez que se cambia de tema.  Quien guarde un bitmap cargado tiene
+ * que guardar también este valor y recargar cuando ya no coincida: si no, se
+ * queda con el dibujo del tema anterior para toda la sesión. */
+unsigned apple2026_asset_gen(void);
 enum a26_theme_mode apple2026_theme_mode(void);
 
 bool apple2026_theme_selected(void);

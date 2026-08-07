@@ -72,6 +72,7 @@ static const unsigned a26_pal_light[A26_C_COUNT] = {
     [A26_C_PROGRESS_TRACK]     = LCD_RGBPACK(229, 229, 234),
     [A26_C_BATTERY_REMAIN]     = LCD_RGBPACK(199, 199, 204),
     [A26_C_SPLASH_BROKEN_FILL] = LCD_RGBPACK(242, 242, 246),
+    [A26_C_SELECTION_FILL]     = LCD_RGBPACK(229, 229, 234),
 };
 
 /* Oscuro: no es la clara invertida.  El fondo es el gris muy oscuro de
@@ -89,13 +90,23 @@ static const unsigned a26_pal_dark[A26_C_COUNT] = {
     [A26_C_PROGRESS_TRACK]     = LCD_RGBPACK(72, 72, 74),
     [A26_C_BATTERY_REMAIN]     = LCD_RGBPACK(99, 99, 102),
     [A26_C_SPLASH_BROKEN_FILL] = LCD_RGBPACK(44, 44, 46),
+    [A26_C_SELECTION_FILL]     = LCD_RGBPACK(44, 44, 46),
 };
 
 const unsigned *a26_palette = a26_pal_light;
 static enum a26_theme_mode a26_mode = A26_THEME_LIGHT;
 
+static unsigned a26_gen = 1;
+
+unsigned apple2026_asset_gen(void)
+{
+    return a26_gen;
+}
+
 void apple2026_set_theme_mode(enum a26_theme_mode mode)
 {
+    if (mode != a26_mode)
+        a26_gen++;
     a26_mode = mode;
     a26_palette = (mode == A26_THEME_DARK) ? a26_pal_dark : a26_pal_light;
 }
@@ -103,6 +114,31 @@ void apple2026_set_theme_mode(enum a26_theme_mode mode)
 enum a26_theme_mode apple2026_theme_mode(void)
 {
     return a26_mode;
+}
+
+const char *apple2026_asset(char *buf, size_t bufsz, const char *name)
+{
+    /* apple2026_theme_selected() es quien fija la paleta, así que se llama
+     * antes de mirar el modo: si no, el primer dibujo tras cambiar de tema
+     * cogería la carpeta anterior. */
+    bool on = apple2026_theme_selected();
+
+    snprintf(buf, bufsz, WPS_DIR "/%s/%s",
+             (on && apple2026_theme_mode() == A26_THEME_DARK)
+                 ? A26_THEME_DARK_STEM : A26_THEME_LIGHT_STEM,
+             name);
+    return buf;
+}
+
+const char *A26_ASSET(const char *name)
+{
+    /* Cuatro entradas para que dos rutas en la misma expresión —el aviso de
+     * apagado usa dos— no se pisen. */
+    static char ring[4][MAX_PATH];
+    static int slot;
+
+    slot = (slot + 1) & 3;
+    return apple2026_asset(ring[slot], sizeof(ring[slot]), name);
 }
 
 bool apple2026_theme_selected(void)
@@ -162,15 +198,21 @@ static int strip_font(void)
 /* Status strip: same content and placement as the shell's own bar. */
 static void strip_battery(struct screen *display, int x, int y)
 {
+    static unsigned batt_gen;
     int level, frame;
 
+    if (batt_gen != apple2026_asset_gen())
+    {
+        batt_gen = apple2026_asset_gen();
+        strip_batt_tried = false;       /* otro tema, otra pila */
+    }
     if (!strip_batt_tried)
     {
         struct bitmap bm;
         char path[MAX_PATH];
 
         strip_batt_tried = true;
-        snprintf(path, sizeof(path), WPS_DIR "/Apple2026/batteryStatus.bmp");
+        apple2026_asset(path, sizeof(path), "batteryStatus.bmp");
         memset(&bm, 0, sizeof(bm));
         bm.data = (unsigned char *)strip_batt_px;
         bm.width = STRIP_BATT_W;
