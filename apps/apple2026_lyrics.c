@@ -424,21 +424,48 @@ static int ly_isqrt(int v)
 }
 
 
-/* Color que la sombra deja en (x, y) de la pantalla, o el fondo si no llega.
- * Lo usan el pintado de la sombra y el horneado de las esquinas, que tienen
- * que coincidir al píxel o se ve la costura. */
-static fb_data ly_shadow_at(int x, int y)
+#define LY_ART_DROP 2           /* cuánto cae la sombra */
+
+/* Dónde está la carátula de verdad: puede medir menos de LY_ART si el
+ * original no era cuadrado, y va centrada en su hueco. */
+static void ly_art_rect(int *ox, int *oy, int *w, int *h)
+{
+    *w = ly_art_w > 0 ? ly_art_w : LY_ART;
+    *h = ly_art_h > 0 ? ly_art_h : LY_ART;
+    *ox = LY_ART_X + (LY_ART - *w) / 2;
+    *oy = LY_ART_Y + (LY_ART - *h) / 2;
+}
+
+/* Distancia de (x, y) al borde de un rectángulo redondeado, en cuartos de
+ * píxel; 0 o menos si está dentro. */
+static int ly_rrect_dist(int x, int y, int ox, int oy, int w, int h)
 {
     const int r4 = LY_ART_RAD * 4;
-    const int reach4 = LY_SHADOW * 4;
-    const int x0 = LY_ART_X * 4, y0 = (LY_ART_Y + 2) * 4;
-    const int x1 = x0 + LY_ART * 4 - 1, y1 = y0 + LY_ART * 4 - 1;
+    int x0 = ox * 4, y0 = oy * 4;
+    int x1 = x0 + w * 4 - 1, y1 = y0 + h * 4 - 1;
     int px = x * 4 + 2, py = y * 4 + 2;
     int qx = MAX(MAX(x0 + r4 - px, px - (x1 - r4)), 0);
     int qy = MAX(MAX(y0 + r4 - py, py - (y1 - r4)), 0);
-    int d4 = ly_isqrt(qx * qx + qy * qy) - r4;
 
-    if (d4 <= 0 || d4 >= reach4)
+    return ly_isqrt(qx * qx + qy * qy) - r4;
+}
+
+/* Color que la sombra deja en (x, y) de la pantalla, o el fondo si ahí no
+ * hay sombra.  Lo usan el pintado de la sombra y el horneado de las esquinas,
+ * que tienen que coincidir al píxel o se ve la costura. */
+static fb_data ly_shadow_at(int x, int y)
+{
+    const int reach4 = LY_SHADOW * 4;
+    int ox, oy, w, h, d4;
+
+    ly_art_rect(&ox, &oy, &w, &h);
+    if (ly_rrect_dist(x, y, ox, oy, w, h) <= 0)
+        return A26_SHELL_BG;            /* lo tapa la carátula */
+    /* la silueta desplazada: dentro de ella, sombra entera */
+    d4 = ly_rrect_dist(x, y, ox, oy + LY_ART_DROP, w, h);
+    if (d4 < 0)
+        d4 = 0;
+    if (d4 >= reach4)
         return A26_SHELL_BG;
     return ly_mix(A26_SHELL_BG, 0, (unsigned)(52 * (reach4 - d4) / reach4));
 }
@@ -448,21 +475,19 @@ static fb_data ly_shadow_at(int x, int y)
  * macizos, el borde de cada uno se veía escalonado en las esquinas. */
 static void ly_art_shadow(struct screen *display)
 {
-    int x, y;
+    int ox, oy, w, h, x, y;
 
-    for (y = LY_ART_Y + 2 - LY_SHADOW; y < LY_ART_Y + 2 + LY_ART + LY_SHADOW;
-         y++)
-    {
-        for (x = LY_ART_X - LY_SHADOW; x < LY_ART_X + LY_ART + LY_SHADOW; x++)
+    ly_art_rect(&ox, &oy, &w, &h);
+    for (y = oy - LY_SHADOW; y < oy + h + LY_ART_DROP + LY_SHADOW; y++)
+        for (x = ox - LY_SHADOW; x < ox + w + LY_SHADOW; x++)
         {
             fb_data c = ly_shadow_at(x, y);
 
             if (c == A26_SHELL_BG)
-                continue;               /* debajo de la carátula, o sin sombra */
+                continue;
             display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, c));
             display->drawpixel(x, y);
         }
-    }
 }
 
 /* The white column sits above the lyrics panel: darken the first few
