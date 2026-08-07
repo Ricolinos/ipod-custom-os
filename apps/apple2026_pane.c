@@ -46,6 +46,7 @@
 #include "dir.h"
 #include "rbpaths.h"
 #include "audio.h"
+#include "storage.h"
 #include "metadata.h"
 #include "albumart.h"
 #include "font.h"
@@ -581,10 +582,27 @@ bool apple2026_pane_tick(void)
     if (!music_active)
         return false;
 
-    if (scan_state == SCAN_IDLE)
-        scan_start();
-    if (scan_state == SCAN_RUNNING)
-        scan_slice();
+    /* Trabajo de disco sólo con el disco ya girando; la única excepción es
+     * la primera carátula, para no dejar el panel vacío al principio. */
+    {
+        bool spinning = storage_disk_is_active();
+        bool first = (music_state == MUSIC_EMPTY);
+
+        if (spinning || first)
+        {
+            if (scan_state == SCAN_IDLE)
+                scan_start();
+            if (scan_state == SCAN_RUNNING)
+                scan_slice();
+        }
+        else if (scan_state != SCAN_DONE || !cover_slot_ready[cover_front ^ 1])
+        {
+            /* nada que hacer sin disco: se deja dormir */
+            if (music_state == MUSIC_HOLD
+                && !TIME_AFTER(current_tick, hold_until_tick))
+                return false;
+        }
+    }
 
     back = cover_front ^ 1;
 
@@ -604,7 +622,12 @@ bool apple2026_pane_tick(void)
         case MUSIC_HOLD:
             if (!cover_slot_ready[back])
             {
-                cover_load_next(back);   /* prefetch during the hold */
+                /* La precarga es lo que más disco gasta: se hace sólo si ya
+                 * está girando por otra cosa.  Si no, se espera; el pase se
+                 * queda en la carátula actual, que es preferible a no llegar
+                 * al final del disco. */
+                if (storage_disk_is_active())
+                    cover_load_next(back);
                 return false;
             }
             if (TIME_AFTER(current_tick, hold_until_tick))

@@ -262,7 +262,13 @@
 #endif
 #else /* !BOOTLOADER */
 #define HAVE_SERIAL
+/* RockPod: el registro de depuración reserva 256 KB de RAM fija y cuesta CPU
+ * en cada llamada.  En un build de uso normal eso sale del búfer de audio, y
+ * menos búfer significa más arranques del disco duro.  Se enciende a mano
+ * cuando haga falta depurar por serie. */
+#ifdef ROCKPOD_WANT_LOGF
 #define ROCKBOX_HAS_LOGF
+#endif
 /* Disable iAP when LOGF_SERIAL is enabled to avoid conflicts */
 #ifndef LOGF_SERIAL
 #define IPOD_ACCESSORY_PROTOCOL

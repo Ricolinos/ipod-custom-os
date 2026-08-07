@@ -479,15 +479,30 @@ static void ly_art_shadow(struct screen *display)
 
     ly_art_rect(&ox, &oy, &w, &h);
     for (y = oy - LY_SHADOW; y < oy + h + LY_ART_DROP + LY_SHADOW; y++)
-        for (x = ox - LY_SHADOW; x < ox + w + LY_SHADOW; x++)
-        {
-            fb_data c = ly_shadow_at(x, y);
+    {
+        int x1 = ox + w + LY_SHADOW;
+        int run_x = 0;
+        fb_data run_c = A26_SHELL_BG;
 
-            if (c == A26_SHELL_BG)
+        /* Dentro de una fila hay tiradas largas del mismo color, porque la
+         * sombra es un campo de distancia: se acumulan y se pintan de una.
+         * Píxel a píxel eran diez mil llamadas por repintado. */
+        for (x = ox - LY_SHADOW; x <= x1; x++)
+        {
+            fb_data c = (x < x1) ? ly_shadow_at(x, y) : A26_SHELL_BG;
+
+            if (c == run_c)
                 continue;
-            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, c));
-            display->drawpixel(x, y);
+            if (run_c != A26_SHELL_BG)
+            {
+                display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                               run_c));
+                display->hline(run_x, x - 1, y);
+            }
+            run_c = c;
+            run_x = x;
         }
+    }
 }
 
 /* The white column sits above the lyrics panel: darken the first few
