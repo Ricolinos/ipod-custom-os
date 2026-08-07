@@ -144,7 +144,7 @@ static bool pl_decode(const char *path, fb_data *dst)
     struct bitmap bm;
     size_t len = strlen(path);
     bool is_bmp = len > 4 && !strcasecmp(path + len - 4, ".bmp");
-    int fmt = FORMAT_NATIVE | FORMAT_DITHER | FORMAT_RESIZE | FORMAT_KEEP_ASPECT;
+    int fmt = FORMAT_NATIVE | FORMAT_RESIZE | FORMAT_KEEP_ASPECT;
     int ret;
 
     memset(&bm, 0, sizeof(bm));

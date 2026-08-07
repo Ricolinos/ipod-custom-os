@@ -320,11 +320,11 @@ static bool cover_decode(const char *path, struct bitmap *bm)
     bm->height = COVER_SIZE;
     if (is_bmp)
         ret = read_bmp_file(path, bm, sizeof(pane_workbuf),
-                            FORMAT_NATIVE | FORMAT_DITHER | FORMAT_RESIZE |
+                            FORMAT_NATIVE | FORMAT_RESIZE |
                             FORMAT_KEEP_ASPECT, NULL);
     else
         ret = read_jpeg_file(path, bm, sizeof(pane_workbuf),
-                             FORMAT_NATIVE | FORMAT_DITHER | FORMAT_RESIZE |
+                             FORMAT_NATIVE | FORMAT_RESIZE |
                              FORMAT_KEEP_ASPECT, NULL);
     return ret > 0 && bm->width > 0 && bm->height > 0
            && bm->width <= COVER_SIZE && bm->height <= COVER_SIZE;
@@ -738,7 +738,7 @@ static void np_load_art(const struct mp3entry *id3)
     {
         size_t len = strlen(path);
         bool is_bmp = len > 4 && !strcasecmp(path + len - 4, ".bmp");
-        int fmt = FORMAT_NATIVE | FORMAT_DITHER | FORMAT_RESIZE |
+        int fmt = FORMAT_NATIVE | FORMAT_RESIZE |
                   FORMAT_KEEP_ASPECT;
         ret = is_bmp
             ? read_bmp_file(path, &bm, sizeof(pane_workbuf), fmt, NULL)

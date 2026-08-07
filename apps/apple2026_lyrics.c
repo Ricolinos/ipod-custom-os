@@ -222,6 +222,8 @@ static fb_data ly_mix(fb_data c, fb_data to, unsigned a)
     return (fb_data)(((r >> 8) << 11) | ((g >> 8) << 5) | (b >> 8));
 }
 
+static fb_data ly_shadow_at(int x, int y);
+
 static void ly_load_art(const struct mp3entry *id3)
 {
     char path[MAX_PATH];
@@ -250,8 +252,10 @@ static void ly_load_art(const struct mp3entry *id3)
     {
         size_t l = strlen(path);
         bool is_bmp = l > 4 && !strcasecmp(path + l - 4, ".bmp");
-        int fmt = FORMAT_NATIVE | FORMAT_DITHER | FORMAT_RESIZE |
-                  FORMAT_KEEP_ASPECT;
+        /* Sin tramado: sirve para degradados fotográficos, pero sobre color
+         * plano —una portada dibujada— deja un damero visible que a este
+         * tamaño se lee como suciedad en los bordes. */
+        int fmt = FORMAT_NATIVE | FORMAT_RESIZE | FORMAT_KEEP_ASPECT;
         ret = is_bmp ? read_bmp_file(path, &bm, sizeof(ly_work), fmt, NULL)
                      : read_jpeg_file(path, &bm, sizeof(ly_work), fmt, NULL);
     }
@@ -286,37 +290,52 @@ static void ly_load_art(const struct mp3entry *id3)
     ly_dim = ly_mix(LCD_WHITE, ly_bg, 72);
     ly_dim_head = ly_mix(LCD_WHITE, ly_bg, 40);
 
-    /* Round the corners against the white player column.  The mask is
-     * coverage-based (4x4 supersampling of the corner arc) — a plain
-     * inside/outside test left visible stair steps on the curve. */
-    for (y = 0; y < ly_art_h; y++)
+    /* Redondeo de las esquinas.  Se trabaja en dieciseisavos de píxel con
+     * supermuestreo de 8x8: sesenta y cinco niveles de cobertura, no
+     * diecisiete, que a este radio todavía se notaban.
+     *
+     * El centro del arco va medio píxel afuera —(r - 0.5) desde el borde—
+     * porque las muestras caen en centros de subpíxel; con el centro en r
+     * las esquinas de arriba salían más cerradas que las de abajo.
+     *
+     * Y se mezcla contra el color que la sombra deja detrás, no contra el
+     * fondo plano: la carátula se pinta opaca y entera, así que la parte de
+     * esquina que la curva no cubre tapaba la sombra con un trozo de fondo. */
     {
-        bool top = y < LY_ART_RAD, bot = y >= ly_art_h - LY_ART_RAD;
+        const int ox = LY_ART_X + (LY_ART - ly_art_w) / 2;
+        const int oy = LY_ART_Y + (LY_ART - ly_art_h) / 2;
+        const int r16 = LY_ART_RAD * 16;
 
-        if (!top && !bot)
-            continue;
-        for (x = 0; x < ly_art_w; x++)
+        for (y = 0; y < ly_art_h; y++)
         {
-            bool left = x < LY_ART_RAD, right = x >= ly_art_w - LY_ART_RAD;
-            int cx8, cy8, r8 = LY_ART_RAD * 8, cov = 0, sx, sy;
+            bool top = y < LY_ART_RAD, bot = y >= ly_art_h - LY_ART_RAD;
 
-            if (!left && !right)
+            if (!top && !bot)
                 continue;
-            cx8 = (left ? LY_ART_RAD : ly_art_w - LY_ART_RAD) * 8;
-            cy8 = (top ? LY_ART_RAD : ly_art_h - LY_ART_RAD) * 8;
-            for (sy = 0; sy < 4; sy++)
-                for (sx = 0; sx < 4; sx++)
-                {
-                    int dx = (x * 8 + sx * 2 + 1) - cx8;
-                    int dy = (y * 8 + sy * 2 + 1) - cy8;
+            for (x = 0; x < ly_art_w; x++)
+            {
+                bool left = x < LY_ART_RAD;
+                bool right = x >= ly_art_w - LY_ART_RAD;
+                int cx16, cy16, cov = 0, sx, sy;
 
-                    if (dx * dx + dy * dy <= r8 * r8)
-                        cov++;
-                }
-            if (cov < 16)
-                ly_art_px[y * ly_art_w + x] =
-                    ly_mix(A26_SHELL_BG, ly_art_px[y * ly_art_w + x],
-                           cov * 16);
+                if (!left && !right)
+                    continue;
+                cx16 = (left ? LY_ART_RAD : ly_art_w - LY_ART_RAD) * 16 - 8;
+                cy16 = (top ? LY_ART_RAD : ly_art_h - LY_ART_RAD) * 16 - 8;
+                for (sy = 0; sy < 8; sy++)
+                    for (sx = 0; sx < 8; sx++)
+                    {
+                        int dx = (x * 16 + sx * 2 + 1) - cx16;
+                        int dy = (y * 16 + sy * 2 + 1) - cy16;
+
+                        if (dx * dx + dy * dy <= r16 * r16)
+                            cov++;
+                    }
+                if (cov < 64)
+                    ly_art_px[y * ly_art_w + x] =
+                        ly_mix(ly_shadow_at(ox + x, oy + y),
+                               ly_art_px[y * ly_art_w + x], cov * 4);
+            }
         }
     }
 }
@@ -405,38 +424,42 @@ static int ly_isqrt(int v)
 }
 
 
+/* Color que la sombra deja en (x, y) de la pantalla, o el fondo si no llega.
+ * Lo usan el pintado de la sombra y el horneado de las esquinas, que tienen
+ * que coincidir al píxel o se ve la costura. */
+static fb_data ly_shadow_at(int x, int y)
+{
+    const int r4 = LY_ART_RAD * 4;
+    const int reach4 = LY_SHADOW * 4;
+    const int x0 = LY_ART_X * 4, y0 = (LY_ART_Y + 2) * 4;
+    const int x1 = x0 + LY_ART * 4 - 1, y1 = y0 + LY_ART * 4 - 1;
+    int px = x * 4 + 2, py = y * 4 + 2;
+    int qx = MAX(MAX(x0 + r4 - px, px - (x1 - r4)), 0);
+    int qy = MAX(MAX(y0 + r4 - py, py - (y1 - r4)), 0);
+    int d4 = ly_isqrt(qx * qx + qy * qy) - r4;
+
+    if (d4 <= 0 || d4 >= reach4)
+        return A26_SHELL_BG;
+    return ly_mix(A26_SHELL_BG, 0, (unsigned)(52 * (reach4 - d4) / reach4));
+}
+
 /* Sombra de la carátula.  Se calcula la distancia de cada píxel al borde
  * redondeado y se desvanece con ella, en cuartos de píxel: con anillos
  * macizos, el borde de cada uno se veía escalonado en las esquinas. */
 static void ly_art_shadow(struct screen *display)
 {
-    const int r4 = LY_ART_RAD * 4;
-    const int reach4 = LY_SHADOW * 4;
-    /* la carátula, en cuartos de píxel; +2 en y para que la sombra caiga */
-    const int x0 = LY_ART_X * 4, y0 = (LY_ART_Y + 2) * 4;
-    const int x1 = x0 + LY_ART * 4 - 1, y1 = y0 + LY_ART * 4 - 1;
     int x, y;
 
     for (y = LY_ART_Y + 2 - LY_SHADOW; y < LY_ART_Y + 2 + LY_ART + LY_SHADOW;
          y++)
     {
-        int py = y * 4 + 2;
-
         for (x = LY_ART_X - LY_SHADOW; x < LY_ART_X + LY_ART + LY_SHADOW; x++)
         {
-            int px = x * 4 + 2;
-            int qx = MAX(MAX(x0 + r4 - px, px - (x1 - r4)), 0);
-            int qy = MAX(MAX(y0 + r4 - py, py - (y1 - r4)), 0);
-            int d4 = ly_isqrt(qx * qx + qy * qy) - r4;
-            unsigned a;
+            fb_data c = ly_shadow_at(x, y);
 
-            if (d4 <= 0)
-                continue;               /* debajo de la carátula */
-            if (d4 >= reach4)
-                continue;               /* fuera del alcance */
-            a = (unsigned)(52 * (reach4 - d4) / reach4);
-            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
-                                        ly_mix(A26_SHELL_BG, 0, a)));
+            if (c == A26_SHELL_BG)
+                continue;               /* debajo de la carátula, o sin sombra */
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display, c));
             display->drawpixel(x, y);
         }
     }
