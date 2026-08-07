@@ -56,6 +56,7 @@
 
 static fb_data a26_spin_px[A26_SPIN_PX * A26_SPIN_PX * A26_SPIN_FRAMES];
 static int a26_spin_state;   /* 0 untried, 1 ok, -1 failed */
+static unsigned a26_spin_gen;   /* generación de assets con la que se cargó */
 
 static bool a26_load_strip(const char *name, fb_data *dst, size_t sz,
                            int px, int frames, int *state)
@@ -86,9 +87,11 @@ static bool a26_load_strip(const char *name, fb_data *dst, size_t sz,
  * barra sí se repinta sola y la página debe respetarla.  Un solo sitio
  * decide, y así ninguna firma pública cambia ni hay dos variantes que
  * mantener en paralelo. */
-static void a26_page_begin(struct screen *display, struct viewport *vp)
+static void a26_page_begin(struct screen *display, struct viewport *vp,
+                           bool force_full)
 {
-    bool with_bar = viewportmanager_theme_is_enabled(display->screen_type);
+    bool with_bar = !force_full
+                 && viewportmanager_theme_is_enabled(display->screen_type);
 
     viewport_set_defaults(vp, display->screen_type);
     vp->x = 0;
@@ -113,17 +116,28 @@ static void a26_center_text(struct screen *display, struct viewport *vp,
 }
 
 /* Plain spinner page (replaces the "Loading..." box). */
-bool apple2026_loading_page(struct screen *display)
+bool apple2026_loading_page(struct screen *display, bool full_screen)
 {
     struct viewport vp;
     static int frame;
 
+    /* La tira se carga una sola vez y se queda en memoria, así que hay que
+     * soltarla al cambiar de tema: si no, el spinner del tema anterior sigue
+     * sirviéndose el resto de la sesión.  Antes eso pasaba desapercibido
+     * porque el tile era transparente y sólo se veían los brazos, mal
+     * coloreados; desde que es opaco, el fondo blanco del tile claro se ve
+     * como un RECUADRO sobre el fondo oscuro de la página. */
+    if (a26_spin_gen != apple2026_asset_gen())
+    {
+        a26_spin_gen = apple2026_asset_gen();
+        a26_spin_state = 0;
+    }
     if (!a26_load_strip(A26_ASSET("loading.bmp"), a26_spin_px,
                         sizeof(a26_spin_px), A26_SPIN_PX, A26_SPIN_FRAMES,
                         &a26_spin_state))
         return false;
 
-    a26_page_begin(display, &vp);
+    a26_page_begin(display, &vp, full_screen);
     frame = (frame + 1) % A26_SPIN_FRAMES;
     /* Estampado OPACO: la tira la genera tools/apple2026_spinner.py con el
      * fondo del tema ya mezclado y sin clave magenta, precisamente para que
@@ -188,7 +202,7 @@ bool apple2026_symbol_page(struct screen *display, const char *file,
     {
         int y;
 
-        a26_page_begin(display, &vp);
+        a26_page_begin(display, &vp, false);
         y = (vp.height - A26_SYM_PX) / 2 - (text && *text ? 14 : 0);
         if (blinks == 1 || (i & 1) == 0)
             display->transparent_bitmap_part(a26_sym_px, 0, 0,
@@ -538,7 +552,7 @@ void splashf(int ticks, const char *fmt, ...)
 #if ROCKPOD_APPLE2026_IPOD && !defined(BOOTLOADER)
     /* Apple2026: "Loading..." is a full page with a spinner, not a box. */
     if (id == LANG_WAIT && apple2026_theme_selected()
-        && apple2026_loading_page(&screens[SCREEN_MAIN]))
+        && apple2026_loading_page(&screens[SCREEN_MAIN], false))
     {
         if (ticks > 0)
             sleep(ticks);

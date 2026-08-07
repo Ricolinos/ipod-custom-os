@@ -37,11 +37,13 @@ SS = 4                    # supermuestreo: un test dentro/fuera deja sierra
 KEY = (255, 0, 255)       # clave de transparencia
 
 # Orden = orden del enum en icon.h.  Añadir al final, jamás en medio.
+# SIN sufijo .fill: el juego de iconos de menú es lineal, y las variantes
+# rellenas de SF Symbols destacan como manchas macizas al lado del resto.
 SYMBOLS = [
-    ('Icon_S_PrevTrack', 'backward.end.fill'),
-    ('Icon_S_PlayPause', 'playpause.fill'),
-    ('Icon_S_StopPlay',  'stop.fill'),
-    ('Icon_S_NextTrack', 'forward.end.fill'),
+    ('Icon_S_PrevTrack', 'backward.end'),
+    ('Icon_S_PlayPause', 'playpause'),
+    ('Icon_S_StopPlay',  'stop'),
+    ('Icon_S_NextTrack', 'forward.end'),
 ]
 
 THEMES = {

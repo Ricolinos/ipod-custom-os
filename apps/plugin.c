@@ -998,7 +998,7 @@ int plugin_load(const char* plugin, const void* parameter)
          * contexto, así que el indicador correcto es el spinner de página,
          * no la pastilla flotante (que necesita un fondo que siga a la
          * vista). */
-        apple2026_loading_page(&screens[SCREEN_MAIN]);
+        apple2026_loading_page(&screens[SCREEN_MAIN], true);
     }
 
 #ifdef HAVE_REMOTE_LCD
@@ -1098,7 +1098,7 @@ int plugin_load(const char* plugin, const void* parameter)
          * restituye el deadspace y la barra—, y salir de un plugin implica
          * descargar código y tocar disco.  El spinner ocupa esa espera en
          * lugar de una pantalla en blanco. */
-        apple2026_loading_page(&screens[SCREEN_MAIN]);
+        apple2026_loading_page(&screens[SCREEN_MAIN], true);
     }
     else
         /* fix dangling sbs_title pointer */

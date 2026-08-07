@@ -42,7 +42,11 @@ extern void splashf(int ticks, const char *fmt, ...) ATTRIBUTE_PRINTF(2, 3);
 
 struct screen;
 /* Apple2026 full-page loading visuals (return false when unavailable) */
-bool apple2026_loading_page(struct screen *display);
+/* full_screen: limpia y vuelca 0..240 en vez de respetar la barra.  Lo
+ * necesitan los contextos que van a desactivar el tema (plugins): ahí la
+ * barra que hay en pantalla es la de la pantalla anterior —partida si
+ * venías de una vista dividida— y nadie la va a repintar. */
+bool apple2026_loading_page(struct screen *display, bool full_screen);
 bool apple2026_power_page(struct screen *display, bool battery_dead);
 /* Glifo grande centrado con una línea opcional debajo; blinks > 1 lo hace
  * parpadear. */

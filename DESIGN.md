@@ -77,6 +77,10 @@ oscuro.
 - **Sólo SF Symbols**, rasterizados de macOS
   (`tools/apple2026_sf_render.swift`). Nunca dibujar glifos a mano ni usar
   paquetes externos.
+- **Siempre la variante lineal, nunca `.fill`.** El juego de iconos de
+  menú es de trazo; una variante rellena al lado del resto se lee como
+  una mancha maciza y rompe la fila. Si un símbolo sólo existe relleno,
+  se busca otro que signifique lo mismo.
 - Iconos de menú: frame 30×30, tinta de 18 px centrada, color acento,
   antialias por cobertura (supermuestreo ≥4×4; un test binario deja
   dientes de sierra). Viven en las DOS tiras (`icons/Apple2026Icons*.bmp`)
