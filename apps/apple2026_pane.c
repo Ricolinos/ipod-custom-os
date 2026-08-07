@@ -74,6 +74,21 @@
 #define PANE_HOLD_TICKS     (18 * HZ)
 #define PANE_FADE_TICKS     (HZ * 3 / 4)
 
+/* H-16 — números de "sensación": se dejan aquí, con nombre, porque se
+ * recalibran mirando la pantalla, no razonando.
+ *
+ *  PANE_PAN_FRAME_TICKS  cada cuánto despierta la deriva durante el HOLD.
+ *      Antes era HZ/6 y el paso era de 1 píxel entero cada ~390 ms: dos de
+ *      cada tres despertares no movían nada y el tercero saltaba en diagonal.
+ *      Ese era el tirón.  A HZ/10 con subpíxel cada despertar mueve ~0,25 px
+ *      de peso, que es lo que el ojo lee como continuo.
+ *  PANE_PAN_SUBPIX       0 vuelve al blit entero de antes.  Sirve para
+ *      comparar nitidez: la composición de 2 taps es un promedio ponderado y
+ *      puede ablandar la carátula; si se nota, la salida es subir a bilineal
+ *      de 3 mezclas, no bajar la cadencia. */
+#define PANE_PAN_FRAME_TICKS (HZ / 10)
+#define PANE_PAN_SUBPIX      1
+
 #define MUSIC_LIBRARY_ROOT  "/Music"
 
 static const char * const pane_asset_name[A26_PANE_COUNT] = {
@@ -125,6 +140,10 @@ static bool music_active = false;
  * repeated itself. */
 static int  pan_dx = 1, pan_dy = 1;
 static int  pan_last_drawn_x = -1, pan_last_drawn_y = -1;
+/* Fracción 0..255 del último dibujo: con subpíxel la posición cambia mucho
+ * antes de que cambie el píxel entero, y es esa fracción la que decide si
+ * hay algo nuevo que pintar. */
+static unsigned pan_last_drawn_f = 0;
 
 /* Window of the outgoing cover, frozen where it stopped so the incoming one
  * can cross-fade over it instead of flashing through white. */
@@ -134,6 +153,13 @@ static int  prev_x = 0, prev_y = 0;
 /* Size of the box the cover was last drawn into (the pane is shorter when
  * something is playing), so the tick measures the same drift the draw does. */
 static int  pane_box_w = PANE_MAX_W, pane_box_h = PANE_MAX_H;
+
+/* Último viewport del panel de música, para poder repintar SÓLO el panel en
+ * los fotogramas de deriva (H-16).  Antes cada paso de la deriva arrastraba
+ * un `gui_synclist_draw()` completo: a 10 fps eso es redibujar la lista, sus
+ * iconos y su barra diez veces por segundo para mover una carátula. */
+static struct viewport pane_vp_last;
+static bool pane_vp_valid = false;
 
 /* left-edge shadow work strip */
 static fb_data shadow_strip[PANE_SHADOW_W * PANE_MAX_H];
@@ -460,14 +486,27 @@ static void pane_edge_shadow_solid(struct screen *display, int h);
  * most redraws moved one axis only and the path read as a staircase rather
  * than a diagonal.  Equal travel means both axes step together on the same
  * frame, which is a true 45-degree line.  Whatever slack is left over on the
- * longer axis is split evenly, so the pan stays centred. */
-static void pan_pos_now(const struct bitmap *bm, int vp_w, int vp_h,
-                        int *out_x, int *out_y)
+ * longer axis is split evenly, so the pan stays centred.
+ *
+ * H-16: la posición se calcula en punto fijo 8.8.  La parte entera elige el
+ * píxel de origen; la fracción es el peso del segundo tap de la composición
+ * subpíxel.  Como los dos ejes recorren el MISMO número de píxeles (arriba),
+ * la fracción es una sola para ambos — pero OJO: sólo el avance es común, no
+ * el sentido.  `pan_dx` y `pan_dy` se sortean por separado, así que en la
+ * mitad de las diagonales un eje va hacia +1 y el otro hacia -1.  Por eso
+ * cada eje devuelve además su tap (`out_tx`/`out_ty`, el signo de la marcha):
+ * mezclar siempre contra (x+1, y+1) desplazaría el promedio en contra del
+ * movimiento en dos de las cuatro diagonales, que es un temblor peor que el
+ * tirón que venimos a quitar. */
+static void pan_pos_now_fp(const struct bitmap *bm, int vp_w, int vp_h,
+                           int *out_x, int *out_y, unsigned *out_frac,
+                           int *out_tx, int *out_ty)
 {
     int rx = bm->width - vp_w;
     int ry = bm->height - vp_h;
     long total = PANE_FADE_TICKS + PANE_HOLD_TICKS;
     long elapsed = current_tick - fade_start_tick;
+    long long dfp;
     int run, d;
 
     if (rx < 0)
@@ -483,7 +522,11 @@ static void pan_pos_now(const struct bitmap *bm, int vp_w, int vp_h,
     if (run == 0)
         run = MAX(rx, ry);      /* one axis has no slack: slide on the other */
 
-    d = (int)((long long)run * elapsed / total);
+    dfp = ((long long)run * 256 * elapsed) / total;
+    d = (int)(dfp >> 8);
+
+    *out_frac = (unsigned)(dfp & 0xFF);
+    *out_tx = *out_ty = 0;
 
     if (rx > 0)
     {
@@ -492,6 +535,10 @@ static void pan_pos_now(const struct bitmap *bm, int vp_w, int vp_h,
         int step = MIN(d, span);
 
         *out_x = base + (pan_dx > 0 ? step : span - step);
+        /* Con step == span la marcha terminó (y la fracción es 0): sin esta
+         * guarda el tap se saldría del mapa de bits por el borde. */
+        if (step < span)
+            *out_tx = pan_dx > 0 ? 1 : -1;
     }
     else
         *out_x = 0;
@@ -503,9 +550,55 @@ static void pan_pos_now(const struct bitmap *bm, int vp_w, int vp_h,
         int step = MIN(d, span);
 
         *out_y = base + (pan_dy > 0 ? step : span - step);
+        if (step < span)
+            *out_ty = pan_dy > 0 ? 1 : -1;
     }
     else
         *out_y = 0;
+}
+
+/* ¿La deriva ha avanzado lo bastante para que repintar cambie algo?
+ *
+ * Se aísla aquí porque el tick tiene tres salidas distintas dentro del HOLD
+ * (sin disco, esperando la precarga, y el caso normal) y las dos primeras
+ * devolvían `false` a secas: mientras el slot trasero cargaba, la deriva no
+ * se comprobaba, se congelaba, y al volver saltaba de golpe.  Esa era la
+ * segunda mitad de H-16 — el tirón no venía sólo de la cadencia.
+ *
+ * `pane_mix_px` ignora los dos bits bajos del alfa, así que la comparación de
+ * la fracción los descarta también: si no, pediríamos repintados que pintan
+ * exactamente el mismo fotograma. */
+static bool pan_wants_redraw(void)
+{
+    int nx, ny, tx, ty;
+    unsigned nf;
+
+    if (music_state != MUSIC_HOLD || !cover_slot_ready[cover_front])
+        return false;
+
+    pan_pos_now_fp(&cover_slot_bmp[cover_front], pane_box_w, pane_box_h,
+                   &nx, &ny, &nf, &tx, &ty);
+
+/* Traza de calibración: `#define A26_PAN_TRACE` arriba y el simulador escupe
+ * la fase de la deriva en cada tick (build-sim/sim.log).  Se deja puesta
+ * porque la deriva es demasiado lenta para juzgarla sólo con capturas: la
+ * primera tanda de esta sesión salió idéntica byte a byte y sin la traza no
+ * se habría visto que el recorrido ya había terminado, no que estuviera roto.
+ * Compilada fuera por defecto: no cuesta nada en el aparato. */
+#ifdef A26_PAN_TRACE
+    fprintf(stderr, "[pan] box=%dx%d bm=%dx%d pos=%d,%d f=%u last=%d,%d,%u\n",
+            pane_box_w, pane_box_h,
+            cover_slot_bmp[cover_front].width,
+            cover_slot_bmp[cover_front].height,
+            nx, ny, nf, pan_last_drawn_x, pan_last_drawn_y, pan_last_drawn_f);
+#endif
+    if (nx != pan_last_drawn_x || ny != pan_last_drawn_y)
+        return true;
+#if PANE_PAN_SUBPIX
+    return (nf & ~3u) != (pan_last_drawn_f & ~3u);
+#else
+    return false;
+#endif
 }
 
 /* Pick one of the four diagonals for the cover that is coming in. */
@@ -548,15 +641,15 @@ bool apple2026_pane_animating(void)
     return music_state == MUSIC_HOLD && cover_slot_ready[cover_front];
 }
 
-/* Poll cadence for the list loop: fades need ~20fps; the slow hold-pan
- * only moves ~4px/s, so a handful of wakeups per second are plenty
- * (device battery).
+/* Poll cadence for the list loop: fades need ~20fps; the hold-pan runs at
+ * PANE_PAN_FRAME_TICKS.
  *
- * El comentario decía HZ/8 y la deriva corre a HZ/6 (ver abajo): son cosas
- * distintas y conviene no fiarse del comentario al calibrar.  Y HZ/6 no es
- * inocente — con un paso de 1 px cada ~390 ms, dos de cada tres despertares
- * no mueven nada y el tercero salta en diagonal, que es el tirón de H-16.
- * Ahí está el arreglo pendiente. */
+ * H-16: la deriva estaba a HZ/6 y avanzaba de píxel entero en píxel entero,
+ * o sea un paso cada ~390 ms — dos de cada tres despertares no movían nada y
+ * el tercero saltaba.  Ahora va a HZ/10 pero cada fotograma mueve fracción,
+ * así que hay MENOS despertares que antes y aun así el movimiento es continuo.
+ * Toda la cadencia sigue bajo la puerta `lcd_active()` de arriba: con la
+ * pantalla dormida no se despierta la CPU ni una vez. */
 int apple2026_pane_anim_timeout(void)
 {
     if (!a26_pane_lcd_on())
@@ -568,7 +661,7 @@ int apple2026_pane_anim_timeout(void)
     if (music_state == MUSIC_FADING)
         return HZ / 20;
     if (music_state == MUSIC_HOLD && cover_slot_ready[cover_front])
-        return HZ / 6;   /* the drift is slower now: fewer wakeups suffice */
+        return PANE_PAN_FRAME_TICKS;
     return 0;
 }
 
@@ -629,10 +722,12 @@ bool apple2026_pane_tick(void)
         }
         else if (scan_state != SCAN_DONE || !cover_slot_ready[cover_front ^ 1])
         {
-            /* nada que hacer sin disco: se deja dormir */
+            /* Nada que hacer sin disco: no se despierta al disco, pero la
+             * deriva sí sigue corriendo — antes esta salida devolvía `false`
+             * y congelaba el movimiento durante toda la espera. */
             if (music_state == MUSIC_HOLD
                 && !TIME_AFTER(current_tick, hold_until_tick))
-                return false;
+                return pan_wants_redraw();
         }
     }
 
@@ -660,7 +755,10 @@ bool apple2026_pane_tick(void)
                  * al final del disco. */
                 if (storage_disk_is_active())
                     cover_load_next(back);
-                return false;
+                /* La deriva no depende del slot trasero: mientras se
+                 * precargaba, este `return false` la dejaba clavada y al
+                 * terminar la carga saltaba varios píxeles de una vez. */
+                return pan_wants_redraw();
             }
             if (TIME_AFTER(current_tick, hold_until_tick))
             {
@@ -679,13 +777,8 @@ bool apple2026_pane_tick(void)
                 pan_last_drawn_x = pan_last_drawn_y = -1;
                 return true;
             }
-            /* drift: request a redraw only once it moved a whole pixel */
-            {
-                int nx, ny;
-                pan_pos_now(&cover_slot_bmp[cover_front],
-                            pane_box_w, pane_box_h, &nx, &ny);
-                return nx != pan_last_drawn_x || ny != pan_last_drawn_y;
-            }
+            /* drift: con subpíxel basta con que cambie la fracción */
+            return pan_wants_redraw();
         case MUSIC_FADING:
             return true;   /* redraw drives fade progress */
     }
@@ -983,11 +1076,39 @@ static void pane_draw_static(struct screen *display, struct viewport *vp,
                      MIN(pane_bmp.height, vp->height));
 }
 
+/* Composición subpíxel de 2 taps a lo largo de la dirección de marcha.
+ *
+ * Espeja el bloque del fundido de abajo: mismo búfer (`pane_workbuf`), mismo
+ * hilo y estados excluyentes — el fundido compone en FADING, esto en HOLD, y
+ * el decodificador usa el búfer sólo entre medias.  Un fotograma cuesta w*h
+ * mezclas, lo mismo que un fotograma de fundido, pero a HZ/10 en vez de
+ * HZ/20: la mitad de trabajo por segundo que una animación ya aceptada. */
+static const fb_data *pane_pan_subpix(const fb_data *src, int stride,
+                                      int src_x, int src_y, int w, int h,
+                                      int tx, int ty, unsigned frac)
+{
+    fb_data *dst = (fb_data *)pane_workbuf;
+    int x, y;
+
+    for (y = 0; y < h; y++)
+    {
+        const fb_data *row  = src + (src_y + y) * stride + src_x;
+        const fb_data *next = row + ty * stride + tx;
+        fb_data *out = dst + y * w;
+
+        for (x = 0; x < w; x++)
+            out[x] = pane_mix_px(next[x], row[x], frac);
+    }
+    return dst;
+}
+
 static void pane_draw_music(struct screen *display, struct viewport *vp)
 {
     struct bitmap *bm = &cover_slot_bmp[cover_front];
     const fb_data *src;
     int stride, src_x, src_y, dst_x, dst_y, w, h;
+    int pan_tx, pan_ty;
+    unsigned pan_frac;
 
     if (!cover_slot_ready[cover_front])
     {
@@ -1006,11 +1127,12 @@ static void pane_draw_music(struct screen *display, struct viewport *vp)
     h = MIN(bm->height, vp->height);
     pane_box_w = w;
     pane_box_h = h;
-    pan_pos_now(bm, w, h, &src_x, &src_y);
+    pan_pos_now_fp(bm, w, h, &src_x, &src_y, &pan_frac, &pan_tx, &pan_ty);
     dst_x = (vp->width - w) / 2;
     dst_y = (vp->height - h) / 2;
     pan_last_drawn_x = src_x;
     pan_last_drawn_y = src_y;
+    pan_last_drawn_f = pan_frac;
 
     if (music_state == MUSIC_FADING)
     {
@@ -1055,6 +1177,21 @@ static void pane_draw_music(struct screen *display, struct viewport *vp)
             src_y = 0;
         }
     }
+#if PANE_PAN_SUBPIX
+    /* El fundido se queda en muestreo entero a propósito: dura 0,75 s, es un
+     * disolvido a 20 fps y ahí un cuarto de píxel no se ve; componer las dos
+     * cosas en la misma pasada duplicaría el coste del fotograma más caro.
+     * `frac < 4` no se compone porque `pane_mix_px` enmascara los dos bits
+     * bajos del alfa: el resultado sería idéntico al blit directo. */
+    else if (pan_frac >= 4 && (pan_tx != 0 || pan_ty != 0))
+    {
+        src = pane_pan_subpix(src, stride, src_x, src_y, w, h,
+                              pan_tx, pan_ty, pan_frac);
+        stride = w;
+        src_x = 0;
+        src_y = 0;
+    }
+#endif
 
     display->bitmap_part(src, src_x, src_y, STRIDE(SCREEN_MAIN, stride, h),
                          dst_x, dst_y, w, h);
@@ -1090,6 +1227,7 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
     {
         music_active = false;
         np_visible = true;
+        pane_vp_valid = false;
         pane_vp = *list_vp;
         pane_vp.x = list_vp->x + list_vp->width;
         pane_vp.width = LCD_WIDTH - pane_vp.x;
@@ -1107,7 +1245,10 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
 
     music_active = (id == A26_PANE_MUSIC);
     if (id == A26_PANE_NONE)
+    {
+        pane_vp_valid = false;
         return;
+    }
 
     pane_vp = *list_vp;
     pane_vp.x = list_vp->x + list_vp->width;
@@ -1120,7 +1261,10 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
     pane_vp.fg_pattern = A26_TEXT_PRIMARY;
     pane_vp.bg_pattern = A26_SHELL_BG;
     if (pane_vp.width <= 0 || pane_vp.height <= 0)
+    {
+        pane_vp_valid = false;
         return;
+    }
 
     display->set_viewport(&pane_vp);
     /* full-pane assets and full-bleed covers repaint every pixel; only
@@ -1136,6 +1280,45 @@ void apple2026_pane_draw(struct screen *display, struct viewport *list_vp,
      * refreshes the list viewport.  (On the full-update path this is a
      * harmless extra blit.) */
     display->update_viewport();
+
+    /* Geometría buena y ya pintada: a partir de aquí un fotograma de deriva
+     * puede repintarse solo, sin la lista.  Se guarda al final para que nunca
+     * quede cacheado un viewport por el que no hemos pasado. */
+    pane_vp_last = pane_vp;
+    pane_vp_valid = music_active;
+}
+
+/* Repinta SÓLO el panel para un fotograma de deriva.  Devuelve false si por
+ * lo que sea este fotograma no es de deriva pura (cambio de estado, tarjeta
+ * de reproducción, pantalla dormida, primer dibujo aún sin hacer); el
+ * llamante cae entonces al redibujo completo de la lista, que es lo que se
+ * hacía siempre.  Las condiciones son deliberadamente estrechas: pintar de
+ * menos aquí sólo cuesta un redibujo completo, pintar de más deja la lista
+ * desactualizada. */
+bool apple2026_pane_draw_pane_only(struct screen *display)
+{
+    if (!pane_vp_valid || !music_active || np_visible)
+        return false;
+    if (display->screen_type != SCREEN_MAIN)
+        return false;
+    /* Misma puerta de energía que el resto de la capa: con la pantalla
+     * dormida no se pinta nada, ni aquí ni por la ruta larga. */
+    if (!a26_pane_lcd_on())
+        return false;
+    /* Sólo la deriva del HOLD.  El fundido cambia `music_state` y las
+     * transiciones de slot, así que ahí sigue mandando el dibujo completo. */
+    if (music_state != MUSIC_HOLD || !cover_slot_ready[cover_front])
+        return false;
+    /* Si acaba de arrancar la reproducción, el panel pasa a ser la tarjeta:
+     * eso lo decide `apple2026_pane_draw`, no nosotros. */
+    if (np_audio_active())
+        return false;
+
+    display->set_viewport(&pane_vp_last);
+    pane_draw_music(display, &pane_vp_last);
+    display->update_viewport();
+    display->set_viewport(NULL);
+    return true;
 }
 
 #endif /* ROCKPOD_APPLE2026_IPOD */

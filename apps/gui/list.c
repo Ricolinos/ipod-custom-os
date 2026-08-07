@@ -1084,10 +1084,17 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
     }
 #endif
     /* Apple2026 split root menu: advance the preview-pane slideshow on the
-     * idle tick and repaint when it produced a new frame. */
+     * idle tick and repaint when it produced a new frame.
+     *
+     * H-16: los fotogramas de la deriva lenta (10 por segundo durante 18 s)
+     * sólo mueven la carátula, así que se repinta únicamente el panel; la
+     * lista con sus iconos y su barra no tiene por qué redibujarse para eso.
+     * Si el panel dice que no puede (fundido, tarjeta de reproducción,
+     * pantalla dormida) se cae al redibujo completo de siempre. */
     if (action == ACTION_NONE && apple2026_pane_tick())
     {
-        gui_synclist_draw(lists);
+        if (!apple2026_pane_draw_pane_only(&screens[SCREEN_MAIN]))
+            gui_synclist_draw(lists);
         return true;
     }
     return false;
@@ -1105,7 +1112,8 @@ int list_do_action_timeout(struct gui_synclist *lists, int timeout)
             timeout = fade_timeout;
     }
 #endif
-    /* Apple2026: preview-pane animation cadence (HZ/20 fade, HZ/8 pan) */
+    /* Apple2026: cadencia de la animación del panel (HZ/20 el fundido,
+     * PANE_PAN_FRAME_TICKS la deriva; el valor lo decide el propio panel). */
     {
         int pane_timeout = apple2026_pane_anim_timeout();
         if (pane_timeout > 0 && timeout > pane_timeout)
