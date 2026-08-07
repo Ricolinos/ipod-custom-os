@@ -235,6 +235,14 @@ static bool is_theme_enabled(enum screen_type screen)
     return theme_stack[screen][top].enabled;
 }
 
+/* Con el tema desactivado no hay barra de estado dibujada, así que una
+ * página de pantalla completa no puede dejar sin tocar la franja 0..20:
+ * ahí sigue lo que hubiera antes.  Lo consulta apple2026 en splash.c. */
+bool viewportmanager_theme_is_enabled(enum screen_type screen)
+{
+    return is_theme_enabled(screen);
+}
+
 int viewport_get_nb_lines(const struct viewport *vp)
 {
     return vp->height/font_get(vp->font)->height;

@@ -54,6 +54,10 @@ void viewportmanager_init(void) INIT_ATTR;
 
 void viewportmanager_theme_enable(enum screen_type screen, bool enable,
                                  struct viewport *viewport);
+/* ¿Se está dibujando el tema (y con él la barra de estado) en esta
+ * pantalla?  Con el tema desactivado, la franja de la barra no la repinta
+ * nadie y una página a pantalla completa tiene que limpiarla ella. */
+bool viewportmanager_theme_is_enabled(enum screen_type screen);
 /* Force will cause a redraw even if the theme was previously and
  * currently enabled (i,e the undo doing nothing).
  * Should almost always be set to false except coming out of fully skinned screens */

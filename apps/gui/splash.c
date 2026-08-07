@@ -43,10 +43,13 @@
 
 #if ROCKPOD_APPLE2026_IPOD && !defined(BOOTLOADER)
 /* ---- Apple2026 loading screens ---------------------------------------
- * "Loading..." becomes a clean white page (the status bar stays) with a
- * centred iOS-style spinner; long jobs draw a slim floating bar over the
- * bottom of whatever screen is already showing (see
- * apple2026_progress_page). */
+ * "Loading..." becomes a clean page with a centred iOS-style spinner; long
+ * jobs draw a slim floating bar over the bottom of whatever screen is
+ * already showing (see apple2026_progress_page).
+ *
+ * La página respeta la barra de estado cuando la hay y ocupa la pantalla
+ * entera cuando no la hay — lo decide a26_page_begin consultando al
+ * viewportmanager, no el llamador. */
 #define A26_SPIN_PX      32
 #define A26_SPIN_FRAMES  12
 #define A26_TOPBAR_H     20
@@ -69,13 +72,29 @@ static bool a26_load_strip(const char *name, fb_data *dst, size_t sz,
     return *state > 0;
 }
 
+/* La página empieza bajo la barra de estado SÓLO si hay barra de estado.
+ *
+ * H-19: con el tema desactivado —dentro de un plugin, en USB, al apagar—
+ * nadie dibuja esa franja, y esta página tampoco la tocaba: el viewport
+ * arrancaba en y=20 y el volcado iba de 20 a 240.  En la pantalla física
+ * seguían los 20 px de lo anterior, que desde una vista dividida son media
+ * barra más la cabecera del tile del panel.  Es una regresión del arreglo
+ * B1/B2 de H-04 (commit d20cb5f060): antes ahí no se dibujaba nada, así
+ * que la franja rancia no llamaba la atención.
+ *
+ * Con el tema activo (base de datos, menú contextual, ajustes de sonido) la
+ * barra sí se repinta sola y la página debe respetarla.  Un solo sitio
+ * decide, y así ninguna firma pública cambia ni hay dos variantes que
+ * mantener en paralelo. */
 static void a26_page_begin(struct screen *display, struct viewport *vp)
 {
+    bool with_bar = viewportmanager_theme_is_enabled(display->screen_type);
+
     viewport_set_defaults(vp, display->screen_type);
     vp->x = 0;
-    vp->y = A26_TOPBAR_H;
+    vp->y = with_bar ? A26_TOPBAR_H : 0;
     vp->width = display->lcdwidth;
-    vp->height = display->lcdheight - A26_TOPBAR_H;
+    vp->height = display->lcdheight - vp->y;
     vp->fg_pattern = A26_TEXT_PRIMARY;
     vp->bg_pattern = A26_SHELL_BG;
     vp->flags &= ~VP_FLAG_ALIGNMENT_MASK;
