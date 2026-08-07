@@ -17699,3 +17699,87 @@
     *: "Themes"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_ART_CACHE
+  desc: Cover Flow: album art cache could not be built
+  user: core
+  <source>
+    *: "Could not create album art cache"
+  </source>
+  <dest>
+    *: "Could not create album art cache"
+  </dest>
+  <voice>
+    *: "Could not create album art cache"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_NO_ALBUMS
+  desc: Cover Flow: the database has no albums
+  user: core
+  <source>
+    *: "No albums found. Please enable database"
+  </source>
+  <dest>
+    *: "No albums found. Please enable database"
+  </dest>
+  <voice>
+    *: "No albums found. Please enable database"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_NEED_DB
+  desc: Cover Flow: the database is required
+  user: core
+  <source>
+    *: "Please enable database"
+  </source>
+  <dest>
+    *: "Please enable database"
+  </dest>
+  <voice>
+    *: "Please enable database"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_MEMORY
+  desc: Cover Flow: not enough memory
+  user: core
+  <source>
+    *: "Not enough memory"
+  </source>
+  <dest>
+    *: "Not enough memory"
+  </dest>
+  <voice>
+    *: "Not enough memory"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_SLIDE
+  desc: Cover Flow: the placeholder slide could not be loaded
+  user: core
+  <source>
+    *: "Could not load the empty slide"
+  </source>
+  <dest>
+    *: "Could not load the empty slide"
+  </dest>
+  <voice>
+    *: "Could not load the empty slide"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_INTERNAL
+  desc: Cover Flow: internal start-up failure
+  user: core
+  <source>
+    *: "Cover Flow could not start"
+  </source>
+  <dest>
+    *: "Cover Flow could not start"
+  </dest>
+  <voice>
+    *: "Cover Flow could not start"
+  </voice>
+</phrase>

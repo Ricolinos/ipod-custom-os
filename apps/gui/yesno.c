@@ -163,23 +163,31 @@ static void gui_yesno_draw(struct gui_yesno * yn)
             int sep_y = (line_shift) * display->getcharheight() - 1;
             if (sep_y < 0) sep_y = 0;
 
+            /* Los tres colores iban escritos a mano en hexadecimal y eran
+             * los del tema CLARO, así que en oscuro la raya y el rótulo de
+             * cancelar salían casi invisibles y el acento sin subir de
+             * luminosidad.  Por token siguen al tema activo (H-18).
+             * El inset es 16 px, el de las listas, no 8. */
             display->set_drawmode(DRMODE_FG);
-            display->set_foreground(LCD_RGBPACK(0xC6, 0xC6, 0xC8));
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_SHELL_RAIL));
             display->hline(0, vp->width - 1, sep_y);
 
             int btn_y = sep_y + 4;
             int btn_h = display->getcharheight();
 
             /* Cancel button — left, gray */
-            display->set_foreground(LCD_RGBPACK(0x6E, 0x6E, 0x73));
-            display->putsxy(8, btn_y, str(LANG_CANCEL_WITH_ANY));
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_TEXT_SECONDARY));
+            display->putsxy(16, btn_y, str(LANG_CANCEL_WITH_ANY));
 
-            /* OK / Confirm button — right, accent red */
-            display->set_foreground(LCD_RGBPACK(0xFF, 0x2D, 0x55));
+            /* OK / Confirm button — right, accent */
+            display->set_foreground(SCREEN_COLOR_TO_NATIVE(display,
+                                                           A26_ACCENT));
             {
                 int w = 0;
                 display->getstringsize(str(LANG_CONFIRM_WITH_BUTTON), &w, NULL);
-                display->putsxy(vp->width - w - 8, btn_y, str(LANG_CONFIRM_WITH_BUTTON));
+                display->putsxy(vp->width - w - 16, btn_y, str(LANG_CONFIRM_WITH_BUTTON));
             }
             (void)btn_h;
 
@@ -455,7 +463,16 @@ bool yesno_pop_confirm(const char* text)
     const char *lines[] = {ID2P(LANG_ARE_YOU_SURE), text};
     confirmed = yesno_pop_lines(lines, 2);
 
+    /* H-18: al cancelar salía un cuadro de texto "Cancelado" durante un
+     * segundo — el anti-patrón número uno de DESIGN.md, y además redundante:
+     * el diálogo ya se ha cerrado y se ve la pantalla de antes, que es
+     * precisamente lo que significa cancelar.  Fuera del tema se conserva el
+     * aviso de serie. */
+#ifdef ROCKPOD_APPLE2026_IPOD
+    if (!confirmed && !apple2026_theme_selected())
+#else
     if (!confirmed)
+#endif
         splash(HZ, ID2P(LANG_CANCEL));
 
     return confirmed;

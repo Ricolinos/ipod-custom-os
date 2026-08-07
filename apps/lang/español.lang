@@ -7878,7 +7878,7 @@
     vibe500: "OK = Yes"
   </source>
   <dest>
-    *: "PLAY = Sí"
+    *: "Aceptar"
     cowond2*: "MENÚ o arriba-derecha = Sí"
     creativezen*,gigabeat*,iaudiom5,iaudiox5,ipod*,iriverh10,iriverh10_5gb,mrobe100,sansac200*,sansaclip*,sansaconnect,sansae200*,sansafuze*: "SELECT = Sí"
     iriverh100,iriverh120,iriverh300: "NAVI = Sí"
@@ -7886,7 +7886,7 @@
     vibe500: "OK = Sí"
   </dest>
   <voice>
-    *: ""
+    *: "Aceptar"
   </voice>
 </phrase>
 <phrase>
@@ -7925,10 +7925,10 @@
     *: "Any Other = No"
   </source>
   <dest>
-    *: "Otro = No"
+    *: "Cancelar"
   </dest>
   <voice>
-    *: ""
+    *: "Cancelar"
   </voice>
 </phrase>
 <phrase>
@@ -17678,5 +17678,89 @@
   </dest>
   <voice>
     *: "Temas"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_ART_CACHE
+  desc: Cover Flow: album art cache could not be built
+  user: core
+  <source>
+    *: "Could not create album art cache"
+  </source>
+  <dest>
+    *: "No se pudo crear la caché de carátulas"
+  </dest>
+  <voice>
+    *: "No se pudo crear la caché de carátulas"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_NO_ALBUMS
+  desc: Cover Flow: the database has no albums
+  user: core
+  <source>
+    *: "No albums found. Please enable database"
+  </source>
+  <dest>
+    *: "No hay álbumes. Activa la base de datos"
+  </dest>
+  <voice>
+    *: "No hay álbumes. Activa la base de datos"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_NEED_DB
+  desc: Cover Flow: the database is required
+  user: core
+  <source>
+    *: "Please enable database"
+  </source>
+  <dest>
+    *: "Activa la base de datos para usar Cover Flow"
+  </dest>
+  <voice>
+    *: "Activa la base de datos para usar Cover Flow"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_MEMORY
+  desc: Cover Flow: not enough memory
+  user: core
+  <source>
+    *: "Not enough memory"
+  </source>
+  <dest>
+    *: "No hay memoria suficiente"
+  </dest>
+  <voice>
+    *: "No hay memoria suficiente"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_SLIDE
+  desc: Cover Flow: the placeholder slide could not be loaded
+  user: core
+  <source>
+    *: "Could not load the empty slide"
+  </source>
+  <dest>
+    *: "No se pudo cargar la carátula de reserva"
+  </dest>
+  <voice>
+    *: "No se pudo cargar la carátula de reserva"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_A26_PF_ERR_INTERNAL
+  desc: Cover Flow: internal start-up failure
+  user: core
+  <source>
+    *: "Cover Flow could not start"
+  </source>
+  <dest>
+    *: "Cover Flow no pudo arrancar"
+  </dest>
+  <voice>
+    *: "Cover Flow no pudo arrancar"
   </voice>
 </phrase>

@@ -5448,7 +5448,7 @@ static bool init(void)
     if (!grey_init(buf, buf_size, GREY_BUFFERED|GREY_ON_COP,
                    LCD_WIDTH, LCD_HEIGHT, &grey_buf_used))
     {
-        error_wait("Greylib init failed!");
+        error_wait(rb->str(LANG_A26_PF_ERR_INTERNAL));
         return false;
     }
     grey_setfont(FONT_UI);
@@ -5479,7 +5479,7 @@ static bool init(void)
     {
         if (rb->mkdir( CACHE_PREFIX ) < 0)
         {
-            error_wait("Could not create directory " CACHE_PREFIX);
+            error_wait(rb->str(LANG_A26_PF_ERR_ART_CACHE));
             return false;
         }
     }
@@ -5504,12 +5504,12 @@ static bool init(void)
 
     if (ret == ERROR_BUFFER_FULL)
     {
-        error_wait("Not enough memory for album names");
+        error_wait(rb->str(LANG_A26_PF_ERR_MEMORY));
         return false;
     }
     else if (ret == ERROR_NO_ALBUMS)
     {
-        error_wait("No albums found. Please enable database");
+        error_wait(rb->str(LANG_A26_PF_ERR_NO_ALBUMS));
         return false;
     }
     else if (ret == ERROR_USER_ABORT)
@@ -5526,7 +5526,7 @@ static bool init(void)
     size_t aa_bufsz = ALIGN_DOWN(aa_min * 3, sizeof(long));
     if (aa_bufsz < aa_min)
     {
-        error_wait("Not enough memory for album art cache");
+        error_wait(rb->str(LANG_A26_PF_ERR_MEMORY));
         return false;
     }
 
@@ -5543,14 +5543,14 @@ static bool init(void)
     if (!create_empty_slide(pf_cfg.cache_version != CACHE_VERSION))
     {
         config_save(CACHE_REBUILD, false);
-        error_wait("Could not load the empty slide");
+        error_wait(rb->str(LANG_A26_PF_ERR_SLIDE));
         return false;
     }
 
     if ((pf_cfg.cache_version != CACHE_VERSION) && !create_albumart_cache())
     {
         config_save(CACHE_REBUILD, false);
-        error_wait("Could not create album art cache");
+        error_wait(rb->str(LANG_A26_PF_ERR_ART_CACHE));
     }
 
     if (pf_cfg.cache_version != CACHE_VERSION)
@@ -5558,13 +5558,13 @@ static bool init(void)
 
     if ((empty_slide_hid = read_pfraw(EMPTY_SLIDE, 0)) < 0)
     {
-        error_wait("Unable to load empty slide image");
+        error_wait(rb->str(LANG_A26_PF_ERR_SLIDE));
         return false;
     }
 
     if (!create_pf_thread())
     {
-        error_wait("Cannot create thread!");
+        error_wait(rb->str(LANG_A26_PF_ERR_INTERNAL));
         return false;
     }
 
@@ -6131,7 +6131,7 @@ enum plugin_status plugin_start(const void *parameter)
 
     if (!check_database())
     {
-        error_wait("Please enable database");
+        error_wait(rb->str(LANG_A26_PF_ERR_NEED_DB));
         return PLUGIN_OK;
     }
     atexit(cleanup);

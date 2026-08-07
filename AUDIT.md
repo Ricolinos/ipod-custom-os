@@ -281,12 +281,20 @@ con `diskutil info`, respaldar `.rockbox/config.cfg`, descomprimir encima,
 - Verificación pendiente: **[~]** el submenú en pantalla, ambos temas. Secuencia lista: `tools/apple2026_sim_theme.sh claro` · Música→Cover Flow (`36:150 125:30 36:150`), esperar 2 s, `36:150 53:1000` para el menú del plugin, bajar a "Control de reproducción" (`125:30`×3) y `36:150`; repetir con `oscuro`.
 
 ### H-18 · Flujo Reconstruir/Actualizar caché de Cover Flow fuera del sistema (enlaza H-09, H-11)
-- Estado: **diagnosticado** · Lote post-auditoría · Detectado por el usuario
+- Estado: **pantalla 1 arreglada y errores traducidos; páginas de símbolo PENDIENTES** (lote-2, 2026-08-07)
+- Estado previo: **diagnosticado** · Lote post-auditoría · Detectado por el usuario
 - Flujo compartido `pictureflow.c:4412-4429`. Tres pantallas:
   1. Confirmación: `gui_syncyesno_run` (`yesno.c:452-461`) con branch Apple2026 a medias — 3 RGB del tema CLARO hardcodeados (`yesno.c:167,174,178`: 0xC6C6C8/0x6E6E73/0xFF2D55 — en oscuro salen mal; migrar a tokens `a26_palette`), texto sin inset 16 px, rótulos de jerga "Otro = No"/"SELECT = Sí" (`LANG_CANCEL_WITH_ANY`/`LANG_CONFIRM_WITH_BUTTON` — retraducir a "Cancelar"/"Aceptar" estilo botones), y al cancelar `splash(LANG_CANCEL)` (anti-patrón nº1 — quitar el splash).
   2. Progreso: pastilla ya canónica (bien); el fondo debe ser página de símbolo (D4) en vez del literal "Cover Flow" en fuente de sistema (`draw_splashscreen` `:2267-2293`); rótulos de fase `#define` ingleses "1/5 Find <Untagged>" (`:1372-1376`) → frases .lang en español sin fracción ni corchetes (H-11); cancelación a media reconstrucción hardcodeada inglesa (`:813-815`) → lang.
   3. Errores: `error_wait` + 7 splashes ingleses (`:5482-5560`) = H-09 → resolver junto.
-- Verificación pendiente: [~] flujo completo de Reconstruir caché en ambos temas (confirmar, cancelar, progreso, error simulado).
+- **Pantalla 1 (confirmación) arreglada 2026-08-07 (lote-2)**:
+  - Los tres RGB escritos a mano en `yesno.c` pasan a tokens (`A26_SHELL_RAIL`, `A26_TEXT_SECONDARY`, `A26_ACCENT`) vía `SCREEN_COLOR_TO_NATIVE`. Eran exactamente los valores del tema **claro**, así que en oscuro la raya y el rótulo de cancelar salían casi invisibles y el acento no subía de luminosidad. Los hex coincidían al bit con los tokens claros, o sea que el cambio no altera nada en claro.
+  - Inset de 8 → **16 px**, el de las listas, en los dos rótulos.
+  - Rótulos sin jerga: `LANG_CANCEL_WITH_ANY` "Otro = No" → **"Cancelar"**, `LANG_CONFIRM_WITH_BUTTON` "PLAY = Sí" → **"Aceptar"**.
+  - `yesno_pop_confirm` ya no lanza el `splash(LANG_CANCEL)` bajo el tema Apple2026 (anti-patrón nº1, y redundante: al cerrarse el diálogo ya se ve la pantalla anterior, que es lo que significa cancelar). Fuera del tema se conserva el aviso de serie.
+- **Pantalla 3 (errores) traducida** — la mitad de H-09 que sí cabía: los **10** `error_wait("…")` con literal inglés pasan a seis cadenas nuevas al final de ambos `.lang` (`LANG_A26_PF_ERR_*`). Se acabó el "inglés y español en la misma frase" que veía el usuario.
+- **Lo que NO se hizo, y por qué.** Convertir esos errores y el fondo del progreso en **página de símbolo** (D4) exige que `apple2026_symbol_page`/`_progress_page` estén en el API de plugins, y no lo están: habría que ampliar el struct de `plugin.h`, lo que cambia el ABI y obliga a revalidar los 99 plugins. Es un cambio de más alcance que el resto de este lote y no se hizo a ciegas, sin poder mirar la pantalla. Sigue abierto, igual que los rótulos de fase ingleses del progreso (`:1372-1376`) y el literal "Cover Flow" de `draw_splashscreen`.
+- Verificación pendiente: **[~]** flujo completo en ambos temas. Secuencia lista: `tools/apple2026_sim_theme.sh oscuro` · Música→Cover Flow · `53:1000` (menú) · bajar a "Reconstruir caché" (`125:30`×5) · `36:150` → **mirar la raya y los dos rótulos en oscuro**, que es donde estaba el fallo · `53:150` para cancelar → **no debe salir ningún cartel**.
 
 ### H-19 · Franja 0..20 rancia en páginas de carga/símbolo con tema desactivado (regresión de H-04)
 - Estado: **arreglado, razonado-no-observado** (lote-2, 2026-08-07)
