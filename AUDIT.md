@@ -1,7 +1,17 @@
 # AUDIT — Auditoría integral de la capa Apple2026
 
 > Estado global: **F0 pendiente** · actualizado 2026-08-07 · rama `worktree-split-root-menu`
-> Ejecuta: Opus 5, una fase por sesión, lanzada por el usuario. NO avanzar de fase sin instrucción.
+> Ejecuta: Opus 5. Modo por defecto: una fase por sesión. **Modo nocturno
+> (autorizado por el usuario el 2026-08-07): si el prompt lo pide, encadenar
+> F0→F9 en automático**, cerrando cada fase completa (casillas, hallazgos,
+> registro de sesiones, commit) antes de abrir la siguiente. En modo
+> nocturno: no hacer preguntas — ante una decisión de producto no cubierta
+> por las Decisiones tomadas, elegir lo reversible, documentarlo en el
+> hallazgo y seguir; si la Mac se bloquea (frontmost=loginwindow), hacer el
+> trabajo de código/razonado de las fases restantes y dejar las capturas
+> pendientes marcadas `[~]` con su secuencia lista para re-ejecutar. En F9
+> NO instalar en el iPod (no estará conectado): dejar el paquete compilado
+> y la lista de validación manual.
 
 ## Cómo retomar (leer antes de nada)
 
