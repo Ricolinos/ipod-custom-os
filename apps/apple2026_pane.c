@@ -71,7 +71,10 @@
 #define SCAN_QUEUE_MAX      96
 #define SCAN_DIRS_PER_TICK  4
 #define SCAN_MAX_DEPTH      4        /* /Music/a/b/c */
-#define PANE_HOLD_TICKS     (18 * HZ)
+/* F-A1: la investigación del firmware original midió "cada álbum se
+ * muestra durante 7 segundos" (PLAN.md §0.3).  Antes eran 18 s, un número
+ * puesto a ojo antes de tener el original cronometrado. */
+#define PANE_HOLD_TICKS     (7 * HZ)
 #define PANE_FADE_TICKS     (HZ * 3 / 4)
 
 /* H-16 — números de "sensación": se dejan aquí, con nombre, porque se
@@ -150,10 +153,27 @@ static enum { MUSIC_EMPTY, MUSIC_FADING, MUSIC_HOLD } music_state = MUSIC_EMPTY;
 static long fade_start_tick = 0;
 static long hold_until_tick = 0;
 static bool music_active = false;
-/* Slow diagonal drift across the displayed cover.  Each cover picks one of
- * the four diagonals at random, the way the original iPod menu never quite
- * repeated itself. */
-static int  pan_dx = 1, pan_dy = 1;
+/* F-A1: ocho direcciones, leídas de la investigación del firmware original
+ * (PLAN.md §0.3): "vertical arriba, vertical abajo, horizontal izquierda,
+ * horizontal derecha, diagonal a 60/120/240/300 grados".  El documento no
+ * dice a qué cuadrante corresponde cada ángulo, sólo el grado; se asignaron
+ * simétricos — 60°/120° hacia arriba, 240°/300° hacia abajo — porque es la
+ * única asignación que no privilegia ningún lado.
+ *
+ * dx/dy en fijo 8.8 (256 = 1,0, componente de un vector unitario).  dy
+ * positivo es HACIA ABAJO en pantalla (el origen del framebuffer está
+ * arriba), así que "90° arriba" lleva dy negativo. */
+static const struct { int dx, dy; } PAN_DIRECTIONS[8] = {
+    {  256,    0 },   /* 0°   derecha */
+    {  128, -222 },   /* 60°  arriba-derecha */
+    {    0, -256 },   /* 90°  arriba */
+    { -128, -222 },   /* 120° arriba-izquierda */
+    { -256,    0 },   /* 180° izquierda */
+    { -128,  222 },   /* 240° abajo-izquierda */
+    {    0,  256 },   /* 270° abajo */
+    {  128,  222 },   /* 300° abajo-derecha */
+};
+static int  pan_dir = 0;   /* índice en PAN_DIRECTIONS */
 static int  pan_last_drawn_x = -1, pan_last_drawn_y = -1;
 /* Fracción 0..255 del último dibujo: con subpíxel la posición cambia mucho
  * antes de que cambie el píxel entero, y es esa fracción la que decide si
@@ -493,26 +513,25 @@ static void pane_edge_shadow(struct screen *display, const fb_data *src,
  * column colors are constant per x, so compute one row and replicate. */
 static void pane_edge_shadow_solid(struct screen *display, int h);
 
-/* Slow diagonal drift.
+/* F-A1: deriva sobre una línea recta en la dirección elegida (una de las 8
+ * de `PAN_DIRECTIONS`), centrada en la holgura del recuadro y recortada por
+ * el eje que se queda sin sitio primero — igual que antes se recortaba a
+ * `MIN(rx, ry)`, pero ahora por dirección real en vez de asumir 45°.
  *
- * Both axes travel the *same* number of pixels.  Giving each axis its own
- * range made them advance at different rates — with 128px of horizontal
- * slack against 86px of vertical, x steps about 1.5 times as often as y, so
- * most redraws moved one axis only and the path read as a staircase rather
- * than a diagonal.  Equal travel means both axes step together on the same
- * frame, which is a true 45-degree line.  Whatever slack is left over on the
- * longer axis is split evenly, so the pan stays centred.
- *
- * H-16: la posición se calcula en punto fijo 8.8.  La parte entera elige el
- * píxel de origen; la fracción es el peso del segundo tap de la composición
- * subpíxel.  Como los dos ejes recorren el MISMO número de píxeles (arriba),
- * la fracción es una sola para ambos — pero OJO: sólo el avance es común, no
- * el sentido.  `pan_dx` y `pan_dy` se sortean por separado, así que en la
- * mitad de las diagonales un eje va hacia +1 y el otro hacia -1.  Por eso
- * cada eje devuelve además su tap (`out_tx`/`out_ty`, el signo de la marcha):
- * mezclar siempre contra (x+1, y+1) desplazaría el promedio en contra del
- * movimiento en dos de las cuatro diagonales, que es un temblor peor que el
- * tirón que venimos a quitar. */
+ * Con una dirección arbitraria los dos ejes YA NO avanzan a la misma
+ * velocidad (128 contra 222 en las diagonales de 60°/120°/240°/300°, por
+ * ejemplo): el eje "menor" cruza menos píxeles enteros que el "dominante"
+ * en el mismo tiempo.  Componer los DOS con subpíxel costaría un filtro
+ * bilineal — 3 mezclas por píxel en vez de 1, triplicando el coste de este
+ * paso (que ya es la mitad del fundido por segundo, ver
+ * `PANE_PAN_FRAME_TICKS` arriba) — y esa subida de consumo no se ha medido
+ * en el aparato.  En su lugar se compone subpíxel SÓLO el eje dominante
+ * (`|dx|` o `|dy|` mayor, según la dirección) con el mismo tap de un solo
+ * paso de H-16; el eje menor avanza en píxeles enteros sin mezcla.  Es
+ * exactamente lo que ya pasaba gratis en las 4 direcciones cardinales (el
+ * eje quieto nunca se mezclaba); esto lo generaliza a las diagonales.  Si en
+ * el aparato se nota un escalón en el eje menor, la salida es subir a
+ * bilineal ahí — no bajar la cadencia. */
 static void pan_pos_now_fp(const struct bitmap *bm, int vp_w, int vp_h,
                            int *out_x, int *out_y, unsigned *out_frac,
                            int *out_tx, int *out_ty)
@@ -521,8 +540,13 @@ static void pan_pos_now_fp(const struct bitmap *bm, int vp_w, int vp_h,
     int ry = bm->height - vp_h;
     long total = PANE_FADE_TICKS + PANE_HOLD_TICKS;
     long elapsed = current_tick - fade_start_tick;
-    long long dfp;
-    int run, d;
+    int dx = PAN_DIRECTIONS[pan_dir].dx;
+    int dy = PAN_DIRECTIONS[pan_dir].dy;
+    int adx = dx < 0 ? -dx : dx;
+    int ady = dy < 0 ? -dy : dy;
+    long long t_fp, len, off_fp, x_fp, y_fp;
+    unsigned frac_x, frac_y;
+    int tap_x, tap_y;
 
     if (rx < 0)
         rx = 0;
@@ -533,43 +557,63 @@ static void pan_pos_now_fp(const struct bitmap *bm, int vp_w, int vp_h,
     if (elapsed > total)
         elapsed = total;
 
-    run = MIN(rx, ry);
-    if (run == 0)
-        run = MAX(rx, ry);      /* one axis has no slack: slide on the other */
+    /* t_fp: 0..256 = 0..1 del recorrido. */
+    t_fp = (elapsed * 256) / total;
 
-    dfp = ((long long)run * 256 * elapsed) / total;
-    d = (int)(dfp >> 8);
-
-    *out_frac = (unsigned)(dfp & 0xFF);
-    *out_tx = *out_ty = 0;
-
-    if (rx > 0)
+    /* Recorrido máximo, centrado, que cabe sin salirse de ningún eje:
+     * L <= rx*256/|dx| y L <= ry*256/|dy|; el eje con dx (o dy) en 0 no
+     * limita nada (esa componente no se mueve, sea cual sea la holgura). */
     {
-        int span = MIN(run, rx);
-        int base = (rx - span) / 2;
-        int step = MIN(d, span);
+        long long len_x = adx ? ((long long)rx * 256) / adx : -1;
+        long long len_y = ady ? ((long long)ry * 256) / ady : -1;
 
-        *out_x = base + (pan_dx > 0 ? step : span - step);
-        /* Con step == span la marcha terminó (y la fracción es 0): sin esta
-         * guarda el tap se saldría del mapa de bits por el borde. */
-        if (step < span)
-            *out_tx = pan_dx > 0 ? 1 : -1;
+        if (len_x < 0)
+            len = len_y < 0 ? 0 : len_y;
+        else if (len_y < 0)
+            len = len_x;
+        else
+            len = MIN(len_x, len_y);
+    }
+
+    /* off_fp: desplazamiento sobre la línea, en 8.8, de -(L/2) a +(L/2). */
+    off_fp = (t_fp - 128) * len;
+
+    x_fp = (long long)rx * 128 + (off_fp * dx) / 256;
+    y_fp = (long long)ry * 128 + (off_fp * dy) / 256;
+    if (x_fp < 0) x_fp = 0;
+    if (x_fp > (long long)rx * 256) x_fp = (long long)rx * 256;
+    if (y_fp < 0) y_fp = 0;
+    if (y_fp > (long long)ry * 256) y_fp = (long long)ry * 256;
+
+    *out_x = (int)(x_fp >> 8);
+    *out_y = (int)(y_fp >> 8);
+    frac_x = (unsigned)(x_fp & 0xFF);
+    frac_y = (unsigned)(y_fp & 0xFF);
+
+    /* Tap por eje: el signo de la marcha, salvo en el borde donde el
+     * siguiente píxel se saldría del mapa de bits (la guarda `step < span`
+     * de antes, reexpresada como posición contra la holgura). */
+    tap_x = 0;
+    if (dx > 0 && *out_x < rx) tap_x = 1;
+    else if (dx < 0 && *out_x > 0) tap_x = -1;
+    tap_y = 0;
+    if (dy > 0 && *out_y < ry) tap_y = 1;
+    else if (dy < 0 && *out_y > 0) tap_y = -1;
+
+    /* Sólo el eje dominante se compone subpíxel (ver comentario de arriba);
+     * el otro se deja en píxel entero, tap 0. */
+    if (adx >= ady)
+    {
+        *out_frac = frac_x;
+        *out_tx = tap_x;
+        *out_ty = 0;
     }
     else
-        *out_x = 0;
-
-    if (ry > 0)
     {
-        int span = MIN(run, ry);
-        int base = (ry - span) / 2;
-        int step = MIN(d, span);
-
-        *out_y = base + (pan_dy > 0 ? step : span - step);
-        if (step < span)
-            *out_ty = pan_dy > 0 ? 1 : -1;
+        *out_frac = frac_y;
+        *out_tx = 0;
+        *out_ty = tap_y;
     }
-    else
-        *out_y = 0;
 }
 
 /* ¿La deriva ha avanzado lo bastante para que repintar cambie algo?
@@ -616,13 +660,10 @@ static bool pan_wants_redraw(void)
 #endif
 }
 
-/* Pick one of the four diagonals for the cover that is coming in. */
-static void pan_pick_diagonal(void)
+/* Sortea una de las 8 direcciones para la carátula que entra. */
+static void pan_pick_direction(void)
 {
-    int r = rand();
-
-    pan_dx = (r & 1) ? 1 : -1;
-    pan_dy = (r & 2) ? 1 : -1;
+    pan_dir = rand() % 8;
 }
 
 /* ---- public: tick / animating ----------------------------------------- */
@@ -756,7 +797,7 @@ bool apple2026_pane_tick(void)
             {
                 music_state = MUSIC_FADING;
                 fade_start_tick = current_tick;
-                pan_pick_diagonal();
+                pan_pick_direction();
                 prev_slot = -1;            /* nothing to dissolve from */
                 pan_last_drawn_x = pan_last_drawn_y = -1;
                 return true;
@@ -789,7 +830,7 @@ bool apple2026_pane_tick(void)
                 cover_slot_ready[cover_front ^ 1] = false;
                 music_state = MUSIC_FADING;
                 fade_start_tick = current_tick;
-                pan_pick_diagonal();
+                pan_pick_direction();
                 pan_last_drawn_x = pan_last_drawn_y = -1;
                 return true;
             }
