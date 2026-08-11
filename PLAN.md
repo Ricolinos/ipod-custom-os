@@ -79,7 +79,7 @@ Destilado de los comportamientos observados (§578-615 del estudio):
 | A-1 | Deriva: 8 direcciones, 7 s/carátula, fade <0,5 s | **HECHO — H-27, 2026-08-10.** 7 s, 8 direcciones (`apple2026_pane.c:77`, `PAN_DIRECTIONS` `:166-176`) | Cerrado. Pendiente aparato: ver las 8 rodando con disco real |
 | A-2 | La hora casi nunca en barra; título centrado en pantallas propias | Reloj siempre visible; título siempre a la izquierda | **Decidido (2026-08-10)**: gramática original — la hora casi nunca se muestra. Revelado bajo demanda: mantener **SELECT 5 s** en pantallas donde no interfiera con otra función, y entonces sí se muestra. Falta implementar (F-A2): decidir en qué pantallas cabe sin chocar con bindings existentes (SELECT ya cicla modos en Reproduciendo con pulsación corta, y SELECT+RIGHT/LEFT ya es el cambio de modo HID en la pantalla de USB — contextos distintos, pero hay que auditar caso por caso) |
 | A-3 | Pase también en Videos y Fotos | Tiles estáticos (`pane_asset_name`) | **Extender el escáner del panel** a `/Videos` y `/Fotos` con pools propios; misma maquinaria de H-16/H-27. Coste RAM: reutilizar los MISMOS dos slots, cambiando la raíz según el menú. Separado de F-A1 por tamaño — es una característica nueva, no una recalibración |
-| A-4 | Transiciones (empuje / héroe / cortina) | No existen: Rockbox pinta en seco | **La obra grande.** Ver plan de fases abajo. Empezar por la más barata (empuje del panel izquierdo) y validar consumo en aparato ANTES de seguir. **Autorizado (2026-08-10)**: Ricardo confirmó la prueba de consumo en su iPod cuando llegue el momento |
+| A-4 | Transiciones (empuje / héroe / cortina) | **Empuje: prueba de concepto hecha (H-28), acotada a Música→Canciones.** Héroe y cortina siguen sin existir. | Ver H-28 y la sección F-A4 de abajo. Extender el empuje a las otras 5 vistas de Música es el siguiente paso natural; héroe y cortina siguen pendientes de diseño |
 | A-5 | Búsqueda conserva el texto al salir | El búfer de texto de `apple2026_kbd.c` hay que verificarlo | **Verificar en simulador** y, si se pierde, hacerlo `static` con expiración |
 | A-6 | Cronómetro con vueltas, registro con fecha, y transición héroe al salir | Existe `stopwatch.rock` de serie (UI Rockbox cruda) | **Reescribir en C como pantalla de la capa** (patrón `apple2026_lyrics`) |
 | A-7 | Bloqueo de pantalla: candado héroe + 4 dígitos con rueda | Assets a medias (`apple2026_lockscreen_assets.py`); sin pantalla | **Terminar**: pantalla de 4 dígitos, candado persistente en barra |
@@ -106,10 +106,12 @@ Destilado de los comportamientos observados (§578-615 del estudio):
   centrados en pantallas propias, candado/play-pausa según la regla del
   original (la D2 de AUDIT.md ya apunta ahí).
 - **F-A3 · Búsqueda con memoria + Acerca de (1 sesión).** A-5 + A-8.
-- **F-A4 · Transiciones, prueba de concepto (2-3 sesiones + aparato,
-  AUTORIZADO).** A-4 empezando por el EMPUJE (la más barata). Puerta
-  `lcd_active()`, boost con histéresis, y medir consumo en el aparato antes
-  de aprobar la familia héroe.
+- **F-A4 · Transiciones.** A-4 empezando por el EMPUJE (la más barata).
+  **Prueba de concepto hecha (2026-08-10, H-28)**: Música → Canciones,
+  matemática verificada, sin tocar `tree.c`. Falta: puerta `lcd_active()`
+  (todavía no la lleva), extender a las otras 5 vistas del submenú, y
+  **medir consumo en el aparato antes de aprobar la familia héroe** —
+  autorizado por Ricardo, pendiente de ejecutar.
 - **F-A5 · Extras vivos (2-3 sesiones).** A-6 cronómetro → A-7 bloqueo →
   A-14 alarmas/reloj mundial.
 - **F-A6 · Vivienda tardía.** A-9 (objetos vivos), A-10 (menú configurable

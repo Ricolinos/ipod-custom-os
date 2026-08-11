@@ -12,6 +12,7 @@ apple2026_kbd.c
 apple2026_lyrics.c
 apple2026_pl_picker.c
 apple2026_shell.c
+apple2026_transition.c
 bookmark.c
 core_keymap.c
 debug_menu.c

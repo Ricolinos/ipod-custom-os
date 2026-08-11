@@ -41,6 +41,7 @@
 #include "shortcuts.h"
 #include "dir.h"
 #include "apple2026_pane.h"
+#include "apple2026_transition.h"
 
 #ifdef HAVE_HOTSWAP
 #include "storage.h"
@@ -967,6 +968,12 @@ MAKE_MENU(extras_submenu, ID2P(LANG_EXTRAS), 0, Icon_S_Extras,
  * back on the Music menu like the original iPod, split pane intact. */
 static int db_view_fn(void *param)
 {
+    /* F-A4 (prueba de concepto, PLAN.md): sólo Canciones (param 0) por
+     * ahora, para validar el mecanismo antes de extenderlo a las demás
+     * vistas de este submenú (Artistas, Álbumes, Géneros, Buscar...), que
+     * son la misma transición split→completa desde el mismo sitio. */
+    if ((intptr_t)param == 0)
+        apple2026_transition_arm_push();
     tagtree_request_initial_entry((intptr_t)param);
     return a26_inline_browse(GO_TO_DBBROWSER);
 }

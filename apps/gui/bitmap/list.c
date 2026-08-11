@@ -46,6 +46,7 @@
 #include "string-extra.h"
 #include "apple2026_shell.h"
 #include "apple2026_pane.h"
+#include "apple2026_transition.h"
 #if (MODEL_NUMBER == 5) || (MODEL_NUMBER == 71)
 /* Reference to the dense font loaded in apps/gui/list.c */
 extern int apple2026_dense_font_id;
@@ -921,6 +922,11 @@ static void list_draw_impl(struct screen *display, struct gui_synclist *list)
     /* Apple2026 split root menu: paint the right-half preview pane in the
      * same frame as the list, so full clears never leave it blank. */
     apple2026_pane_draw(display, parent, list);
+    /* F-A4 (prueba de concepto): si hay una transición de empuje armada,
+     * ESTE redibujo es su destino recién dibujado — lo anima aquí mismo,
+     * antes de que nada más lo repinte.  Coste cero cuando no hay ninguna
+     * armada (la inmensa mayoría de los redibujos). */
+    apple2026_transition_pump(display);
     display->set_viewport(parent);
     if (list_need_full_update() | skin_render_pending_update())
     {
